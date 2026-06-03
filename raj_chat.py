@@ -573,13 +573,16 @@ class RajChatApp(ctk.CTk):
                         date_text = dt.strftime("%d %b")
                 except:
                     pass
+            elif status == "NOT_CREATED":
+                date_text = "Not scheduled"
             else:
                 base_date = datetime.now()
                 projected = base_date + timedelta(days=day_num)
                 date_text = projected.strftime("%d %b")
             if date_text:
+                color = "#484f58" if status == "NOT_CREATED" else "#4a5a6a"
                 ctk.CTkLabel(day_frame, text=f"  {date_text}", font=("Segoe UI", 7),
-                            text_color="#4a5a6a").pack(side="left")
+                            text_color=color).pack(side="left")
 
             ctk.CTkLabel(pill, text=f"{sent}/{total}", font=("Segoe UI", 13, "bold"),
                         text_color="white").pack(anchor="w", padx=6, pady=(0, 0))
@@ -612,8 +615,8 @@ class RajChatApp(ctk.CTk):
             btn_frame.grid_columnconfigure(1, weight=1)
             btn_frame.pack_propagate(False)
 
-            # FIX: COMPLETED shows no action button
-            if actual_status == "COMPLETED":
+            # FIX: COMPLETED and NOT_CREATED show no action button
+            if actual_status in ["COMPLETED", "NOT_CREATED"]:
                 action_text = None
             elif actual_status in ["DRAFT", "SCHEDULED", "PAUSED"]:
                 action_text, action_color = "▶", "#0d9b8a"
@@ -2653,8 +2656,8 @@ class RajChatApp(ctk.CTk):
                 time.sleep(30)
                 try:
                     if hasattr(self, 'views') and "dashboard" in self.views:
-                        # Only refresh if dashboard is visible
-                        pass
+                        # Auto-refresh dashboard every 30 seconds
+                        self._refresh_dashboard()
                 except:
                     pass
         threading.Thread(target=loop, daemon=True).start()

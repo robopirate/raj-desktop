@@ -398,7 +398,16 @@ class CampaignEngine:
         next_name = f"{base_name}-D{next_day}"
 
         # Schedule for +2 days at 10 AM
-        scheduled = (datetime.now() + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
+        # Schedule for +2 days at 10 AM (from completion time, not now)
+        completed_at = completed_batch.get('completed_at')
+        if completed_at:
+            try:
+                base_dt = datetime.fromisoformat(completed_at)
+            except:
+                base_dt = datetime.now()
+        else:
+            base_dt = datetime.now()
+        scheduled = (base_dt + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
 
         # Get parent_batch_id (link to original batch)
         parent_batch_id = completed_batch.get("parent_batch_id") or completed_batch["id"]
@@ -509,6 +518,8 @@ class CampaignEngine:
             except:
                 skipped += 1
         self.db.commit()
+                    # Count as skipped in batch totals for accurate pipeline display
+                    self._log(f"[Batch {batch_id}] Blacklisted skipped counted: {rec_email}")
         self._log(f"Imported {imported} leads, skipped {skipped}")
         return imported, skipped
 
