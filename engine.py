@@ -125,35 +125,34 @@ MORNING_HOUR = 8
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;">
-<tr><td align="center" style="padding:20px 0;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-<tr><td style="background:linear-gradient(135deg,#0D9B8A,#0BC5B0);padding:20px;text-align:center;">
-<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="RoboPirate" style="height:50px;margin-bottom:10px;">
-<h1 style="color:#ffffff;margin:0;font-size:22px;">{title}</h1>
-</td></tr>
-<tr><td style="padding:30px;color:#333;line-height:1.6;">
-{content}
-</td></tr>
-<tr><td style="background:#1A6B6B;padding:20px;text-align:center;">
-<p style="color:#ffffff;margin:0 0 10px;font-size:14px;">
-<strong style="color:#F5A623;">85+</strong> Labs | 
-<strong style="color:#F5A623;">65K+</strong> Students | 
-<strong style="color:#F5A623;">6</strong> States
-</p>
-<a href="https://wa.me/919136899925" style="display:inline-block;background:#E8352A;color:#ffffff;padding:12px 30px;border-radius:25px;text-decoration:none;font-weight:bold;">Chat on WhatsApp</a>
-</td></tr>
-<tr><td style="background:#0a1a1a;padding:15px;text-align:center;font-size:12px;color:#888;">
-&copy; 2026 RoboPirate | WE Smart Lab | <a href="https://robopirate.in" style="color:#0D9B8A;">robopirate.in</a>
-</td></tr>
-</table>
-</td></tr>
-</table>
+<head>
+<meta charset="UTF-8">
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#0A1628;color:#E6EDF3;padding:20px;margin:0}
+.container{max-width:600px;margin:0 auto;background:#111D2E;border-radius:12px;padding:30px;border:1px solid #2a2a4e}
+.header{text-align:center;border-bottom:2px solid #59ced9;padding-bottom:15px;margin-bottom:20px}
+.logo{font-size:28px;font-weight:bold;color:#59ced9}
+.sub{color:#8B949E;font-size:12px}
+.content{line-height:1.6;font-size:14px}
+.footer{margin-top:30px;padding-top:15px;border-top:1px solid #2a2a4e;text-align:center;color:#8B949E;font-size:11px}
+.cta{display:inline-block;background:#59ced9;color:#0A1628;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin:15px 0}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="logo">🤖 RAJ by RoboPirate</div>
+<div class="sub">Smart Labs for Smart Schools</div>
+</div>
+<div class="content">
+{body}
+</div>
+<div class="footer">
+© 2026 RoboPirate · robopirate.in · Unsubscribe: reply STOP
+</div>
+</div>
 </body>
 </html>"""
-
 
 @dataclass
 class Recipient:
@@ -165,14 +164,12 @@ class Recipient:
     extra_json: str
     imported_at: str
 
-
 @dataclass
 class BatchResult:
     queued: int
     sent: int = 0
     drafted: int = 0
     error: Optional[str] = None
-
 
 class CampaignEngine:
     def __init__(self, db: Database, gmail: GmailClient, ollama_url="http://localhost:11434"):
@@ -292,7 +289,7 @@ class CampaignEngine:
             # 🔒 BATCH SLOT LOCK: Only process one batch at a time
             if hasattr(self, '_last_batch_process_time') and self._last_batch_process_time:
                 if (now - self._last_batch_process_time).total_seconds() < 2:
-                    return  # Wait 2 seconds between batch sends
+                    return # Wait 2 seconds between batch sends
             self._last_batch_process_time = now
 
             for batch_row in running_batches:
@@ -321,7 +318,7 @@ class CampaignEngine:
 
                 # Check if enough time passed since last send
                 last_send = self.db.execute("""
-                    SELECT MAX(sent_at) FROM batch_recipients 
+                    SELECT MAX(sent_at) FROM batch_recipients
                     WHERE batch_id = ? AND status = 'sent'
                 """, (batch_id,)).fetchone()[0]
 
@@ -329,21 +326,21 @@ class CampaignEngine:
                     last_dt = datetime.fromisoformat(last_send)
                     minutes_since = (now - last_dt).total_seconds() / 60
                     if minutes_since < stagger:
-                        continue  # Wait longer
+                        continue # Wait longer
 
                 # BLACKLIST CHECK: Skip if email was blacklisted after Day 1
-                rec_email = next_recipient[2]  # email is 3rd column in SELECT
+                rec_email = next_recipient[2] # email is 3rd column in SELECT
                 if self.db.blacklist_has(rec_email):
                     self._log(f"[Batch {batch_id}] SKIPPING blacklisted: {rec_email}")
                     self.db.execute("""
-                        UPDATE batch_recipients SET status='skipped' 
+                        UPDATE batch_recipients SET status='skipped'
                         WHERE batch_id=? AND recipient_id=?
                     """, (batch_id, next_recipient[0]))
                     self.db.commit()
                     continue
 
                 # 🚫 SUNDAY FILTER: Skip sends on Sunday
-                if now.weekday() == 6:  # Sunday
+                if now.weekday() == 6: # Sunday
                     self._log(f"[Batch {batch_id}] SUNDAY — skipping send for {rec_email}, will resume Monday")
                     continue
 
@@ -353,7 +350,7 @@ class CampaignEngine:
                 if not subj:
                     self._log(f"[Batch {batch_id}] No template for {rec.email} Day {day_offset}, skipping")
                     self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
-                                    (batch_id, rec.id))
+                        (batch_id, rec.id))
                     continue
 
                 try:
@@ -367,7 +364,7 @@ class CampaignEngine:
                 except Exception as e:
                     self._log(f"[Batch {batch_id}] Failed to send to {rec.email}: {e}")
                     self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
-                                    (batch_id, rec.id))
+                        (batch_id, rec.id))
 
         except Exception as e:
             self._log(f"DEBUG ERROR in _process_running_batches: {e}")
@@ -397,7 +394,6 @@ class CampaignEngine:
         base_name = parent_name.split("-D")[0] if "-D" in parent_name else parent_name
         next_name = f"{base_name}-D{next_day}"
 
-        # Schedule for +2 days at 10 AM
         # Schedule for +2 days at 10 AM (from completion time, not now)
         completed_at = completed_batch.get('completed_at')
         if completed_at:
@@ -433,7 +429,7 @@ class CampaignEngine:
     def _check_auto_start_scheduled_batches(self, now: datetime):
         """Auto-start scheduled batches when their time arrives."""
         scheduled = self.db.execute("""
-            SELECT * FROM batches 
+            SELECT * FROM batches
             WHERE status='scheduled' AND scheduled_at IS NOT NULL
         """).fetchall()
 
@@ -506,20 +502,21 @@ class CampaignEngine:
             org = str(row_dict.get(mapping.get("org", "Organization"), "")).strip()
 
             if not email or "@" not in email:
-                skipped += 1; continue
+                skipped += 1
+                continue
             if self.db.blacklist_has(email):
-                skipped += 1; continue
+                skipped += 1
+                continue
 
             extra = {k: v for k, v in row_dict.items() if k not in mapping.values()}
             try:
                 self.db.execute("INSERT INTO recipients (sequence_id, email, name, org, extra_json) VALUES (?, ?, ?, ?, ?)",
-                                (sequence_id, email, name, org, json.dumps(extra)))
+                    (sequence_id, email, name, org, json.dumps(extra)))
                 imported += 1
             except:
                 skipped += 1
+
         self.db.commit()
-                    # Count as skipped in batch totals for accurate pipeline display
-                    self._log(f"[Batch {batch_id}] Blacklisted skipped counted: {rec_email}")
         self._log(f"Imported {imported} leads, skipped {skipped}")
         return imported, skipped
 
@@ -681,7 +678,7 @@ class CampaignEngine:
         content = self._generate_content(seq_id, day, assets)
         subject = self._generate_subject(seq_id, day)
 
-        html = HTML_TEMPLATE.format(title=subject, content=content)
+        html = HTML_TEMPLATE.format(body=content)
 
         return {
             "subject": subject,
@@ -718,18 +715,17 @@ class CampaignEngine:
 
     def _generate_school_content(self, day: int, assets: dict) -> str:
         contents = {
-            1: f"""<p>Dear Principal,</p>
+            1: f"""
+<p>Dear Principal,</p>
 <p>Imagine your students building robots, coding drones, and exploring AI — all within your school walls. For the 2026-27 academic year, this is no longer optional.</p>
-<p><strong>WE Smart Lab</strong> by RoboPirate brings cutting-edge STEAM/AI education to Indian schools. We're already in <strong style="color:#F5A623;">85+ labs</strong> across <strong style="color:#F5A623;">6 states</strong>, impacting <strong style="color:#F5A623;">65,000+ students</strong>.</p>
+<p><strong>WE Smart Lab</strong> by RoboPirate brings cutting-edge STEAM/AI education to Indian schools. We're already in <strong>85+ labs</strong> across <strong>6 states</strong>, impacting <strong>65,000+ students</strong>.</p>
 <p>Everything is included — lab setup, 120+ DIY kits, full-time trained teacher, NEP 2020 aligned curriculum, LMS portal, and ongoing support. Schools simply open the door; we handle the rest.</p>
-<p style="margin:20px 0;"><a href="{assets.get('brochure', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 Download WSL Brochure</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_wsl', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ Watch WSL Overview Video</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_abp', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ ABP Majha Media Coverage</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
 <p>Would you be open to a 15-minute call to discuss how WSL can transform your school?</p>
-<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>""",
+<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
+""",
 
-            3: f"""<p>Dear Principal,</p>
+            3: f"""
+<p>Dear Principal,</p>
 <p>With NEP 2020 now in full implementation and the 2026-27 academic year approaching, schools across India are racing to comply with experiential learning and coding mandates from Class 6.</p>
 <p><strong>The question is:</strong> Will your school lead this change or play catch-up?</p>
 <p>WSL provides:</p>
@@ -739,67 +735,47 @@ class CampaignEngine:
 <li>Teacher training programs</li>
 <li>Progress tracking dashboards</li>
 </ul>
-<p style="margin:20px 0;"><a href="{assets.get('video_abp', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ ABP Majha Coverage on NEP & STEM</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
 <p>Let's discuss how your school can be NEP-ready this academic year.</p>
-<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>""",
+<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
+""",
 
-            5: f"""<p>Dear Principal,</p>
+            5: f"""
+<p>Dear Principal,</p>
 <p>Let me share a story that might resonate with you.</p>
 <p><strong>Veer Baji Prabhu Vidyalay</strong> — a school much like yours — partnered with us in 2024-25 through our WE Smart Lab program. Today, their students have built 12+ working robots, participated in state-level competitions, and seen measurable improvement in science engagement.</p>
-<p>See the full impact data, photos, and videos from their lab in the links below. Every result is documented and verified.</p>
-<p style="margin:20px 0;"><a href="{assets.get('report_vbv', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 Read VBV Student Progress Report</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_star', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ Star News Marathi Coverage</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('folder_vbv', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">📁 View VBV Event Photos & Videos</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
 <p>Your school could be our next success story.</p>
-<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>""",
+<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
+""",
 
-            7: f"""<p>Dear Principal,</p>
+            7: f"""
+<p>Dear Principal,</p>
 <p>You're not alone in this journey. <strong>85+ schools</strong> across Maharashtra, Karnataka, Gujarat, and more have already chosen WSL.</p>
-<p>Here's what principals are saying:</p>
-<blockquote style="border-left:4px solid #0D9B8A;padding-left:15px;color:#555;">
-"WSL transformed how our students engage with science. The hands-on approach is exactly what NEP envisioned."<br>
--- Principal, Pune District
-</blockquote>
-<p style="margin:20px 0;"><a href="{assets.get('profile', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 Download RoboPirate Company Profile</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_abp', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ ABP Majha Coverage</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_star', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ Star News Marathi</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
 <p>Ready to join them?</p>
-<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>""",
+<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
+""",
 
-            10: f"""<p>Dear Principal,</p>
+            10: f"""
+<p>Dear Principal,</p>
 <p>This is my final email for the 2026-27 academic year planning. With admissions season approaching, I don't want your students to miss this opportunity.</p>
-<p>We've prepared flexible WE Smart Lab subscription plans for schools of all sizes:</p>
-<ul>
-<li><strong>WSL20:</strong> 400 students | 1 trainer | 1 lab | ~Rs.8.2L/year</li>
-<li><strong>WSL30:</strong> 600 students | 1 trainer | 1 lab | ~Rs.10.2L/year</li>
-<li><strong>WSL30 V.2:</strong> 800 students | 2 trainers | 1 lab | ~Rs.12.8L/year</li>
-</ul>
-<p>Every plan includes: complete lab setup, 120+ DIY kits, full-time trained teacher, NEP 2020 + NCF aligned curriculum, LMS portal, assessments, and ongoing support.</p>
-<p><a href="{assets.get('plans', '#')}" style="color:#0D9B8A;">📄 View WE Smart Lab Subscription Plans</a></p>
-<p>Or explore everything at <a href="https://robopirate.in" style="color:#0D9B8A;">robopirate.in</a></p>
+<p>We've prepared flexible WE Smart Lab subscription plans for schools of all sizes. Every plan includes: complete lab setup, 120+ DIY kits, full-time trained teacher, NEP 2020 + NCF aligned curriculum, LMS portal, assessments, and ongoing support.</p>
 <p>If now isn't the right time, I understand. But if you're even slightly curious, let's have a 10-minute conversation. No obligation.</p>
-<p>Click the WhatsApp button below or reply to this email.</p>
-<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>"""
+<p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
+"""
         }
         return contents.get(day, f"<p>Template content for Day {day}</p>")
 
     def _generate_csr_content(self, day: int, assets: dict) -> str:
         contents = {
-            1: f"""<p>Dear CSR Head,</p>
+            1: f"""
+<p>Dear CSR Head,</p>
 <p>Your CSR budget has the power to change <strong>thousands</strong> of young lives.</p>
-<p>RoboPirate's <strong>WE Smart Lab</strong> sets up fully managed STEAM/AI Smart Labs inside schools across India. As of May 2026, we've reached <strong style="color:#F5A623;">65,000+ students</strong> across <strong style="color:#F5A623;">6 states</strong> with <strong style="color:#F5A623;">85+ labs</strong> delivered through strategic CSR partnerships.</p>
-<p>Each lab includes complete setup, 120+ DIY kits (robotics, coding, AI, ML, IoT, 3D printing), a full-time trained on-site teacher, NEP 2020 + NCF aligned curriculum, LMS portal with weekly assessments, and ongoing technical support.</p>
-<p style="margin:20px 0;"><a href="{assets.get('report_sangli1', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 Sangli Impact Report (Phase 1)</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_abp', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ ABP Majha Coverage</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_sangli', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ Sangli 15-Day Workshop Video</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
+<p>RoboPirate's <strong>WE Smart Lab</strong> sets up fully managed STEAM/AI Smart Labs inside schools across India. As of May 2026, we've reached <strong>65,000+ students</strong> across <strong>6 states</strong> with <strong>85+ labs</strong> delivered through strategic CSR partnerships.</p>
 <p>Would you be open to exploring how your CSR mandate can create measurable STEM impact?</p>
-<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>""",
+<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
+""",
 
-            3: f"""<p>Dear CSR Head,</p>
+            3: f"""
+<p>Dear CSR Head,</p>
 <p>Schedule VII of the Companies Act explicitly supports:</p>
 <ul>
 <li>Education (item ii)</li>
@@ -807,13 +783,11 @@ class CampaignEngine:
 <li>Rural development (item xii)</li>
 </ul>
 <p>WSL aligns perfectly with all three.</p>
-<p style="margin:20px 0;"><a href="{assets.get('report_sangli1', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 Sangli Impact Report</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('brochure', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">📄 WSL Bifold Brochure</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
-<p>Our programs are designed for maximum social return on investment (SROI) with full compliance documentation.</p>
-<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>""",
+<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
+""",
 
-            5: f"""<p>Dear CSR Head,</p>
+            5: f"""
+<p>Dear CSR Head,</p>
 <p>Numbers tell stories better than words.</p>
 <p><strong>Sangli District Phase 2 Results — WE Smart Lab Impact (Delivered 2025-26):</strong></p>
 <ul>
@@ -823,16 +797,12 @@ class CampaignEngine:
 <li>3 students won state-level competitions</li>
 <li>1.5L+ student projects completed across all programs</li>
 </ul>
-<p>All data is from real, on-ground delivery. Reports, photos, and videos are available below.</p>
-<p style="margin:20px 0;"><a href="{assets.get('report_sangli2', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 Sangli Report Phase 2</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('report_vbv', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">📄 VBV Student Progress Report</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_star', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ Star News Marathi Coverage</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('folder_sangli', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">📁 Sangli Event Photos & Videos</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
 <p>This could be your company's legacy.</p>
-<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>""",
+<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
+""",
 
-            7: f"""<p>Dear CSR Head,</p>
+            7: f"""
+<p>Dear CSR Head,</p>
 <p>FY 2026-27 budget season is here — May 2026 is when CSR allocations are locked. Where will your CSR rupees create the most impact?</p>
 <p>Consider the WE Smart Lab model:</p>
 <ul>
@@ -842,25 +812,17 @@ class CampaignEngine:
 <li>Tax benefits: 100% deductible under Companies Act 2013 Schedule VII</li>
 <li>Full compliance documentation + quarterly impact reports included</li>
 </ul>
-<p>View detailed plans at <a href="https://robopirate.in" style="color:#0D9B8A;">robopirate.in</a> or download the subscription PDF below.</p>
-<p style="margin:20px 0;"><a href="{assets.get('plans', '#')}" style="display:inline-block;background:#0D9B8A;color:#ffffff;padding:12px 25px;border-radius:25px;text-decoration:none;font-weight:bold;">📄 WE Smart Lab Subscription Plans</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_wsl', '#')}" style="display:inline-block;background:#E8352A;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Overview Video</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_abp', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ ABP Majha Coverage</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_sangli', '#')}" style="display:inline-block;background:#1A6B6B;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ Sangli 15-Day Workshop</a></p>
-<p style="margin:15px 0;"><a href="{assets.get('video_ig', '#')}" style="display:inline-block;background:#F5A623;color:#ffffff;padding:10px 20px;border-radius:20px;text-decoration:none;">▶ WSL Instagram Reel</a></p>
 <p>Let's discuss a pilot program for Q1.</p>
-<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>""",
+<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
+""",
 
-            10: f"""<p>Dear CSR Head,</p>
+            10: f"""
+<p>Dear CSR Head,</p>
 <p>This is my final outreach for FY 2026-27 planning. With budgets being locked in May 2026, I respect your time and decision.</p>
 <p>If you've been considering STEM education as part of your CSR strategy, let's not let another quarter pass.</p>
-<p>Download our full credentials:</p>
-<p><a href="{assets.get('profile', '#')}" style="color:#0D9B8A;">📄 RoboPirate Company Profile</a></p>
-<p><a href="{assets.get('kits', '#')}" style="color:#0D9B8A;">📦 Kits In The Box — Product Catalog</a></p>
-<p>Learn more at <a href="https://robopirate.in" style="color:#0D9B8A;">robopirate.in</a> or message us directly on WhatsApp below.</p>
 <p>I'm available for a 20-minute presentation at your office or via video call. No pitch, just facts and possibilities.</p>
-<p>Click the WhatsApp button below or simply reply "Interested" and I'll send available slots.</p>
-<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>"""
+<p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
+"""
         }
         return contents.get(day, f"<p>Template content for Day {day}</p>")
 
@@ -891,22 +853,22 @@ class CampaignEngine:
 
         idx = cfg["days"].index(day)
         if idx == 0:
-            sql = """SELECT r.* FROM recipients r WHERE r.sequence_id=? 
-                     AND NOT EXISTS (SELECT 1 FROM sends s WHERE s.recipient_id=r.id)
-                     AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
-                     ORDER BY r.id"""
+            sql = """SELECT r.* FROM recipients r WHERE r.sequence_id=?
+                AND NOT EXISTS (SELECT 1 FROM sends s WHERE s.recipient_id=r.id)
+                AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
+                ORDER BY r.id"""
             params = (sequence_id,)
         else:
             prev = cfg["days"][idx - 1]
             gap = day - prev
             cutoff = (datetime.now() - timedelta(days=gap)).isoformat()
             sql = """SELECT r.* FROM recipients r
-                     JOIN sends s ON s.recipient_id=r.id AND s.day=? AND s.status IN ('sent','drafted')
-                     WHERE r.sequence_id=? AND s.created_at<=?
-                     AND NOT EXISTS (SELECT 1 FROM sends s2 WHERE s2.recipient_id=r.id AND s2.day=?)
-                     AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
-                     AND NOT EXISTS (SELECT 1 FROM sends s3 WHERE s3.recipient_id=r.id AND s3.status='replied')
-                     ORDER BY s.created_at"""
+                JOIN sends s ON s.recipient_id=r.id AND s.day=? AND s.status IN ('sent','drafted')
+                WHERE r.sequence_id=? AND s.created_at<=?
+                AND NOT EXISTS (SELECT 1 FROM sends s2 WHERE s2.recipient_id=r.id AND s2.day=?)
+                AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
+                AND NOT EXISTS (SELECT 1 FROM sends s3 WHERE s3.recipient_id=r.id AND s3.status='replied')
+                ORDER BY s.created_at"""
             params = (prev, sequence_id, cutoff, day)
 
         rows = self.db.execute(sql, params).fetchall()
@@ -999,7 +961,6 @@ class CampaignEngine:
                             overdue = max(0, (datetime.now() - expected).days)
                     catch.append({"sequence": seq_id, "day": day, "count": len(due), "overdue_by_days": overdue})
         return catch
-
 
     # -- Batch Pipeline --
     def get_batch_pipeline(self, batch_id: int) -> dict:
@@ -1213,7 +1174,6 @@ class CampaignEngine:
             except:
                 self._log(f"Could not delete bounce email {msg_id}: {e}")
 
-
     def deep_bounce_scan(self, days: int = 30) -> dict:
         """Deep scan inbox for bounce emails over last N days. Only blacklists TRUE bounces."""
         results = {'found': 0, 'blacklisted': 0, 'protected': 0, 'details': []}
@@ -1271,7 +1231,7 @@ class CampaignEngine:
                         continue
 
                     bounced_email = bounced_email.lower().strip()
-                    bounced_email = re.sub(r'[.,;:!?")\'\'\]]+$', '', bounced_email)
+                    bounced_email = re.sub(r"[.,;:!?\'\"]+$", "", bounced_email)
 
                     if not re.match(r'^[\w.-]+@[\w.-]+\.\w+$', bounced_email):
                         continue
@@ -1400,16 +1360,16 @@ class CampaignEngine:
     def _extract_original_sender(self, subject: str, body: str, msg_or_full: dict = None) -> Optional[str]:
         """Extract the original sender email from an auto-reply or bounce message."""
         patterns = [
-            r"Original-From:\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"From:\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"Sender:\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"Reply-To:\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"was sent by\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"sent by\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"original message was sent by\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"your message to\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"email sent to\s*<?([\w.+-]+@[\w.-]+)>?",
-            r"message to\s*<?([\w.+-]+@[\w.-]+)>?\s*was",
+            r"Original-From:\s*?",
+            r"From:\s*?",
+            r"Sender:\s*?",
+            r"Reply-To:\s*?",
+            r"was sent by\s*?",
+            r"sent by\s*?",
+            r"original message was sent by\s*?",
+            r"your message to\s*?",
+            r"email sent to\s*?",
+            r"message to\s*?\s*was",
         ]
 
         # Try body first, then full message body, then snippet
@@ -1428,7 +1388,7 @@ class CampaignEngine:
                     if "@" in email and "mailer-daemon" not in email and "postmaster" not in email:
                         return email
             # Try To: field
-            to_match = re.search(r"To:\s*<?([\w.+-]+@[\w.-]+)>?", text, re.IGNORECASE)
+            to_match = re.search(r"To:\s*?", text, re.IGNORECASE)
             if to_match:
                 email = to_match.group(1).strip().lower()
                 if "@" in email and "mailer-daemon" not in email and "postmaster" not in email:
@@ -1442,50 +1402,50 @@ class CampaignEngine:
         addrs = []
 
         # Pattern 1: Gmail DSN format: Final-Recipient: rfc822; email@domain.com (with space)
-        for m in re.finditer(r"Final-Recipient:\s*rfc822;\s*<?([\w.+-]+@[\w.-]+)>?", text, re.I): 
+        for m in re.finditer(r"Final-Recipient:\s*rfc822;\s*?", text, re.I):
             addrs.append(m.group(1))
 
         # Pattern 1b: No space after semicolon: Final-Recipient: rfc822;email@domain.com
-        for m in re.finditer(r"Final-Recipient:\s*rfc822;<?([\w.+-]+@[\w.-]+)>?", text, re.I): 
+        for m in re.finditer(r"Final-Recipient:\s*rfc822;?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
         # Pattern 2: Generic Final-Recipient format
-        for m in re.finditer(r"Final-Recipient:[^;]*;\s*<?([\w.+-]+@[\w.-]+)>?", text, re.I): 
+        for m in re.finditer(r"Final-Recipient:[^;]*;\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
         # Pattern 3: Original-Recipient
-        for m in re.finditer(r"Original-Recipient:\s*rfc822;\s*<?([\w.+-]+@[\w.-]+)>?", text, re.I):
+        for m in re.finditer(r"Original-Recipient:\s*rfc822;\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
         # Pattern 4: To: field in original message
-        for m in re.finditer(r"To:\s*<?([\w.+-]+@[\w.-]+)>?", text, re.I):
+        for m in re.finditer(r"To:\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
         # Pattern 5: "Your message to email couldn't be delivered"
-        for m in re.finditer(r"Your message to\s*<?([\w.+-]+@[\w.-]+)>?\s*couldn'?t be delivered", text, re.I):
+        for m in re.finditer(r"Your message to\s*?\s*couldn'?t be delivered", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 5b: "message to <email> was undeliverable"
-        for m in re.finditer(r"message to\s*<?([\w.+-]+@[\w.-]+)>?\s*was undeliverable", text, re.I):
+        # Pattern 5b: "message to  was undeliverable"
+        for m in re.finditer(r"message to\s*?\s*was undeliverable", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
         # Pattern 5c: "was not delivered to" / "couldn't be delivered to"
-        for m in re.finditer(r"(?:was not delivered to|wasn'?t delivered to|could not be delivered to|couldn't be delivered to|failed to deliver to)\s*<?([\w.+-]+@[\w.-]+)>?", text, re.I):
+        for m in re.finditer(r"(?:was not delivered to|wasn'?t delivered to|could not be delivered to|couldn't be delivered to|failed to deliver to)\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
         # Pattern 6: "Address not found" followed by email mention
-        for m in re.finditer(r"Address not found.*?(?:to|for)\s*<?([\w.+-]+@[\w.-]+)>?", text, re.I | re.DOTALL):
+        for m in re.finditer(r"Address not found.*?(?:to|for)\s*?", text, re.I | re.DOTALL):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 7: Postfix/Exim format: <email> on its own line, or email: error
+        # Pattern 7: Postfix/Exim format:  on its own line, or email: error
         for m in re.finditer(r"^\s*<([\w.+-]+@[\w.-]+)>:?\s*$", text, re.I | re.M):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
@@ -1599,7 +1559,7 @@ class CampaignEngine:
                 continue
 
             for rec_id, send_id, draft_id, day in rows:
-                if self.db.execute("SELECT 1 FROM replies WHERE message_id=?", (msg["id"],)).fetchone(): 
+                if self.db.execute("SELECT 1 FROM replies WHERE message_id=?", (msg["id"],)).fetchone():
                     self._log(f"DEBUG REPLY: Message {msg['id']} already in replies table")
                     continue
                 body = msg.get("body", "")[:2000]
@@ -1612,7 +1572,7 @@ class CampaignEngine:
                 break
 
         self.db.set_meta("last_reply_scan", datetime.now().isoformat())
-        if new_count: 
+        if new_count:
             self._log(f"Found {new_count} new replies (checked {checked_count} messages)")
         else:
             self._log(f"No new replies found (checked {checked_count} messages from {len(all_msgs)} total in last {days_back} days)")
@@ -1666,7 +1626,7 @@ class CampaignEngine:
                 draft = self.gmail.draft_reply(thread_id, result.get("draft_html", ""), f"Re: {subject}" if not subject.startswith("Re:") else subject)
                 draft_id = draft.get("id") if draft else None
                 self.db.execute("UPDATE replies SET status='drafted', sentiment=?, summary=?, draft_reply_id=? WHERE id=?",
-                                (sentiment, result.get("summary", ""), draft_id, reply_id))
+                    (sentiment, result.get("summary", ""), draft_id, reply_id))
                 counts["drafted"] += 1
                 self._log(f"Drafted reply for {from_addr} ({sentiment}) -- waiting for your approval")
             except Exception as e:
@@ -1892,7 +1852,7 @@ class CampaignEngine:
         emails = []
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                found = re.findall(r"[\w.+-]+@[\w.-]+", line)
+                found = re.findall(r"[\w.+-\]+@[\w.-\]+", line)
                 emails.extend(found)
 
         unique = list(set(e.lower().strip() for e in emails if "@" in e))
