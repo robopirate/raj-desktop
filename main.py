@@ -69,8 +69,8 @@ def main():
 
     engine.start()  # Start the engine loop
     print("OK Engine ready")
-    print("   Calendar:", "✅" if engine.calendar else "❌")
-    print("   Drive:", "✅" if engine.drive else "❌")
+    print("   Calendar:", "[ON]" if engine.calendar else "[OFF]")
+    print("   Drive:", "[ON]" if engine.drive else "[OFF]")
 
     print("[3/3] Initializing Raj...")
     brain = RajBrain(engine, ollama_url=engine.ollama_url)
@@ -80,8 +80,8 @@ def main():
     guard.start()
 
     print("\nREADY! Dashboard opening...")
-    print("   📊 Dashboard shows live pipeline")
-    print("   🚀 Batches tab for campaign management")
+    print("   [DASH] Dashboard shows live pipeline")
+    print("   [BATCH] Batches tab for campaign management")
     print("   Type 'help' to see commands\n")
 
     app = RajChatApp(engine, brain)

@@ -125,9 +125,9 @@ class RajGuard:
         self.last_check = None
         self.fixes_applied = []
         self.issues_found = []
-        self._log(f"🛡️ Raj Guard v{GUARD_VERSION} initialized")
-        self._log(f"📁 Watching folder: {self.app_folder}")
-        self._log(f"🗄️  Database: {self.db_path}")
+        self._log(f"[GUARD] Raj Guard v{GUARD_VERSION} initialized")
+        self._log(f"[DIR] Watching folder: {self.app_folder}")
+        self._log(f"[DB]  Database: {self.db_path}")
 
     # ─── Memory ─────────────────────────────────
 
@@ -160,7 +160,7 @@ class RajGuard:
         """Write to guard log file."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"[{timestamp}] {message}"
-        print(f"🛡️  {line}")
+        print(f"[GUARD]  {line}")
         try:
             with open(self.log_file, "a", encoding="utf-8") as f2:
                 f2.write(line + "\n")
@@ -194,7 +194,7 @@ class RajGuard:
                 ok, errors = self.check_syntax(fpath)
                 if not ok:
                     results[fname] = errors
-                    self._log(f"❌ Syntax error in {fname}: {errors[0]}")
+                    self._log(f"[FAIL] Syntax error in {fname}: {errors[0]}")
         return results
 
     def check_database_integrity(self) -> Dict:
@@ -328,7 +328,7 @@ class RajGuard:
                     f2.write(original)
                 with open(file_path, "w", encoding="utf-8") as f2:
                     f2.write(content)
-                self._log(f"🔧 Auto-fixed: {bug['description']} in {file_path.name}")
+                self._log(f"[FIX] Auto-fixed: {bug['description']} in {file_path.name}")
                 self.memory["fixes_applied"].append({
                     "timestamp": datetime.now().isoformat(),
                     "file": file_path.name,
@@ -338,7 +338,7 @@ class RajGuard:
                 self._save_memory()
                 return True
         except Exception as e:
-            self._log(f"❌ Auto-fix failed for {bug_key}: {str(e)}")
+            self._log(f"[FAIL] Auto-fix failed for {bug_key}: {str(e)}")
         return False
 
     # ─── Morning Brief ──────────────────────────
@@ -351,30 +351,30 @@ class RajGuard:
         db_check = self.check_database_integrity()
         if db_check["status"] == "ok":
             stats = db_check.get("stats", {})
-            brief.append("\n📊 YESTERDAY'S NUMBERS")
+            brief.append("\n[STATS] YESTERDAY'S NUMBERS")
             brief.append(f"   • Leads in pool: {stats.get('recipients', 0)}")
             brief.append(f"   • Total sends: {stats.get('sends', 0)}")
             brief.append(f"   • Replies: {stats.get('replies', 0)}")
             brief.append(f"   • Blacklisted: {stats.get('blacklist', 0)}")
         if self.issues_found:
-            brief.append(f"\n⚠️  ISSUES DETECTED ({len(self.issues_found)})")
+            brief.append(f"\n[WARN]  ISSUES DETECTED ({len(self.issues_found)})")
             for issue in self.issues_found[-5:]:
                 brief.append(f"   • {issue}")
         recent_fixes = [f for f in self.memory.get("fixes_applied", []) 
                        if datetime.fromisoformat(f["timestamp"]) > datetime.now() - timedelta(days=1)]
         if recent_fixes:
-            brief.append(f"\n🔧 AUTO-FIXES APPLIED ({len(recent_fixes)})")
+            brief.append(f"\n[FIX] AUTO-FIXES APPLIED ({len(recent_fixes)})")
             for fix in recent_fixes:
                 brief.append(f"   • {fix['file']}: {fix['description']}")
         insights = self.memory.get("industry_insights", [])
         if insights:
-            brief.append(f"\n💡 INDUSTRY INSIGHT")
+            brief.append(f"\n[TIP] INDUSTRY INSIGHT")
             brief.append(f"   {insights[-1]}")
         else:
-            brief.append(f"\n💡 TIP")
+            brief.append(f"\n[TIP] TIP")
             brief.append(f"   Send-time optimization: Indian principals check email at 8:30 AM and 2:00 PM.")
             brief.append(f"   Consider adjusting your D1 send time from 10:00 AM to 8:30 AM.")
-        brief.append(f"\n🎯 TODAY'S FOCUS")
+        brief.append(f"\n[GOAL] TODAY'S FOCUS")
         brief.append(f"   • Review stuck batches (if any)")
         brief.append(f"   • Check reply sentiment for hostile responses")
         brief.append(f"   • Verify template locking before any edits")
@@ -391,21 +391,21 @@ class RajGuard:
             subject = f"Raj Daily Brief — {datetime.now().strftime('%B %d, %Y')}"
             body = self.generate_morning_brief()
             client.send_email(email_address, subject, body)
-            self._log(f"📧 Morning brief sent to {email_address}")
+            self._log(f"[EMAIL] Morning brief sent to {email_address}")
             self.memory["last_morning_brief"] = datetime.now().isoformat()
             self._save_memory()
         except Exception as e:
-            self._log(f"⚠️  Could not send morning brief: {str(e)}")
+            self._log(f"[WARN]  Could not send morning brief: {str(e)}")
             brief_path = self.app_folder / "morning_brief.txt"
             with open(brief_path, "w", encoding="utf-8") as f2:
                 f2.write(self.generate_morning_brief())
-            self._log(f"📝 Morning brief saved to {brief_path}")
+            self._log(f"[FILE] Morning brief saved to {brief_path}")
 
     # ─── Main Loop ──────────────────────────────
 
     def _check_once(self):
         """Run one full health check cycle."""
-        self._log("🔍 Running health check...")
+        self._log("[SCAN] Running health check...")
         self.issues_found = []
         self.fixes_applied = []
         syntax_issues = self.check_all_files()
@@ -413,48 +413,48 @@ class RajGuard:
             for fname, errors in syntax_issues.items():
                 self.issues_found.extend(errors)
         else:
-            self._log("✅ All core files syntax OK")
+            self._log("[OK] All core files syntax OK")
         db_check = self.check_database_integrity()
         if db_check["status"] == "ok":
-            self._log(f"✅ Database OK — {db_check.get('stats', {})}")
+            self._log(f"[OK] Database OK — {db_check.get('stats', {})}")
         else:
             self.issues_found.extend(db_check.get("issues", []))
             for issue in db_check["issues"]:
-                self._log(f"❌ DB Issue: {issue}")
+                self._log(f"[FAIL] DB Issue: {issue}")
         engine_check = self.check_engine_health()
         if engine_check["fixes"]:
             self.fixes_applied.extend(engine_check["fixes"])
         if engine_check["status"] != "ok":
             self.issues_found.extend(engine_check.get("issues", []))
             for issue in engine_check["issues"]:
-                self._log(f"⚠️  Engine: {issue}")
+                self._log(f"[WARN]  Engine: {issue}")
         else:
-            self._log("✅ Engine health OK")
+            self._log("[OK] Engine health OK")
         ui_check = self.check_ui_health()
         if ui_check["fixes"]:
             self.fixes_applied.extend(ui_check["fixes"])
         if ui_check["status"] != "ok":
             self.issues_found.extend(ui_check.get("issues", []))
             for issue in ui_check["issues"]:
-                self._log(f"⚠️  UI: {issue}")
+                self._log(f"[WARN]  UI: {issue}")
         else:
-            self._log("✅ UI health OK")
+            self._log("[OK] UI health OK")
         now = datetime.now()
         if now.hour == MORNING_BRIEF_HOUR and now.minute == MORNING_BRIEF_MINUTE:
             last_brief = self.memory.get("last_morning_brief")
             if not last_brief or datetime.fromisoformat(last_brief).date() != now.date():
-                self._log("📧 Sending morning brief...")
+                self._log("[EMAIL] Sending morning brief...")
                 self.send_morning_brief()
         self.last_check = now.isoformat()
-        self._log(f"✅ Health check complete — {len(self.issues_found)} issues, {len(self.fixes_applied)} fixes")
+        self._log(f"[OK] Health check complete — {len(self.issues_found)} issues, {len(self.fixes_applied)} fixes")
 
     def _guard_loop(self):
         """Background thread loop."""
-        self._log("🛡️ Guard daemon started")
+        self._log("[GUARD] Guard daemon started")
         try:
             self._check_once()
         except Exception as e:
-            self._log(f"❌ First check failed: {str(e)}")
+            self._log(f"[FAIL] First check failed: {str(e)}")
             self._log(traceback.format_exc())
         while self.running:
             time.sleep(CHECK_INTERVAL)
@@ -463,7 +463,7 @@ class RajGuard:
             try:
                 self._check_once()
             except Exception as e:
-                self._log(f"❌ Check cycle failed: {str(e)}")
+                self._log(f"[FAIL] Check cycle failed: {str(e)}")
 
     def start(self):
         """Start the Guard in a background thread."""
@@ -473,14 +473,14 @@ class RajGuard:
         self.running = True
         self.thread = threading.Thread(target=self._guard_loop, daemon=True, name="RajGuard")
         self.thread.start()
-        self._log("🛡️ Raj Guard daemon thread started (parallel to Raj)")
+        self._log("[GUARD] Raj Guard daemon thread started (parallel to Raj)")
 
     def stop(self):
         """Stop the Guard."""
         self.running = False
         if self.thread:
             self.thread.join(timeout=2)
-        self._log("🛡️ Raj Guard stopped")
+        self._log("[GUARD] Raj Guard stopped")
 
     def get_status(self) -> Dict:
         """Return current Guard status."""
