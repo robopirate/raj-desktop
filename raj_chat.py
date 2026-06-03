@@ -46,12 +46,18 @@ C_SUCCESS = "#34c759"
 C_TEXT = "#e0e0e0"
 C_TEXT_DIM = "#888888"
 
-# === CHARTS TAB ===
+# === CHARTS + CLAYMORPHISM ===
 try:
     from raj_charts import ChartsTab
     CHARTS_AVAILABLE = True
 except ImportError:
     CHARTS_AVAILABLE = False
+
+try:
+    from raj_clay_ui import ClayUI, CLAY
+    CLAY_AVAILABLE = True
+except ImportError:
+    CLAY_AVAILABLE = False
 
 class RajChatApp(ctk.CTk):
     def __init__(self, engine, brain):
@@ -119,7 +125,6 @@ class RajChatApp(ctk.CTk):
             ("🚀 Batches", "batches"),
             ("💬 Replies", "replies"),
             ("🚫 Blacklist", "blacklist"),
-            ("📊 Charts", "charts"),
             ("⚙️ Settings", "settings"),
         ]
         for text, key in nav_items:
@@ -163,14 +168,19 @@ class RajChatApp(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
 
         # Build all views
-        self._build_dashboard_view()
+        if CLAY_AVAILABLE:
+            ClayUI.build_clay_dashboard(self)
+        else:
+            self._build_dashboard_view()
         self._build_chat_view()
         self._build_import_view()
         self._build_templates_view()
-        self._build_batches_view()
+        if CLAY_AVAILABLE:
+            ClayUI.build_clay_batches(self)
+        else:
+            self._build_batches_view()
         self._build_replies_view()
         self._build_blacklist_view()
-        self._build_charts_view()
         self._build_settings_view()
 
         self._show_view("dashboard")
@@ -2300,52 +2310,6 @@ class RajChatApp(ctk.CTk):
             self._add_message("raj", "Blacklist cleared.")
 
     # ═══════════════════════════════════════════════════════════
-    # ═══════════════════════════════════════════════════════════
-    #  CHARTS VIEW (Analytics Dashboard)
-    # ═══════════════════════════════════════════════════════════
-    def _build_charts_view(self):
-        view = ctk.CTkFrame(self.content, fg_color="transparent")
-        self.views["charts"] = view
-        view.grid_columnconfigure(0, weight=1)
-        view.grid_rowconfigure(1, weight=1)
-
-        # Header
-        header = ctk.CTkFrame(view, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-        ctk.CTkLabel(header, text="📊  Campaign Analytics",
-                     font=("Segoe UI", 28, "bold"),
-                     text_color=C_ACCENT).pack(side="left")
-
-        # Refresh button
-        ctk.CTkButton(header, text="🔄 Refresh", command=self._refresh_charts,
-                      font=("Segoe UI", 11, "bold"), height=35, width=120,
-                      fg_color=C_ACCENT, text_color="white",
-                      hover_color="#00b8e6").pack(side="right", padx=(0, 10))
-        self.charts_status = ctk.CTkLabel(header, text="",
-                                           font=("Segoe UI", 10), text_color=C_TEXT_DIM)
-        self.charts_status.pack(side="right", padx=10)
-
-        # Charts content frame
-        self.charts_container = ctk.CTkFrame(view, fg_color="transparent")
-        self.charts_container.grid(row=1, column=0, sticky="nsew")
-        self.charts_container.grid_columnconfigure(0, weight=1)
-        self.charts_container.grid_rowconfigure(0, weight=1)
-
-        if CHARTS_AVAILABLE:
-            self.charts_tab = ChartsTab(self.charts_container, self.engine.db)
-        else:
-            ctk.CTkLabel(self.charts_container,
-                        text="Install matplotlib for charts:\npip install matplotlib",
-                        font=("Segoe UI", 14), text_color=C_TEXT_DIM).pack(pady=100)
-
-    def _refresh_charts(self):
-        """Refresh chart data."""
-        if CHARTS_AVAILABLE and hasattr(self, 'charts_tab'):
-            self.charts_tab.refresh()
-            from datetime import datetime
-            self.charts_status.configure(
-                text=f"Updated {datetime.now().strftime('%I:%M %p')}")
-
     #  SETTINGS VIEW (Enhanced — Import Feedback)
     # ═══════════════════════════════════════════════════════════
     def _build_settings_view(self):
