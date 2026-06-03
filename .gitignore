@@ -1,0 +1,4 @@
+*.pickle 
+credentials.json 
+*.db 
+dead_emails_blacklist.txt 
