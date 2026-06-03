@@ -14,8 +14,9 @@ except ImportError:
 # --- End Integration ---
 
 """
-engine.py -- RoboPirate Campaign Engine v3.1
+engine.py -- RoboPirate Campaign Engine v5.0
 SCHOOL + CSR sequences | Raj as manager | Auto-send | Draft-only replies
+FIXED: HTML template, auto-advance scheduling, template sync regex
 """
 
 import re
@@ -37,7 +38,6 @@ except ImportError:
     SMART_IMPORT_AVAILABLE = False
 
 # Sequences: SCHOOL (private schools) and CSR (corporates)
-# Raj is the manager/agent persona, not a sequence
 SEQUENCES = {
     "school": {
         "days": [1, 3, 5, 7, 10],
@@ -286,10 +286,10 @@ class CampaignEngine:
             if not running_batches:
                 return
 
-            # 🔒 BATCH SLOT LOCK: Only process one batch at a time
+            # BATCH SLOT LOCK: Only process one batch at a time
             if hasattr(self, '_last_batch_process_time') and self._last_batch_process_time:
                 if (now - self._last_batch_process_time).total_seconds() < 2:
-                    return # Wait 2 seconds between batch sends
+                    return
             self._last_batch_process_time = now
 
             for batch_row in running_batches:
@@ -312,7 +312,7 @@ class CampaignEngine:
                 if not next_recipient:
                     # All sent - mark completed and auto-advance
                     self.db.batch_update_status(batch_id, "completed")
-                    self._log(f"[Batch {batch_id}] Completed: all recipients sent")
+                    self._log(f"[Batch {batch_id}] Completed: all recipients processed")
                     self._auto_advance_batch(batch)
                     continue
 
@@ -326,10 +326,10 @@ class CampaignEngine:
                     last_dt = datetime.fromisoformat(last_send)
                     minutes_since = (now - last_dt).total_seconds() / 60
                     if minutes_since < stagger:
-                        continue # Wait longer
+                        continue
 
-                # BLACKLIST CHECK: Skip if email was blacklisted after Day 1
-                rec_email = next_recipient[2] # email is 3rd column in SELECT
+                # BLACKLIST CHECK: Skip if email was blacklisted
+                rec_email = next_recipient[2]
                 if self.db.blacklist_has(rec_email):
                     self._log(f"[Batch {batch_id}] SKIPPING blacklisted: {rec_email}")
                     self.db.execute("""
@@ -339,8 +339,8 @@ class CampaignEngine:
                     self.db.commit()
                     continue
 
-                # 🚫 SUNDAY FILTER: Skip sends on Sunday
-                if now.weekday() == 6: # Sunday
+                # SUNDAY FILTER: Skip sends on Sunday
+                if now.weekday() == 6:
                     self._log(f"[Batch {batch_id}] SUNDAY — skipping send for {rec_email}, will resume Monday")
                     continue
 
@@ -372,7 +372,7 @@ class CampaignEngine:
             self._log(f"DEBUG TRACEBACK: {traceback.format_exc()}")
 
     def _auto_advance_batch(self, completed_batch: dict):
-        """Auto-create next day batch from POOL when current completes."""
+        """Auto-create next day batch and schedule it. Like Brevo — next day starts after delay."""
         seq_id = completed_batch["sequence_id"]
         current_day = completed_batch.get("day_offset", 1)
         cfg = SEQUENCES.get(seq_id)
@@ -411,13 +411,17 @@ class CampaignEngine:
         # Get recipients from the completed batch to copy to next batch
         prev_recipients = self.db.batch_get_recipients(completed_batch["id"])
 
-        # Create new batch with parent link
+        # FIX: Create batch with status='scheduled' so auto-start picks it up
         new_batch_id = self.db.batch_create(
             next_name, seq_id, scheduled.isoformat(),
             stagger_minutes=completed_batch.get("stagger_minutes", 2),
             day_offset=next_day,
             parent_batch_id=parent_batch_id
         )
+
+        # FIX: Set status to 'scheduled' after creation (batch_create defaults to 'draft')
+        self.db.execute("UPDATE batches SET status='scheduled' WHERE id=?", (new_batch_id,))
+        self.db.commit()
 
         # Copy all recipients from parent batch
         for r in prev_recipients:
@@ -448,7 +452,6 @@ class CampaignEngine:
 
     # -- Scheduled Sends (10 AM, auto-send sequences) --
     def _check_scheduled_sends(self, now: datetime):
-        # 🚫 SUNDAY FILTER: No scheduled sends on Sunday
         if now.weekday() == 6:
             return
 
@@ -543,8 +546,14 @@ class CampaignEngine:
             found_names.append(subject)
             draft_id = d.get("id", "")
 
+            # FIX: Updated regex to handle [TEMPLATE] prefix and various formats
+            # Pattern 1: SCHOOL EMAIL 1, CSR-EMAIL-3, SCHOOL EMAIL 5
             m = re.search(r"(SCHOOL|CSR)[\s\-]*EMAIL[\s\-]*(\d+)", subject, re.IGNORECASE)
             if not m:
+                # Pattern 2: [TEMPLATE] SCHOOL Day 1, [TEMPLATE] CSR Day 3
+                m = re.search(r"(SCHOOL|CSR).*?Day\s*(\d+)", subject, re.IGNORECASE)
+            if not m:
+                # Pattern 3: Just SCHOOL 1, CSR 3 anywhere in subject
                 m = re.search(r"(SCHOOL|CSR)[\s\-]*(\d+)", subject, re.IGNORECASE)
 
             if not m:
@@ -715,7 +724,7 @@ class CampaignEngine:
 
     def _generate_school_content(self, day: int, assets: dict) -> str:
         contents = {
-            1: f"""
+            1: """
 <p>Dear Principal,</p>
 <p>Imagine your students building robots, coding drones, and exploring AI — all within your school walls. For the 2026-27 academic year, this is no longer optional.</p>
 <p><strong>WE Smart Lab</strong> by RoboPirate brings cutting-edge STEAM/AI education to Indian schools. We're already in <strong>85+ labs</strong> across <strong>6 states</strong>, impacting <strong>65,000+ students</strong>.</p>
@@ -724,7 +733,7 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
 """,
 
-            3: f"""
+            3: """
 <p>Dear Principal,</p>
 <p>With NEP 2020 now in full implementation and the 2026-27 academic year approaching, schools across India are racing to comply with experiential learning and coding mandates from Class 6.</p>
 <p><strong>The question is:</strong> Will your school lead this change or play catch-up?</p>
@@ -739,7 +748,7 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
 """,
 
-            5: f"""
+            5: """
 <p>Dear Principal,</p>
 <p>Let me share a story that might resonate with you.</p>
 <p><strong>Veer Baji Prabhu Vidyalay</strong> — a school much like yours — partnered with us in 2024-25 through our WE Smart Lab program. Today, their students have built 12+ working robots, participated in state-level competitions, and seen measurable improvement in science engagement.</p>
@@ -747,14 +756,14 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
 """,
 
-            7: f"""
+            7: """
 <p>Dear Principal,</p>
 <p>You're not alone in this journey. <strong>85+ schools</strong> across Maharashtra, Karnataka, Gujarat, and more have already chosen WSL.</p>
 <p>Ready to join them?</p>
 <p>Best regards,<br><strong>RoboPirate Team</strong><br>WSL Initiative</p>
 """,
 
-            10: f"""
+            10: """
 <p>Dear Principal,</p>
 <p>This is my final email for the 2026-27 academic year planning. With admissions season approaching, I don't want your students to miss this opportunity.</p>
 <p>We've prepared flexible WE Smart Lab subscription plans for schools of all sizes. Every plan includes: complete lab setup, 120+ DIY kits, full-time trained teacher, NEP 2020 + NCF aligned curriculum, LMS portal, assessments, and ongoing support.</p>
@@ -766,7 +775,7 @@ class CampaignEngine:
 
     def _generate_csr_content(self, day: int, assets: dict) -> str:
         contents = {
-            1: f"""
+            1: """
 <p>Dear CSR Head,</p>
 <p>Your CSR budget has the power to change <strong>thousands</strong> of young lives.</p>
 <p>RoboPirate's <strong>WE Smart Lab</strong> sets up fully managed STEAM/AI Smart Labs inside schools across India. As of May 2026, we've reached <strong>65,000+ students</strong> across <strong>6 states</strong> with <strong>85+ labs</strong> delivered through strategic CSR partnerships.</p>
@@ -774,7 +783,7 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
 """,
 
-            3: f"""
+            3: """
 <p>Dear CSR Head,</p>
 <p>Schedule VII of the Companies Act explicitly supports:</p>
 <ul>
@@ -786,7 +795,7 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
 """,
 
-            5: f"""
+            5: """
 <p>Dear CSR Head,</p>
 <p>Numbers tell stories better than words.</p>
 <p><strong>Sangli District Phase 2 Results — WE Smart Lab Impact (Delivered 2025-26):</strong></p>
@@ -801,7 +810,7 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
 """,
 
-            7: f"""
+            7: """
 <p>Dear CSR Head,</p>
 <p>FY 2026-27 budget season is here — May 2026 is when CSR allocations are locked. Where will your CSR rupees create the most impact?</p>
 <p>Consider the WE Smart Lab model:</p>
@@ -816,7 +825,7 @@ class CampaignEngine:
 <p>Best regards,<br><strong>RoboPirate CSR Team</strong></p>
 """,
 
-            10: f"""
+            10: """
 <p>Dear CSR Head,</p>
 <p>This is my final outreach for FY 2026-27 planning. With budgets being locked in May 2026, I respect your time and decision.</p>
 <p>If you've been considering STEM education as part of your CSR strategy, let's not let another quarter pass.</p>
@@ -964,27 +973,22 @@ class CampaignEngine:
 
     # -- Batch Pipeline --
     def get_batch_pipeline(self, batch_id: int) -> dict:
-        """Get full pipeline for a batch (entire sequence journey)."""
         return self.db.batch_get_pipeline(batch_id)
 
     def get_all_batch_pipelines(self, sequence_id: str = None) -> list:
-        """Get all batch pipelines grouped by original batch."""
         return self.db.batch_get_all_pipelines(sequence_id)
 
     # -- POOL METHODS (NEW) --
     def get_pool(self, sequence_id: str, limit: int = None) -> list:
-        """Get unbatched leads from the pool."""
         return self.db.get_pool(sequence_id, limit)
 
     def get_pool_count(self, sequence_id: str) -> int:
-        """Count unbatched leads in pool."""
         return self.db.get_pool_count(sequence_id)
 
     def create_batch_from_pool(self, name: str, sequence_id: str, batch_size: int,
                                 day_offset: int = 1, scheduled_at: str = None,
                                 timezone: str = 'Asia/Kolkata', send_rate: int = 0,
                                 stagger_minutes: int = 2) -> dict:
-        """Create a batch from unbatched leads in the pool."""
         pool_count = self.get_pool_count(sequence_id)
         if pool_count == 0:
             return {"success": False, "error": f"No unbatched leads in {sequence_id.upper()} pool"}
@@ -1044,7 +1048,6 @@ class CampaignEngine:
 
         after_str = scan_since.strftime("%Y/%m/%d")
 
-        # TIGHTENED queries - only search for actual bounces
         queries = [
             f"after:{after_str} (from:mailer-daemon OR from:postmaster OR from:Mail Delivery Subsystem OR from:MAILER-DAEMON)",
             f"after:{after_str} (subject:undelivered OR subject:bounce OR subject:'delivery status' OR subject:'delivery failure' OR subject:'failed delivery' OR subject:'address not found' OR subject:'recipient not found' OR subject:'Mail delivery failed' OR subject:'Returned mail')",
@@ -1080,11 +1083,9 @@ class CampaignEngine:
             snippet = msg.get("snippet", "") or ""
             msg_id = msg["id"]
 
-            # Skip our own emails
             if "robopirate" in from_addr and "mailer-daemon" not in from_addr:
                 continue
 
-            # Check if bounce or auto-reply
             is_bounce = self._looks_like_bounce(from_addr, subject, body)
             is_auto_reply = self._is_auto_reply(subject, body)
 
@@ -1098,10 +1099,8 @@ class CampaignEngine:
                 self._delete_bounce_email(msg_id)
                 continue
 
-            # Extract bounced emails
             addrs = self._extract_bounced(body) or []
 
-            # Try full message
             try:
                 full = self.gmail.get_message_full(msg_id)
                 if full:
@@ -1112,7 +1111,6 @@ class CampaignEngine:
             except:
                 pass
 
-            # Try snippet
             snippet_addrs = self._extract_bounced(snippet)
             for a in snippet_addrs:
                 if a not in addrs:
@@ -1126,7 +1124,6 @@ class CampaignEngine:
             for addr in addrs:
                 addr = addr.lower().strip()
 
-                # Skip invalid/URLs
                 if not addr or "@" not in addr:
                     continue
                 if addr.endswith((".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".css", ".js")):
@@ -1165,7 +1162,7 @@ class CampaignEngine:
         }
 
     def _delete_bounce_email(self, msg_id: str):
-        """Delete a bounce email from Gmail. Tries trash first, then delete permanently."""
+        """Delete a bounce email from Gmail."""
         try:
             self.gmail.trash_message(msg_id)
         except Exception as e:
@@ -1175,7 +1172,7 @@ class CampaignEngine:
                 self._log(f"Could not delete bounce email {msg_id}: {e}")
 
     def deep_bounce_scan(self, days: int = 30) -> dict:
-        """Deep scan inbox for bounce emails over last N days. Only blacklists TRUE bounces."""
+        """Deep scan inbox for bounce emails over last N days."""
         results = {'found': 0, 'blacklisted': 0, 'protected': 0, 'details': []}
         try:
             after_date = (datetime.now() - timedelta(days=days)).strftime("%Y/%m/%d")
@@ -1206,12 +1203,11 @@ class CampaignEngine:
 
                     results['found'] += 1
 
-                    # Extract bounced email
                     bounced_email = None
                     patterns = [
                         r'final-recipient:\s*rfc822;\s*([^\s<>]+)',
                         r'original-recipient:\s*rfc822;\s*([^\s<>]+)',
-                        r'\bto:\s*([^\s<>]+@[^\s<>]+)',
+                        r'to:\s*([^\s<>]+@[^\s<>]+)',
                         r'does not exist[:\s]+([^\s<>]+@[^\s<>]+)',
                     ]
                     for pat in patterns:
@@ -1231,7 +1227,7 @@ class CampaignEngine:
                         continue
 
                     bounced_email = bounced_email.lower().strip()
-                    bounced_email = re.sub(r"[.,;:!?\'\"]+$", "", bounced_email)
+                    bounced_email = re.sub(r"[.,;:!?)\'\"]+$", "", bounced_email)
 
                     if not re.match(r'^[\w.-]+@[\w.-]+\.\w+$', bounced_email):
                         continue
@@ -1264,7 +1260,6 @@ class CampaignEngine:
         subj_lower = subject.lower()
         body_lower = body.lower()
 
-        # Known bounce senders
         bounce_senders = [
             "mailer-daemon", "postmaster", "mail delivery subsystem",
             "daemon", "bounce", "undeliverable", "noreply"
@@ -1273,7 +1268,6 @@ class CampaignEngine:
             if sender in from_lower:
                 return True
 
-        # Bounce subject patterns
         bounce_subjects = [
             "undelivered", "bounce", "delivery status", "delivery failure",
             "failed delivery", "address not found", "recipient not found",
@@ -1283,7 +1277,6 @@ class CampaignEngine:
             if pattern in subj_lower:
                 return True
 
-        # Auto-reply subject patterns
         auto_subjects = [
             "out of office", "auto reply", "automated response", "automatic reply",
             "vacation", "on leave", "away from office", "abwesenheitsnotiz"
@@ -1292,7 +1285,6 @@ class CampaignEngine:
             if pattern in subj_lower:
                 return True
 
-        # Body patterns for bounces
         body_bounce_patterns = [
             "final-recipient", "diagnostic-code", "action: failed",
             "status:", "remote server", "smtp error", "550 ", "551 ",
@@ -1303,7 +1295,6 @@ class CampaignEngine:
             if pattern in body_lower:
                 return True
 
-        # Body patterns for auto-replies
         auto_body_patterns = [
             "auto-submitted:", "x-autoreply:", "precedence: auto_reply",
             "x-auto-response-suppress:", "i am currently out of",
@@ -1372,7 +1363,6 @@ class CampaignEngine:
             r"message to\s*?\s*was",
         ]
 
-        # Try body first, then full message body, then snippet
         texts = [body]
         if msg_or_full:
             texts.append(msg_or_full.get("body", ""))
@@ -1387,7 +1377,6 @@ class CampaignEngine:
                     email = match.group(1).strip().lower()
                     if "@" in email and "mailer-daemon" not in email and "postmaster" not in email:
                         return email
-            # Try To: field
             to_match = re.search(r"To:\s*?", text, re.IGNORECASE)
             if to_match:
                 email = to_match.group(1).strip().lower()
@@ -1401,84 +1390,67 @@ class CampaignEngine:
         if not text: return []
         addrs = []
 
-        # Pattern 1: Gmail DSN format: Final-Recipient: rfc822; email@domain.com (with space)
         for m in re.finditer(r"Final-Recipient:\s*rfc822;\s*?", text, re.I):
             addrs.append(m.group(1))
 
-        # Pattern 1b: No space after semicolon: Final-Recipient: rfc822;email@domain.com
         for m in re.finditer(r"Final-Recipient:\s*rfc822;?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 2: Generic Final-Recipient format
         for m in re.finditer(r"Final-Recipient:[^;]*;\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 3: Original-Recipient
         for m in re.finditer(r"Original-Recipient:\s*rfc822;\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 4: To: field in original message
         for m in re.finditer(r"To:\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 5: "Your message to email couldn't be delivered"
         for m in re.finditer(r"Your message to\s*?\s*couldn'?t be delivered", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 5b: "message to  was undeliverable"
         for m in re.finditer(r"message to\s*?\s*was undeliverable", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 5c: "was not delivered to" / "couldn't be delivered to"
         for m in re.finditer(r"(?:was not delivered to|wasn'?t delivered to|could not be delivered to|couldn't be delivered to|failed to deliver to)\s*?", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 6: "Address not found" followed by email mention
         for m in re.finditer(r"Address not found.*?(?:to|for)\s*?", text, re.I | re.DOTALL):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 7: Postfix/Exim format:  on its own line, or email: error
         for m in re.finditer(r"^\s*<([\w.+-]+@[\w.-]+)>:?\s*$", text, re.I | re.M):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 7b: email followed by error description
         for m in re.finditer(r"([\w.+-]+@[\w.-]+):\s*(?:user unknown|mailbox unavailable|no such user|does not exist|mailbox full|invalid user|unknown local-part)", text, re.I):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 8: "did not reach the following recipient(s):" followed by email
         for m in re.finditer(r"did not reach.*?([\w.+-]+@[\w.-]+)", text, re.I | re.DOTALL):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 9: "The following address(es) failed:" followed by email
         for m in re.finditer(r"address(?:es)? failed.*?([\w.+-]+@[\w.-]+)", text, re.I | re.DOTALL):
             if m.group(1) not in addrs:
                 addrs.append(m.group(1))
 
-        # Pattern 10: Generic email in angle brackets (fallback)
         if not addrs:
             for m in re.finditer(r"<([\w.+-]+@[\w.-]+)>", text):
                 if m.group(1) not in addrs:
                     addrs.append(m.group(1))
 
-        # Pattern 11: Bare emails in bounce context (last resort - strict)
         if not addrs and any(k in text.lower() for k in ["delivery", "bounce", "failed", "undelivered", "address not found", "recipient", "mailer-daemon", "postmaster"]):
             for m in re.finditer(r"([\w.+-]+@[\w.-]+)", text):
                 email = m.group(1)
-                # STRICT: Skip common false positives
                 if any(x in email for x in ["mailer-daemon", "postmaster", "robopirate.in", "google.com", "gmail.com", "instagram", "facebook", "twitter", "linkedin", "youtube", "2x", "3x", "1x", "wght", "size", "color", "font"]):
                     continue
-                # STRICT: Must look like a real domain
                 if "@" in email:
                     domain = email.split("@")[1]
                     if "." not in domain or len(domain) < 4:
@@ -1494,25 +1466,13 @@ class CampaignEngine:
         self.scan_replies()
 
     def scan_replies(self, days_back: int = 3) -> int:
-        """Scan inbox for replies from recipients. Checks ALL emails (read and unread).
-
-        Uses multiple search strategies to catch every possible reply.
-        """
+        """Scan inbox for replies from recipients."""
         after = int((datetime.now() - timedelta(days=days_back)).timestamp())
 
-        # Search 1: ALL emails in inbox (not just unread)
         msgs_all = self.gmail.search_messages(f"in:inbox after:{after}", 200)
-        self._log(f"DEBUG REPLY SCAN: {len(msgs_all)} total inbox messages found")
-
-        # Search 2: Sent folder to find threads we started
         msgs_sent = self.gmail.search_messages(f"in:sent after:{after}", 100)
-        self._log(f"DEBUG REPLY SCAN: {len(msgs_sent)} sent messages found")
-
-        # Search 3: Any email with Re: in subject (replies)
         msgs_re = self.gmail.search_messages(f"in:inbox subject:Re: after:{after}", 100)
-        self._log(f"DEBUG REPLY SCAN: {len(msgs_re)} 'Re:' messages found")
 
-        # Combine and deduplicate
         seen_ids = set()
         all_msgs = []
         for m in msgs_all + msgs_sent + msgs_re:
@@ -1530,37 +1490,25 @@ class CampaignEngine:
             subject = msg.get("subject", "").lower()
             body = msg.get("body", "") or ""
 
-            # Skip our own emails
             if "robopirate" in from_addr:
                 continue
 
-            # Skip auto-replies and bounces (handled by bounce scan)
             if self._is_auto_reply(subject, body):
-                self._log(f"DEBUG REPLY: Skipping auto-reply from {from_addr}")
                 continue
             if "mailer-daemon" in from_addr or "postmaster" in from_addr:
                 continue
 
             checked_count += 1
-            self._log(f"DEBUG REPLY CHECK: from={from_addr[:50]} subj={subject[:60]}")
 
-            # Find matching recipient in our database
             rows = self.db.execute("""SELECT r.id, s.id as send_id, s.draft_id, s.day
                 FROM recipients r JOIN sends s ON s.recipient_id=r.id
                 WHERE r.email=? AND s.status!='replied'""", (from_addr,)).fetchall()
 
-            if rows:
-                self._log(f"DEBUG REPLY MATCH: {from_addr} matched {len(rows)} send records")
-            else:
-                # Also check if this email is in our recipients list at all
-                check = self.db.execute("SELECT id FROM recipients WHERE email=?", (from_addr,)).fetchone()
-                if check:
-                    self._log(f"DEBUG REPLY: {from_addr} is in recipients but no matching send record")
+            if not rows:
                 continue
 
             for rec_id, send_id, draft_id, day in rows:
                 if self.db.execute("SELECT 1 FROM replies WHERE message_id=?", (msg["id"],)).fetchone():
-                    self._log(f"DEBUG REPLY: Message {msg['id']} already in replies table")
                     continue
                 body = msg.get("body", "")[:2000]
                 self.db.execute("""INSERT INTO replies (send_id, thread_id, message_id, from_addr, subject, body, received_at)
@@ -1568,14 +1516,14 @@ class CampaignEngine:
                     (send_id, msg.get("threadId", ""), msg["id"], from_addr, msg.get("subject", ""), body, datetime.now().isoformat()))
                 self.db.execute("UPDATE sends SET status='replied' WHERE id=?", (send_id,))
                 new_count += 1
-                self._log(f"✅ New reply from {from_addr}: {msg.get('subject', '')[:60]}")
+                self._log(f"New reply from {from_addr}: {msg.get('subject', '')[:60]}")
                 break
 
         self.db.set_meta("last_reply_scan", datetime.now().isoformat())
         if new_count:
             self._log(f"Found {new_count} new replies (checked {checked_count} messages)")
         else:
-            self._log(f"No new replies found (checked {checked_count} messages from {len(all_msgs)} total in last {days_back} days)")
+            self._log(f"No new replies found (checked {checked_count} messages)")
         return new_count
 
     def _check_eod(self, now: datetime):
@@ -1852,7 +1800,7 @@ class CampaignEngine:
         emails = []
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                found = re.findall(r"[\w.+-\]+@[\w.-\]+", line)
+                found = re.findall(r"[\w.+\-]+@[\w.\-]+", line)
                 emails.extend(found)
 
         unique = list(set(e.lower().strip() for e in emails if "@" in e))
