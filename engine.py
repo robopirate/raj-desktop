@@ -398,7 +398,15 @@ class CampaignEngine:
         next_name = f"{base_name}-D{next_day}"
 
         # Schedule for +2 days at 10 AM
-        scheduled = (datetime.now() + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
+        completed_at = completed_batch.get("completed_at")
+    if completed_at:
+        try:
+            base_dt = datetime.fromisoformat(completed_at)
+        except:
+            base_dt = datetime.now()
+    else:
+        base_dt = datetime.now()
+    scheduled = (base_dt + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
 
         # Get parent_batch_id (link to original batch)
         parent_batch_id = completed_batch.get("parent_batch_id") or completed_batch["id"]
