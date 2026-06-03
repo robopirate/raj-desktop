@@ -13,6 +13,7 @@ from gmail import GmailClient
 from engine import CampaignEngine
 from raj_brain import RajBrain
 from raj_chat import RajChatApp
+from raj_guard import RajGuard
 
 try:
     from smart_importer import SmartImporter
@@ -75,6 +76,9 @@ def main():
     brain = RajBrain(engine, ollama_url=engine.ollama_url)
     print("OK Raj v4.0 is online")
 
+    guard = RajGuard(os.path.dirname(__file__))
+    guard.start()
+
     print("\nREADY! Dashboard opening...")
     print("   📊 Dashboard shows live pipeline")
     print("   🚀 Batches tab for campaign management")
@@ -93,6 +97,8 @@ def main():
 
     if tray:
         tray.stop()
+    if 'guard' in locals():
+        guard.stop()
     engine.stop()
     print("\nRaj signing off. Goodbye, sir.")
 
