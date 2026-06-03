@@ -176,3 +176,15 @@
 [2026-06-03 20:24:27] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
 [2026-06-03 20:24:27] [OK] UI health OK
 [2026-06-03 20:24:27] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-03 20:24:57] [SCAN] Running health check...
+[2026-06-03 20:24:57] [OK] All core files syntax OK
+[2026-06-03 20:24:57] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-03 20:24:57] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-03 20:24:57] [OK] UI health OK
+[2026-06-03 20:24:57] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-03 20:25:27] [SCAN] Running health check...
+[2026-06-03 20:25:27] [OK] All core files syntax OK
+[2026-06-03 20:25:27] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-03 20:25:27] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-03 20:25:27] [OK] UI health OK
+[2026-06-03 20:25:27] [OK] Health check complete — 2 issues, 0 fixes
