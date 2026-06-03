@@ -125,32 +125,32 @@ MORNING_HOUR = 8
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;">
-<tr><td align="center" style="padding:20px 0;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-<tr><td style="background:linear-gradient(135deg,#0D9B8A,#0BC5B0);padding:20px;text-align:center;">
-<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="RoboPirate" style="height:50px;margin-bottom:10px;">
-<h1 style="color:#ffffff;margin:0;font-size:22px;">{title}</h1>
-</td></tr>
-<tr><td style="padding:30px;color:#333;line-height:1.6;">
-{content}
-</td></tr>
-<tr><td style="background:#1A6B6B;padding:20px;text-align:center;">
-<p style="color:#ffffff;margin:0 0 10px;font-size:14px;">
-<strong style="color:#F5A623;">85+</strong> Labs | 
-<strong style="color:#F5A623;">65K+</strong> Students | 
-<strong style="color:#F5A623;">6</strong> States
-</p>
-<a href="https://wa.me/919136899925" style="display:inline-block;background:#E8352A;color:#ffffff;padding:12px 30px;border-radius:25px;text-decoration:none;font-weight:bold;">Chat on WhatsApp</a>
-</td></tr>
-<tr><td style="background:#0a1a1a;padding:15px;text-align:center;font-size:12px;color:#888;">
-&copy; 2026 RoboPirate | WE Smart Lab | <a href="https://robopirate.in" style="color:#0D9B8A;">robopirate.in</a>
-</td></tr>
-</table>
-</td></tr>
-</table>
+<head>
+<meta charset="UTF-8">
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#0A1628;color:#E6EDF3;padding:20px;margin:0}
+.container{max-width:600px;margin:0 auto;background:#111D2E;border-radius:12px;padding:30px;border:1px solid #2a2a4e}
+.header{text-align:center;border-bottom:2px solid #59ced9;padding-bottom:15px;margin-bottom:20px}
+.logo{font-size:28px;font-weight:bold;color:#59ced9}
+.sub{color:#8B949E;font-size:12px}
+.content{line-height:1.6;font-size:14px}
+.footer{margin-top:30px;padding-top:15px;border-top:1px solid #2a2a4e;text-align:center;color:#8B949E;font-size:11px}
+.cta{display:inline-block;background:#59ced9;color:#0A1628;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin:15px 0}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="logo">🤖 RAJ by RoboPirate</div>
+<div class="sub">Smart Labs for Smart Schools</div>
+</div>
+<div class="content">
+{body}
+</div>
+<div class="footer">
+© 2026 RoboPirate · robopirate.in · Unsubscribe: reply STOP
+</div>
+</div>
 </body>
 </html>"""
 
