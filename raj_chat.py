@@ -169,14 +169,14 @@ class RajChatApp(ctk.CTk):
 
         # Build all views
         if CLAY_AVAILABLE:
-            ClayUI.build_clay_dashboard(self)
+            self._build_dashboard_view()
         else:
             self._build_dashboard_view()
         self._build_chat_view()
         self._build_import_view()
         self._build_templates_view()
         if CLAY_AVAILABLE:
-            ClayUI.build_clay_batches(self)
+            self._build_batches_view()
         else:
             self._build_batches_view()
         self._build_replies_view()
