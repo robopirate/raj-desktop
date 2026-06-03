@@ -192,7 +192,7 @@ class ClayUI:
                      text_color=CLAY.TEXT).pack(anchor="w")
         
         # Sequence badge (clay pill)
-        badge = ctk.CTkFrame(left, fg_color=f"{seq_color}20",
+        badge = ctk.CTkFrame(left, fg_color="transparent",
                               corner_radius=CLAY.RADIUS_PILL,
                               height=20)
         badge.pack(anchor="w", pady=(2, 0))
@@ -255,7 +255,7 @@ class ClayUI:
                                command=lambda: None).pack(side="left", padx=(0, 6))
         
         ClayUI.clay_button(btn_row, "🗑 Delete", CLAY.RED,
-                           fg_color=f"{CLAY.RED}20",
+                           fg_color="transparent",
                            command=lambda: None).pack(side="left", padx=(0, 6))
         ClayUI.clay_button(btn_row, "📋 Details", CLAY.TEXT_DIM,
                            fg_color=CLAY.BG_LIGHT,
@@ -351,7 +351,7 @@ class ClayUI:
             bar.place(relx=0, rely=0, relwidth=pct/100, relheight=1)
         
         # Status badge
-        badge = ctk.CTkFrame(card, fg_color=f"{color}15",
+        badge = ctk.CTkFrame(card, fg_color="transparent",
                               corner_radius=CLAY.RADIUS_PILL)
         badge.pack(anchor="w", padx=12, pady=(2, 0))
         ctk.CTkLabel(badge, text=label,
