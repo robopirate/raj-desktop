@@ -549,6 +549,17 @@ class Database:
     def blacklist_has(self, email):
         return self.execute("SELECT 1 FROM blacklist WHERE email=?", (email.lower().strip(),)).fetchone() is not None
 
+    def recipient_exists(self, email):
+        """Check if email exists in the recipients table (our lead pool)."""
+        return self.execute("SELECT 1 FROM recipients WHERE email=?", (email.lower().strip(),)).fetchone() is not None
+
+    def was_sent_to(self, email):
+        """Check if we have a 'sent' record for this email in the sends table."""
+        return self.execute(
+            "SELECT 1 FROM sends s JOIN recipients r ON s.recipient_id = r.id WHERE r.email=? AND s.status='sent' LIMIT 1",
+            (email.lower().strip(),)
+        ).fetchone() is not None
+
     def blacklist_get_all(self):
         rows = self.execute("SELECT * FROM blacklist ORDER BY added_at DESC").fetchall()
         return [dict(r) for r in rows]

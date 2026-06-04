@@ -1,0 +1,81 @@
+=== raj_chat.py ===
+  Line 8: U+2194 (↔) -> # --- DPI Awareness for Windows (laptop ↔ monitor) ---
+  Line 99: U+1F916 (🤖) -> robot_label = ctk.CTkLabel(logo_frame, text="🤖", font=("Segoe UI", 32), text_color=C_ACCENT)
+  Line 109: U+1F4CA (📊) -> ("📊 Dashboard", "dashboard"),
+  Line 110: U+1F4E7 (📧) -> ("📧 Chat", "chat"),
+  Line 111: U+1F4E5 (📥) -> ("📥 Import", "import"),
+  Line 112: U+1F4DD (📝) -> ("📝 Templates", "templates"),
+  Line 113: U+1F680 (🚀) -> ("🚀 Batches", "batches"),
+  Line 114: U+1F4AC (💬) -> ("💬 Replies", "replies"),
+  Line 115: U+1F6AB (🚫) -> ("🚫 Blacklist", "blacklist"),
+  Line 116: U+2699 (⚙) -> ("⚙️ Settings", "settings"),
+  Line 129: U+25CF (●) -> self.status_dot = ctk.CTkLabel(self.status_frame, text="●", font=("Segoe UI", 14),
+  Line 136: U+1F50D (🔍) -> self.btn_scan = ctk.CTkButton(self.status_frame, text="🔍 Scan",
+  Line 142: U+23F8 (⏸) -> self.btn_pause = ctk.CTkButton(self.status_frame, text="⏸ Pause",
+  Line 170: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 172: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 178: U+1F4CA (📊) -> ctk.CTkLabel(view, text="📊 Dashboard", font=("Segoe UI", 28, "bold"),
+  Line 208: U+1F4C5 (📅) -> ctk.CTkLabel(view, text="📅 Day-wise Pipeline", font=("Segoe UI", 20, "bold"),
+  Line 230: U+1F680 (🚀) -> ctk.CTkLabel(view, text="🚀 Active Batches", font=("Segoe UI", 20, "bold"),
+  Line 241: U+2500 (─) -> # ─── Overview Cards ───
+  Line 280: U+2500 (─) -> # ─── Day-wise Pipeline Table (COMBINED SCHOOL + CSR) ───
+  Line 307: U+2705 (✅) -> status_text = "✅ Done"
+  Line 310: U+2CC1 (ⳁ) -> status_text = f"ⳁ {metrics['sent']}/{metrics['total']}"
+  Line 313: U+23F3 (⏳) -> status_text = "⏳ Pending"
+  Line 318: U+2500 (─) -> # ─── Active Batches (pipeline view) ───
+  Line 603: U+25B6 (▶) -> action_text, action_color = "▶", "#0d9b8a"
+  Line 605: U+23F8 (⏸) -> action_text, action_color = "⏸", "#d29922"
+  Line 607: U+25B6 (▶) -> action_text, action_color = "▶", "#3a3a5e"
+  Line 618: U+1F4CA (📊) -> ctk.CTkButton(btn_frame, text="📊", font=("Segoe UI", 7),
+  Line 645: U+1F4CA (📊) -> ctk.CTkLabel(popup, text=f"📊 {family_name}", font=("Segoe UI", 18, "bold"), text_color=C_ACCENT).pac
+  Line 735: U+1F4E6 (📦) -> ctk.CTkLabel(popup, text=f"📦 {batch.get('name', 'Unknown')}",
+  Line 763: U+25CF (●) -> ctk.CTkLabel(row, text=f"● {r.get('name', 'Unknown')} ({r.get('email', 'N/A')})",
+  Line 773: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 775: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 791: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 793: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 798: U+1F4AC (💬) -> ctk.CTkLabel(view, text="💬 Chat with Raj", font=("Segoe UI", 24, "bold"),
+  Line 838: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 840: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 845: U+1F4E5 (📥) -> ctk.CTkLabel(view, text="📥 Import Leads", font=("Segoe UI", 24, "bold"),
+  Line 906: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 908: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 913: U+1F4DD (📝) -> ctk.CTkLabel(view, text="📝 Templates", font=("Segoe UI", 24, "bold"),
+  Line 919: U+1F504 (🔄) -> ctk.CTkButton(btn_frame, text="🔄 Sync from Gmail", font=("Segoe UI", 12),
+  Line 921: U+1F512 (🔒) -> ctk.CTkButton(btn_frame, text="🔒 Lock All", font=("Segoe UI", 12),
+  Line 923: U+26A1 (⚡) -> ctk.CTkButton(btn_frame, text="⚡ Generate Missing", font=("Segoe UI", 12),
+  Line 948: U+1F512 (🔒) -> lock_text = "🔒" if info["locked"] else ""
+  Line 967: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 969: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 974: U+1F680 (🚀) -> ctk.CTkLabel(view, text="🚀 Batches", font=("Segoe UI", 24, "bold"),
+  Line 1073: U+25CF (●) -> ctk.CTkLabel(row, text=f"● {batch.get('name', 'Unknown')}", font=("Segoe UI", 12, "bold"),
+  Line 1083: U+25B6 (▶) -> ctk.CTkButton(row, text="▶ Start", font=("Segoe UI", 10), width=60,
+  Line 1086: U+23F8 (⏸) -> ctk.CTkButton(row, text="⏸ Pause", font=("Segoe UI", 10), width=60,
+  Line 1092: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1094: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1099: U+1F4AC (💬) -> ctk.CTkLabel(view, text="💬 Replies", font=("Segoe UI", 24, "bold"),
+  Line 1138: U+25CF (●) -> ctk.CTkLabel(row, text=f"● {name} ({from_addr})", font=("Segoe UI", 12, "bold"),
+  Line 1148: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1150: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1155: U+1F6AB (🚫) -> ctk.CTkLabel(view, text="🚫 Blacklist", font=("Segoe UI", 24, "bold"),
+  Line 1189: U+25CF (●) -> ctk.CTkLabel(row, text=f"● {email}", font=("Segoe UI", 11),
+  Line 1193: U+2715 (✕) -> ctk.CTkButton(row, text="✕", font=("Segoe UI", 10), width=30,
+  Line 1213: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1215: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1220: U+2699 (⚙) -> ctk.CTkLabel(view, text="⚙️ Settings", font=("Segoe UI", 24, "bold"),
+  Line 1287: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1289: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1331: U+23F8 (⏸) -> self.btn_pause.configure(text="⏸ Pause", fg_color=C_WARNING)
+  Line 1337: U+25B6 (▶) -> self.btn_pause.configure(text="▶ Resume", fg_color=C_SUCCESS)
+  Line 1353: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1355: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1384: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1386: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1446: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1448: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1460: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+  Line 1462: U+2550 (═) -> # ═══════════════════════════════════════════════════════════
+
+=== engine.py ===
+  Line 144: U+1F916 (🤖) -> <div class="logo">🤖 RAJ by RoboPirate</div>
+

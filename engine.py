@@ -362,9 +362,16 @@ class CampaignEngine:
                     self.db.campaign_queue_send(rec.id, day_offset, subj, msg.get("id"), "sent", batch_id)
                     self._log(f"[Batch {batch['name']}] Sent to {rec.email} ({seq_id.upper()} Day {day_offset})")
                 except Exception as e:
+                    err = str(e).lower()
                     self._log(f"[Batch {batch_id}] Failed to send to {rec.email}: {e}")
                     self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
                         (batch_id, rec.id))
+                    # Permanent failures: blacklist immediately so next day skips them
+                    permanent = ["invalid", "not found", "does not exist", "user unknown",
+                                 "address rejected", "domain not found", "recipient address"]
+                    if any(p in err for p in permanent):
+                        self.db.blacklist_add(rec.email, f"send_failed:{err[:80]}")
+                        self._log(f"[BLACKLIST] {rec.email} — permanent failure")
 
         except Exception as e:
             self._log(f"DEBUG ERROR in _process_running_batches: {e}")
@@ -423,11 +430,14 @@ class CampaignEngine:
         self.db.execute("UPDATE batches SET status='scheduled' WHERE id=?", (new_batch_id,))
         self.db.commit()
 
-        # Copy all recipients from parent batch
+        # Only carry forward recipients who were successfully sent
+        carried = 0
         for r in prev_recipients:
-            self.db.batch_add_recipient(new_batch_id, r["id"])
+            if r.get("batch_status") == "sent":
+                self.db.batch_add_recipient(new_batch_id, r["id"])
+                carried += 1
 
-        self._log(f"[AUTO-ADVANCE] Created {next_name} for {scheduled.strftime('%d %b %H:%M')} ({len(prev_recipients)} recipients)")
+        self._log(f"[AUTO-ADVANCE] Created {next_name} for {scheduled.strftime('%d %b %H:%M')} ({carried}/{len(prev_recipients)} recipients carried forward)")
         self._log(f"[AUTO-ADVANCE] Pipeline: {base_name} Day {current_day} → Day {next_day} (parent: {parent_batch_id})")
 
     def _check_auto_start_scheduled_batches(self, now: datetime):
@@ -1144,9 +1154,27 @@ class CampaignEngine:
                     continue
 
                 processed_this_scan.add(addr)
-                self.db.blacklist_add(addr, "bounce")
+
+                # ── Layer 1: Verify email is in our recipient pool ──
+                if not self.db.recipient_exists(addr):
+                    self._log(f"[BOUNCE-SKIP] {addr} — not in recipient pool")
+                    continue
+
+                # ── Layer 2: Verify we actually sent to them ──
+                if not self.db.was_sent_to(addr):
+                    self._log(f"[BOUNCE-SKIP] {addr} — no send record")
+                    continue
+
+                # ── Layer 3: Classify hard vs soft bounce ──
+                bounce_type, reason = self._classify_bounce(body)
+                if bounce_type == "soft":
+                    self._log(f"[BOUNCE-SOFT] {addr} — {reason}")
+                    continue
+
+                # ── All checks passed — blacklist with reason ──
+                self.db.blacklist_add(addr, f"bounce: {reason}")
                 new_blacklisted += 1
-                self._log(f"[BLACKLIST] {addr}")
+                self._log(f"[BLACKLIST] {addr} — {reason}")
 
             self._delete_bounce_email(msg_id)
             deleted_count += 1
@@ -1239,7 +1267,17 @@ class CampaignEngine:
                     if bounced_email not in our_emails:
                         continue
 
-                    self.db.blacklist_add(bounced_email, f"bounce (deep scan {days}d)")
+                    # Layer 2: Verify we actually sent to them
+                    if not self.db.was_sent_to(bounced_email):
+                        continue
+
+                    # Layer 3: Classify hard vs soft
+                    bounce_type, reason = self._classify_bounce(body)
+                    if bounce_type == "soft":
+                        results['details'].append({'email': bounced_email, 'action': 'SKIPPED (soft bounce)'})
+                        continue
+
+                    self.db.blacklist_add(bounced_email, f"bounce: {reason} (deep scan {days}d)")
                     results['blacklisted'] += 1
                     results['details'].append({'email': bounced_email, 'action': 'BLACKLISTED'})
                     self.gmail.trash_message(msg['id'])
@@ -1253,6 +1291,48 @@ class CampaignEngine:
         except Exception as e:
             self._log(f"[Engine] Deep bounce scan error: {e}")
             return results
+
+    def _classify_bounce(self, body: str) -> tuple:
+        """Classify bounce as hard (permanent) or soft (temporary).
+        Returns (type, reason) where type is 'hard' or 'soft'.
+        """
+        if not body:
+            return "hard", "unknown"
+        body_lower = body.lower()
+
+        # Check SMTP status codes first (most reliable)
+        for m in re.finditer(r'status:\s*(\d\.\d\.\d)|(\d{3})', body_lower):
+            code = m.group(1) or m.group(2)
+            if code and (code.startswith('5') or code.startswith('2.')):
+                return "hard", f"SMTP {code}"
+            if code and (code.startswith('4') or code.startswith('1.')):
+                return "soft", f"SMTP {code}"
+
+        # Hard bounce keywords (permanent failures)
+        hard_keywords = [
+            "user unknown", "no such user", "address does not exist",
+            "invalid address", "domain not found", "mailbox unavailable",
+            "recipient address rejected", "permanent failure", "does not exist",
+            "unable to deliver", "delivery permanently", "not a valid",
+            "host unknown", "unrouteable address", "relay access denied"
+        ]
+        for kw in hard_keywords:
+            if kw in body_lower:
+                return "hard", kw
+
+        # Soft bounce keywords (temporary failures)
+        soft_keywords = [
+            "mailbox full", "quota exceeded", "temporary failure",
+            "try again later", "server busy", "defer", "delayed",
+            "greylisted", "temporarily rejected", "soft bounce",
+            "resource temporarily unavailable"
+        ]
+        for kw in soft_keywords:
+            if kw in body_lower:
+                return "soft", kw
+
+        # Default: treat unknown as hard (better safe than sorry for bounces)
+        return "hard", "unknown"
 
     def _looks_like_bounce(self, from_addr: str, subject: str, body: str) -> bool:
         """Quick heuristic check if an email looks like a bounce or auto-reply."""
