@@ -21,6 +21,8 @@ import time
 import json
 import webbrowser
 import tempfile
+import queue
+from analytics import AnalyticsView
 try:
     import pandas as pd
     PANDAS_AVAILABLE = True
@@ -75,6 +77,10 @@ class RajChatApp(ctk.CTk):
         # Bind resize event
         self.bind("<Configure>", self._on_window_resize)
 
+        # Ctrl+Space to close the app gracefully
+        self.bind("<Control-space>", lambda e: self._graceful_exit())
+        self.protocol("WM_DELETE_WINDOW", self._graceful_exit)
+
         self.template_cards = {}
         self.nav_buttons = {}
         self.views = {}
@@ -84,12 +90,17 @@ class RajChatApp(ctk.CTk):
         self._family_card_widgets = {}     # family_name -> card widget
         self._family_days_cache = {}       # family_name -> days dict
         self._family_expanded_frames = {}  # family_name -> expanded frame widget
+        self._ui_queue = queue.Queue()     # thread-safe UI update queue
         self._family_toggle_buttons = {}   # family_name -> toggle button widget
         self._cached_scale = 1.0
         self._scale_cache_time = 0
         self._current_view = "dashboard"
+        self._current_view = "dashboard"
+        # In-place update caches — avoid full rebuilds
+        self._batch_pill_cache = {}        # (family_name, day_code) -> widget refs dict
 
         self._build_ui()
+        self._poll_ui_queue()
         self._start_refresh_loop()
         self._last_win_width = self.winfo_width()
         self._resize_debounce = None
@@ -100,9 +111,9 @@ class RajChatApp(ctk.CTk):
     # ═══════════════════════════════════════════════════════════
     def _get_scale(self):
         """Return a scale factor based on current window width.
-        Cached for 200ms to avoid hundreds of winfo_width() calls per render."""
+        Cached for 5s to avoid thousands of winfo_width() calls per render."""
         now = time.time()
-        if now - self._scale_cache_time < 0.2:
+        if now - self._scale_cache_time < 5.0:
             return self._cached_scale
         try:
             w = self.winfo_width()
@@ -148,6 +159,7 @@ class RajChatApp(ctk.CTk):
         # Navigation
         nav_items = [
             ("📊 Dashboard", "dashboard"),
+            ("📈 Analytics", "analytics"),
             ("📧 Chat", "chat"),
             ("📥 Import", "import"),
             ("📝 Templates", "templates"),
@@ -163,28 +175,40 @@ class RajChatApp(ctk.CTk):
             btn.pack(fill="x", padx=10, pady=3)
             self.nav_buttons[key] = btn
 
-        # Status bar
-        self.status_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        self.status_frame.pack(side="bottom", fill="x", padx=10, pady=10)
+        # ─── Status Bar ───
+        status_panel = ctk.CTkFrame(self.sidebar, fg_color=C_PANEL, corner_radius=8,
+                                    border_width=1, border_color="#2a2a4e")
+        status_panel.pack(side="bottom", fill="x", padx=10, pady=10)
 
-        self.status_dot = ctk.CTkLabel(self.status_frame, text="●", font=("Segoe UI", 14),
+        # Top divider line
+        ctk.CTkFrame(status_panel, fg_color="#2a2a4e", height=1).pack(fill="x", padx=0, pady=0)
+
+        inner = ctk.CTkFrame(status_panel, fg_color="transparent")
+        inner.pack(fill="x", padx=8, pady=8)
+
+        # Left: status indicator
+        self.status_dot = ctk.CTkLabel(inner, text="●", font=("Segoe UI", 16),
                                        text_color=C_SUCCESS)
         self.status_dot.pack(side="left")
-        self.status_text = ctk.CTkLabel(self.status_frame, text="Running",
-                                          font=("Segoe UI", 10), text_color=C_SUCCESS)
-        self.status_text.pack(side="left", padx=(5, 0))
+        self.status_text = ctk.CTkLabel(inner, text="Running",
+                                          font=("Segoe UI", 10, "bold"), text_color=C_SUCCESS)
+        self.status_text.pack(side="left", padx=(4, 0))
 
-        self.btn_scan = ctk.CTkButton(self.status_frame, text="🔍 Scan",
-                                      font=("Segoe UI", 9), width=60, height=25,
-                                      fg_color=C_ACCENT,
-                                      command=self._scan_bounces_now)
-        self.btn_scan.pack(side="right", padx=(0, 5))
+        # Right: compact action icons
+        btn_row = ctk.CTkFrame(inner, fg_color="transparent")
+        btn_row.pack(side="right")
 
-        self.btn_pause = ctk.CTkButton(self.status_frame, text="⏸ Pause",
-                                       font=("Segoe UI", 9), width=80, height=25,
-                                       fg_color=C_WARNING,
+        self.btn_pause = ctk.CTkButton(btn_row, text="⏸", font=("Segoe UI", 10),
+                                       width=28, height=28, corner_radius=6,
+                                       fg_color=C_WARNING, hover_color="#cc7a00",
                                        command=self._pause_engine)
-        self.btn_pause.pack(side="right")
+        self.btn_pause.pack(side="left", padx=(0, 4))
+
+        self.btn_scan = ctk.CTkButton(btn_row, text="🔍", font=("Segoe UI", 10),
+                                      width=28, height=28, corner_radius=6,
+                                      fg_color=C_ACCENT, hover_color="#4ab8c4",
+                                      command=self._scan_bounces_now)
+        self.btn_scan.pack(side="left")
 
         # Content area
         self.content = ctk.CTkFrame(self, fg_color="transparent")
@@ -198,6 +222,7 @@ class RajChatApp(ctk.CTk):
 
         # Build all views
         self._build_dashboard_view()
+        self._build_analytics_view()
         self._build_chat_view()
         self._build_import_view()
         self._build_templates_view()
@@ -274,11 +299,57 @@ class RajChatApp(ctk.CTk):
         self.batches_frame = ctk.CTkFrame(view, fg_color="transparent")
         self.batches_frame.pack(fill="x", pady=(0, self._sf(20)))
 
-    def _refresh_dashboard(self):
-        """Refresh all dashboard data — cards, day table, active batches."""
-        try:
-            summary = self.engine.get_summary()
+    def _safe_after(self, delay, callback):
+        """Thread-safe replacement for self.after(). Uses internal queue."""
+        self._ui_queue.put((delay, callback))
 
+    def _poll_ui_queue(self):
+        """Poll UI queue from main thread. Call once at startup."""
+        if not self.winfo_exists():
+            return
+        try:
+            while True:
+                delay, callback = self._ui_queue.get_nowait()
+                self.after(delay, callback)
+        except queue.Empty:
+            pass
+        self.after(50, self._poll_ui_queue)
+
+    def _run_bg(self, task, on_ok, on_err):
+        """Run task in background thread, then call on_ok/on_err on main thread."""
+        q = queue.Queue()
+        def _fetch():
+            try:
+                result = task()
+                q.put(("ok", result))
+            except Exception as e:
+                q.put(("err", str(e)))
+        def _poll():
+            if not self.winfo_exists():
+                return
+            try:
+                status, payload = q.get_nowait()
+                if status == "ok":
+                    on_ok(payload)
+                else:
+                    on_err(payload)
+            except queue.Empty:
+                self.after(100, _poll)
+        threading.Thread(target=_fetch, daemon=True).start()
+        _poll()
+
+    def _refresh_dashboard(self):
+        """Refresh all dashboard data — cards, day table, active batches.
+        DB query runs in background thread so UI never blocks."""
+        self._run_bg(
+            lambda: self.engine.get_summary(),
+            self._update_dashboard_ui,
+            lambda msg: print(f"Dashboard fetch error: {msg}")
+        )
+
+    def _update_dashboard_ui(self, summary):
+        """Apply summary data to dashboard widgets (must run on main thread)."""
+        try:
             # ─── Overview Cards ───
             totals = {"leads": 0, "sent": 0, "replied": 0, "bounced": 0, "pool": 0}
 
@@ -293,30 +364,32 @@ class RajChatApp(ctk.CTk):
                 totals["bounced"] += pipeline.get("bounced", 0)
                 totals["pool"] += pool_count
 
-                # Update individual card with bright white text
-                self.dashboard_cards[seq_id]["leads"].configure(
-                    text=f"Leads: {pipeline.get('total', 0)}", text_color="white")
-                self.dashboard_cards[seq_id]["sent"].configure(
-                    text=f"Sent: {pipeline.get('sent', 0)}", text_color="white")
-                self.dashboard_cards[seq_id]["replied"].configure(
-                    text=f"Replied: {pipeline.get('replied', 0)}", text_color="white")
-                self.dashboard_cards[seq_id]["bounced"].configure(
-                    text=f"Bounced: {pipeline.get('bounced', 0)}", text_color="white")
-                if "pool" in self.dashboard_cards[seq_id]:
-                    self.dashboard_cards[seq_id]["pool"].configure(
-                        text=f"Pool: {pool_count}", text_color="white")
+                if seq_id in self.dashboard_cards:
+                    self.dashboard_cards[seq_id]["leads"].configure(
+                        text=f"Leads: {pipeline.get('total', 0)}", text_color="white")
+                    self.dashboard_cards[seq_id]["sent"].configure(
+                        text=f"Sent: {pipeline.get('sent', 0)}", text_color="white")
+                    self.dashboard_cards[seq_id]["replied"].configure(
+                        text=f"Replied: {pipeline.get('replied', 0)}", text_color="white")
+                    self.dashboard_cards[seq_id]["bounced"].configure(
+                        text=f"Bounced: {pipeline.get('bounced', 0)}", text_color="white")
+                    if "pool" in self.dashboard_cards[seq_id]:
+                        self.dashboard_cards[seq_id]["pool"].configure(
+                            text=f"Pool: {pool_count}", text_color="white")
 
             # TOTAL card
-            self.dashboard_cards["total"]["leads"].configure(text=f"Leads: {totals['leads']}", text_color="white")
-            self.dashboard_cards["total"]["sent"].configure(text=f"Sent: {totals['sent']}", text_color="white")
-            self.dashboard_cards["total"]["replied"].configure(text=f"Replied: {totals['replied']}", text_color="white")
-            self.dashboard_cards["total"]["bounced"].configure(text=f"Bounced: {totals['bounced']}", text_color="white")
-            if "pool" in self.dashboard_cards["total"]:
-                self.dashboard_cards["total"]["pool"].configure(text=f"Pool: {totals['pool']}", text_color="white")
+            if "total" in self.dashboard_cards:
+                self.dashboard_cards["total"]["leads"].configure(text=f"Leads: {totals['leads']}", text_color="white")
+                self.dashboard_cards["total"]["sent"].configure(text=f"Sent: {totals['sent']}", text_color="white")
+                self.dashboard_cards["total"]["replied"].configure(text=f"Replied: {totals['replied']}", text_color="white")
+                self.dashboard_cards["total"]["bounced"].configure(text=f"Bounced: {totals['bounced']}", text_color="white")
+                if "pool" in self.dashboard_cards["total"]:
+                    self.dashboard_cards["total"]["pool"].configure(text=f"Pool: {totals['pool']}", text_color="white")
 
             # BLACKLIST card
-            total_blacklist = summary.get("global", {}).get("blacklist_count", 0)
-            self.dashboard_cards["blacklist"]["leads"].configure(text=f"Blocked: {total_blacklist}", text_color="white")
+            if "blacklist" in self.dashboard_cards:
+                total_blacklist = summary.get("global", {}).get("blacklist_count", 0)
+                self.dashboard_cards["blacklist"]["leads"].configure(text=f"Blocked: {total_blacklist}", text_color="white")
 
             # ─── Day-wise Pipeline Table (COMBINED SCHOOL + CSR) ───
             combined_day_wise = {}
@@ -348,7 +421,7 @@ class RajChatApp(ctk.CTk):
                         status_text = "✅ Done"
                         status_color = C_SUCCESS
                     elif metrics["sent"] > 0:
-                        status_text = f"ⳁ {metrics['sent']}/{metrics['total']}"
+                        status_text = f"⏳ {metrics['sent']}/{metrics['total']}"
                         status_color = C_WARNING
                     else:
                         status_text = "⏳ Pending"
@@ -360,7 +433,7 @@ class RajChatApp(ctk.CTk):
             self._refresh_batch_list()
 
         except Exception as e:
-            print(f"Dashboard refresh error: {e}")
+            print(f"Dashboard UI update error: {e}")
             import traceback
             print(traceback.format_exc())
 
@@ -386,15 +459,11 @@ class RajChatApp(ctk.CTk):
         for widget in self.batches_frame.winfo_children():
             widget.destroy()
 
-        try:
+        def _fetch():
             batches = self.engine.db.batch_get_all()
-
             if not batches:
-                ctk.CTkLabel(self.batches_frame, text="No batches yet. Create one in Batches tab.",
-                             font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
-                return
+                return None
 
-            # Group by batch group (same logic as Batches tab)
             from collections import defaultdict
             groups = defaultdict(list)
             for b in batches:
@@ -405,13 +474,49 @@ class RajChatApp(ctk.CTk):
             for gn, batch_list in groups.items():
                 families[gn] = self._deduplicate_batches_by_day(batch_list)
 
-            for family_name, days in sorted(families.items()):
-                self._render_pipeline_card(family_name, days)
+            running_families = {
+                name: days for name, days in families.items()
+                if any(
+                    b and isinstance(b, dict) and str(b.get("status", "")).strip().upper() == "RUNNING"
+                    for b in days.values()
+                )
+            }
 
-        except Exception as e:
-            print(f"Batch list error: {e}")
-            import traceback
-            print(traceback.format_exc())
+            def _due_date(item):
+                name, days = item
+                dates = []
+                for d in ["D1", "D3", "D5", "D7", "D10"]:
+                    b = days.get(d)
+                    if b and isinstance(b, dict) and b.get("scheduled_at"):
+                        try:
+                            dt = datetime.fromisoformat(b["scheduled_at"].replace("Z", "+00:00"))
+                            dates.append(dt)
+                        except:
+                            pass
+                return min(dates) if dates else datetime.max
+
+            return sorted(running_families.items(), key=_due_date)
+
+        self._run_bg(_fetch, self._build_batch_list_ui, self._show_batch_list_error)
+
+    def _build_batch_list_ui(self, sorted_families):
+        for widget in self.batches_frame.winfo_children():
+            widget.destroy()
+        if sorted_families is None:
+            ctk.CTkLabel(self.batches_frame, text="No batches yet. Create one in Batches tab.",
+                         font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
+            return
+        if not sorted_families:
+            ctk.CTkLabel(self.batches_frame, text="No batches currently sending",
+                         font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
+            return
+        for family_name, days in sorted_families:
+            self._render_pipeline_card(family_name, days)
+
+    def _show_batch_list_error(self, msg):
+        for widget in self.batches_frame.winfo_children():
+            widget.destroy()
+        ctk.CTkLabel(self.batches_frame, text=f"Error: {msg}", text_color=C_DANGER).pack(pady=20)
 
     def _group_batches_into_families(self, batches):
         """Group batches by family. Tries parent_batch_id first, falls back to name matching."""
@@ -590,7 +695,6 @@ class RajChatApp(ctk.CTk):
         for day_code in ["D1", "D3", "D5", "D7", "D10"]:
             b = days.get(day_code)
             if b and isinstance(b, dict):
-                filled_days += 1
                 if not seq_id:
                     seq_id = b.get("sequence_id", "").upper()
                 if family_total == 0:
@@ -599,6 +703,15 @@ class RajChatApp(ctk.CTk):
                         family_total = sum(counts.values())
                     except:
                         pass
+                # Only count as "filled" if all emails sent (COMPLETED)
+                try:
+                    counts = self.engine.db.batch_count_by_status(b["id"])
+                    sent = counts.get("sent", 0)
+                    total = sum(counts.values())
+                    if sent >= total and total > 0:
+                        filled_days += 1
+                except:
+                    pass
 
         name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id == "CSR" else "white"
 
@@ -616,7 +729,7 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(left_hdr, text=f"  {filled_days}/5 days  •  {family_total} recipients",
                      font=self._font(10), text_color=C_TEXT_DIM).pack(side="left")
 
-        # Overall progress: days completed out of 5
+        # Overall progress: truly completed days out of 5
         if filled_days > 0:
             prog_pct = min(100, int(filled_days / 5 * 100))
             prog_frame = ctk.CTkFrame(header, fg_color="#1a1a2e", height=self._sf(6),
@@ -661,14 +774,19 @@ class RajChatApp(ctk.CTk):
                 due = total
 
             # FIX: If COMPLETED but not all sent, treat as DRAFT
+            # FIX: If has scheduled_at and not completed/running, treat as SCHEDULED
             actual_status = status
             if status == "COMPLETED" and sent < total and total > 0:
                 actual_status = "DRAFT"
+            elif scheduled and actual_status not in ["COMPLETED", "RUNNING"]:
+                actual_status = "SCHEDULED"
 
-            # Colors
+            # Colors — SCHEDULED = yellow, COMPLETED = green, RUNNING/DRAFT = teal
             if actual_status == "COMPLETED":
-                bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
-            elif actual_status in ["RUNNING", "SCHEDULED", "DRAFT"]:
+                bg, border, accent = "#0a3a2a", "#2ecc71", "#2ecc71"
+            elif actual_status == "SCHEDULED":
+                bg, border, accent = "#3a2a0d", "#febe32", "#febe32"
+            elif actual_status in ["RUNNING", "DRAFT"]:
                 bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
             elif actual_status == "PAUSED":
                 bg, border, accent = "#2a2a1a", "#d29922", "#d29922"
@@ -725,8 +843,8 @@ class RajChatApp(ctk.CTk):
                 st_text, st_color = "All sent", "#0d9b8a"
             elif due > 0 and actual_status not in ["NONE"]:
                 st_text, st_color = f"{due} due", "#febe32"
-            elif actual_status == "NONE" and total_leads > 0:
-                st_text, st_color = f"{total_leads} to send", "#febe32"
+            elif actual_status == "NONE" and family_total > 0:
+                st_text, st_color = f"{family_total} to send", "#febe32"
             else:
                 st_text, st_color = "", C_TEXT_DIM
             if st_text:
@@ -831,7 +949,13 @@ class RajChatApp(ctk.CTk):
             day1_batch = None
             batches = self.engine.db.batch_get_all()
             for b in batches:
-                if b.get("name", "").startswith(family_name) and "-D1" in b.get("name", ""):
+                bn = b.get("name", "")
+                # New naming: Family-D1 (e.g. Master_Lead-B2-D1)
+                if bn.startswith(family_name) and "-D1" in bn:
+                    day1_batch = b
+                    break
+                # Old naming: Family is Day 1 itself (e.g. Master_Lead-B2)
+                if bn == family_name:
                     day1_batch = b
                     break
 
@@ -846,7 +970,8 @@ class RajChatApp(ctk.CTk):
                     self.engine.db.batch_add_recipient(new_batch_id, r["id"])
 
                 self._log_activity(f"Created {batch_name} from {day1_batch['name']}")
-                self._refresh_batch_list()
+                # Full rebuild only on batches tab when explicitly needed
+                self._refresh_all_batches()
                 self._refresh_dashboard()
             else:
                 self._log_activity(f"Cannot create {batch_name}: No Day 1 batch found")
@@ -858,6 +983,7 @@ class RajChatApp(ctk.CTk):
         try:
             self.engine.db.batch_update_status(batch_id, "running")
             self._log_activity(f"Started batch {batch_id}")
+            # Only refresh dashboard; batches tab updates on next tab switch
             self._refresh_batch_list()
         except Exception as e:
             self._log_activity(f"Error starting batch: {e}")
@@ -867,6 +993,7 @@ class RajChatApp(ctk.CTk):
         try:
             self.engine.db.batch_update_status(batch_id, "paused")
             self._log_activity(f"Paused batch {batch_id}")
+            # Only refresh dashboard; batches tab updates on next tab switch
             self._refresh_batch_list()
         except Exception as e:
             self._log_activity(f"Error pausing batch: {e}")
@@ -908,7 +1035,7 @@ class RajChatApp(ctk.CTk):
 
             recipients = self.engine.db.batch_get_recipients(batch_id)
             for r in recipients:
-                status = r.get("status", "pending")
+                status = r.get("batch_status", "pending")
                 color = C_SUCCESS if status == "sent" else C_DANGER if status == "bounced" else C_WARNING if status == "skipped" else C_TEXT_DIM
                 row = ctk.CTkFrame(rec_frame, fg_color="transparent")
                 row.pack(fill="x", pady=1)
@@ -926,24 +1053,40 @@ class RajChatApp(ctk.CTk):
     # THREAD-SAFE REFRESH LOOP (FIXED v4.2.1)
     # ═══════════════════════════════════════════════════════════
     def _start_refresh_loop(self):
-        """Start background refresh loop — only refreshes the visible view."""
+        """Start background refresh loop — safety net only (5 min).
+        Primary refresh is on user actions (tab switch, button clicks)."""
+        self._refresh_lock = threading.Lock()
+
         def loop():
             while True:
-                time.sleep(30)
+                time.sleep(300)  # 5 minutes — safety net only
                 try:
                     if not hasattr(self, 'views'):
                         continue
+                    if self._refresh_lock.locked():
+                        continue
                     view = getattr(self, '_current_view', 'dashboard')
                     if view == "dashboard" and "dashboard" in self.views:
-                        self.after(0, self._refresh_dashboard)
+                        self._safe_after(0, self._refresh_dashboard)
                     elif view == "batches" and "batches" in self.views:
-                        self.after(0, self._refresh_all_batches)
-                    # Other views don't need 30s polling
+                        self._safe_after(0, self._refresh_all_batches)
                 except Exception:
                     pass
 
         t = threading.Thread(target=loop, daemon=True)
         t.start()
+
+    # ═══════════════════════════════════════════════════════════
+    # ANALYTICS VIEW
+    # ═══════════════════════════════════════════════════════════
+    def _build_analytics_view(self):
+        view = ctk.CTkFrame(self.content, fg_color="transparent")
+        self.views["analytics"] = view
+        self.analytics_view = AnalyticsView(view, self.engine.db, self.engine)
+
+    def _refresh_analytics(self):
+        if hasattr(self, 'analytics_view'):
+            self.analytics_view._refresh()
 
     # ═══════════════════════════════════════════════════════════
     # CHAT VIEW
@@ -1067,44 +1210,268 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkFrame(self.content, fg_color="transparent")
         self.views["templates"] = view
 
-        ctk.CTkLabel(view, text="📝 Templates", font=("Segoe UI", 24, "bold"),
+        # Title
+        ctk.CTkLabel(view, text="📝 Templates", font=self._font(24, bold=True),
                      text_color="white").pack(anchor="w", pady=(0, 15))
 
+        # Bulk action buttons
         btn_frame = ctk.CTkFrame(view, fg_color="transparent")
         btn_frame.pack(fill="x", pady=(0, 10))
 
-        ctk.CTkButton(btn_frame, text="🔄 Sync from Gmail", font=("Segoe UI", 12),
+        ctk.CTkButton(btn_frame, text="🔄 Sync from Gmail", font=self._font(12),
                       fg_color=C_ACCENT, command=self._sync_templates).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(btn_frame, text="🔒 Lock All", font=("Segoe UI", 12),
+        ctk.CTkButton(btn_frame, text="🔒 Lock All", font=self._font(12),
                       fg_color=C_WARNING, command=self._lock_templates).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(btn_frame, text="⚡ Generate Missing", font=("Segoe UI", 12),
+        ctk.CTkButton(btn_frame, text="⚡ Generate Missing", font=self._font(12),
                       fg_color=C_SUCCESS, command=self._generate_missing).pack(side="left")
 
-        self.template_grid = ctk.CTkFrame(view, fg_color="transparent")
+        # Full-width scrollable card grid (no preview panel)
+        scroll = ctk.CTkScrollableFrame(view, fg_color="transparent")
+        scroll.pack(fill="both", expand=True)
+        self.template_grid = ctk.CTkFrame(scroll, fg_color="transparent")
         self.template_grid.pack(fill="both", expand=True)
+
+        self._template_card_refs = {}  # (seq_id, day) -> widget dict
+        self._template_full_data = {}  # (seq_id, day) -> full template dict
 
         self._refresh_templates()
 
     def _refresh_templates(self):
+        self._template_card_refs.clear()
+        self._template_full_data.clear()
+
         for widget in self.template_grid.winfo_children():
             widget.destroy()
 
         status = self.engine.get_template_status()
+        all_templates = self.engine.get_templates()
+
         for seq_id, days in status.items():
-            seq_frame = ctk.CTkFrame(self.template_grid, fg_color=C_PANEL, corner_radius=10)
-            seq_frame.pack(fill="x", pady=8, padx=4)
+            seq_color = C_ACCENT if seq_id == "school" else C_WARNING
+            border_color = seq_color
 
-            ctk.CTkLabel(seq_frame, text=seq_id.upper(), font=("Segoe UI", 16, "bold"),
-                         text_color=C_ACCENT if seq_id == "school" else C_WARNING).pack(anchor="w", padx=15, pady=(10, 5))
+            seq_frame = ctk.CTkFrame(self.template_grid, fg_color=C_PANEL, corner_radius=10,
+                                     border_width=1, border_color="#2a2a4e")
+            seq_frame.pack(fill="x", pady=self._sf(8), padx=self._sf(4))
 
-            day_row = ctk.CTkFrame(seq_frame, fg_color="transparent")
-            day_row.pack(fill="x", padx=10, pady=(0, 10))
+            ctk.CTkLabel(seq_frame, text=seq_id.upper(), font=self._font(16, bold=True),
+                         text_color=seq_color).pack(anchor="w", padx=self._sf(15),
+                                                     pady=(self._sf(10), self._sf(5)))
 
+            # Grid container: 5 equal columns for the 5 days
+            cards_grid = ctk.CTkFrame(seq_frame, fg_color="transparent")
+            cards_grid.pack(fill="x", padx=self._sf(10), pady=(0, self._sf(10)))
+            for c in range(5):
+                cards_grid.grid_columnconfigure(c, weight=1)
+
+            col = 0
             for day, info in days.items():
-                color = C_SUCCESS if info["exists"] else C_DANGER
-                lock_text = "🔒" if info["locked"] else ""
-                ctk.CTkLabel(day_row, text=f"Day {day} {lock_text}", font=("Segoe UI", 11),
-                             text_color=color).pack(side="left", padx=8)
+                self._build_template_day_card(cards_grid, seq_id, day, info,
+                                              all_templates.get(seq_id, {}).get(day),
+                                              seq_color, border_color, col)
+                col += 1
+
+    def _build_template_day_card(self, parent, seq_id, day, info, full_tmpl,
+                                 seq_color, border_color, col):
+        exists = info["exists"]
+        locked = info["locked"]
+        subject = info.get("subject") or "No subject"
+        source = info.get("source") or ""
+
+        key = (seq_id, day)
+
+        # Card frame — grid cell, no fixed width so it fills the column
+        card = ctk.CTkFrame(parent, fg_color=C_BG, corner_radius=10,
+                            border_width=1,
+                            border_color=seq_color if exists else C_DANGER)
+        card.grid(row=0, column=col, sticky="nsew", padx=self._sf(4), pady=self._sf(4))
+
+        # Top: Day badge + lock icon
+        top = ctk.CTkFrame(card, fg_color="transparent")
+        top.pack(fill="x", padx=self._sf(8), pady=(self._sf(6), 0))
+
+        badge_bg = seq_color if exists else C_DANGER
+        badge = ctk.CTkLabel(top, text=f"Day {day}", font=self._font(10, bold=True),
+                             text_color=C_BG if exists else "white",
+                             fg_color=badge_bg, corner_radius=999)
+        badge.pack(side="left")
+
+        if locked:
+            ctk.CTkLabel(top, text="🔒", font=self._font(11)).pack(side="right")
+
+        # Subject preview
+        display_subj = subject[:22] + "…" if len(subject) > 24 else subject
+        subj_color = C_TEXT if exists else C_TEXT_DIM
+        subj_lbl = ctk.CTkLabel(card, text=display_subj, font=self._font(9),
+                                text_color=subj_color)
+        subj_lbl.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(2)))
+
+        # Source hint
+        if source and source != "unknown":
+            src_lbl = ctk.CTkLabel(card, text=f"src: {source}", font=self._font(8),
+                                   text_color=C_TEXT_DIM)
+            src_lbl.pack(anchor="w", padx=self._sf(8))
+
+        # Action buttons
+        btn_row = ctk.CTkFrame(card, fg_color="transparent")
+        btn_row.pack(fill="x", padx=self._sf(6), pady=(self._sf(4), self._sf(6)), side="bottom")
+
+        # Preview button — opens directly in browser
+        prev_btn = ctk.CTkButton(btn_row, text="👁", font=self._font(10),
+                                 fg_color=C_PANEL, width=self._sf(30), height=self._sf(24),
+                                 command=lambda s=seq_id, d=day: self._preview_template_in_browser(s, d))
+        prev_btn.pack(side="left", padx=(0, self._sf(3)))
+
+        # Lock / Unlock toggle
+        if locked:
+            lock_btn = ctk.CTkButton(btn_row, text="🔓", font=self._font(10),
+                                     fg_color=C_WARNING, width=self._sf(30), height=self._sf(24),
+                                     command=lambda s=seq_id, d=day: self._lock_single_template(s, d))
+        else:
+            lock_btn = ctk.CTkButton(btn_row, text="🔒", font=self._font(10),
+                                     fg_color=C_SUCCESS, width=self._sf(30), height=self._sf(24),
+                                     command=lambda s=seq_id, d=day: self._lock_single_template(s, d))
+        lock_btn.pack(side="left", padx=(0, self._sf(3)))
+
+        # Generate button (only if missing)
+        gen_btn = None
+        if not exists:
+            gen_btn = ctk.CTkButton(btn_row, text="⚡", font=self._font(10),
+                                    fg_color=C_ACCENT, width=self._sf(30), height=self._sf(24),
+                                    command=lambda s=seq_id, d=day: self._generate_single_template(s, d))
+            gen_btn.pack(side="left")
+
+        # Store refs for in-place updates
+        self._template_card_refs[key] = {
+            "card": card,
+            "badge": badge,
+            "subject": subj_lbl,
+            "lock_btn": lock_btn,
+            "gen_btn": gen_btn,
+            "exists": exists,
+            "locked": locked,
+        }
+        if full_tmpl:
+            self._template_full_data[key] = full_tmpl
+        else:
+            self._template_full_data[key] = None
+
+    def _preview_template_in_browser(self, seq_id, day):
+        """Open template HTML directly in default browser."""
+        key = (seq_id, day)
+        tmpl = self._template_full_data.get(key)
+        if not tmpl:
+            tmpl = self.engine.db.template_get(seq_id, day)
+            if tmpl:
+                self._template_full_data[key] = tmpl
+        if not tmpl:
+            self._log_activity(f"No template to preview for {seq_id.upper()} Day {day}")
+            return
+        html = tmpl.get("html_body", "")
+        self._preview_html(html, title=f"{seq_id.upper()} Day {day}")
+
+    def _lock_single_template(self, seq_id, day):
+        key = (seq_id, day)
+        refs = self._template_card_refs.get(key)
+        if not refs:
+            return
+
+        currently_locked = refs["locked"]
+        try:
+            if currently_locked:
+                self.engine.unlock_template(seq_id, day)
+                self._log_activity(f"Unlocked {seq_id.upper()} Day {day}")
+            else:
+                self.engine.lock_template(seq_id, day)
+                self._log_activity(f"Locked {seq_id.upper()} Day {day}")
+        except Exception as e:
+            self._log_activity(f"Lock error: {e}")
+            return
+
+        # In-place update: fetch fresh status
+        tmpl = self.engine.db.template_get(seq_id, day)
+        if tmpl:
+            self._template_full_data[key] = tmpl
+
+        # Refresh just this card
+        self._refresh_single_template_card(seq_id, day)
+
+    def _generate_single_template(self, seq_id, day):
+        key = (seq_id, day)
+        try:
+            result = self.engine.generate_template(seq_id, day)
+            if "error" in result:
+                self._log_activity(f"Generate error: {result['error']}")
+                return
+            self.engine.db.template_put(seq_id, day, result["subject"], result["html_body"], source="generated")
+            self._log_activity(f"Generated {seq_id.upper()} Day {day}")
+
+            # Store full data
+            self._template_full_data[key] = result
+        except Exception as e:
+            self._log_activity(f"Generate error: {e}")
+            return
+
+        # In-place update
+        self._refresh_single_template_card(seq_id, day)
+
+        # Auto-preview
+        self._on_template_click(seq_id, day)
+
+    def _refresh_single_template_card(self, seq_id, day):
+        key = (seq_id, day)
+        refs = self._template_card_refs.get(key)
+        if not refs:
+            return
+
+        info = self.engine.get_template_status().get(seq_id, {}).get(day, {})
+        exists = info.get("exists", False)
+        locked = info.get("locked", False)
+        subject = info.get("subject") or "No subject"
+        source = info.get("source") or ""
+
+        seq_color = C_ACCENT if seq_id == "school" else C_WARNING
+        badge_bg = seq_color if exists else C_DANGER
+
+        # Update badge
+        refs["badge"].configure(text=f"Day {day}", fg_color=badge_bg,
+                                text_color=C_BG if exists else "white")
+
+        # Update border
+        refs["card"].configure(border_color=seq_color if exists else C_DANGER)
+
+        # Update subject
+        display_subj = subject[:32] + "…" if len(subject) > 34 else subject
+        subj_color = C_TEXT if exists else C_TEXT_DIM
+        refs["subject"].configure(text=display_subj, text_color=subj_color)
+
+        # Update lock button
+        btn_parent = refs["lock_btn"].master
+        refs["lock_btn"].destroy()
+        if locked:
+            new_lock = ctk.CTkButton(btn_parent, text="🔓", font=self._font(10),
+                                     fg_color=C_WARNING, width=self._sf(36), height=self._sf(26),
+                                     command=lambda s=seq_id, d=day: self._lock_single_template(s, d))
+        else:
+            new_lock = ctk.CTkButton(btn_parent, text="🔒", font=self._font(10),
+                                     fg_color=C_SUCCESS, width=self._sf(36), height=self._sf(26),
+                                     command=lambda s=seq_id, d=day: self._lock_single_template(s, d))
+        new_lock.pack(side="left", padx=(0, self._sf(4)))
+        refs["lock_btn"] = new_lock
+
+        # Update generate button
+        if not exists and refs.get("gen_btn") is None:
+            gen_btn = ctk.CTkButton(btn_parent, text="⚡", font=self._font(10),
+                                    fg_color=C_ACCENT, width=self._sf(36), height=self._sf(26),
+                                    command=lambda s=seq_id, d=day: self._generate_single_template(s, d))
+            gen_btn.pack(side="left")
+            refs["gen_btn"] = gen_btn
+        elif exists and refs.get("gen_btn"):
+            refs["gen_btn"].destroy()
+            refs["gen_btn"] = None
+
+        refs["exists"] = exists
+        refs["locked"] = locked
 
     def _sync_templates(self):
         result = self.engine.sync_templates()
@@ -1219,35 +1586,45 @@ class RajChatApp(ctk.CTk):
         self._family_expanded_frames.clear()
         self._family_toggle_buttons.clear()
 
-        try:
+        # Show loading indicator so UI doesn't look frozen
+        loading = ctk.CTkLabel(self.all_batches_frame, text="Loading batches...",
+                               font=self._font(12), text_color=C_TEXT_DIM)
+        loading.pack(pady=self._sf(30))
+
+        def _fetch():
             batches = self.engine.db.batch_get_all()
             if not batches:
-                ctk.CTkLabel(self.all_batches_frame, text="No batches yet. Create one above.",
-                             font=self._font(12), text_color=C_TEXT_DIM).pack(pady=self._sf(30))
-                return
+                return []
 
-            # Group by batch group (keeps B-suffix, removes only day suffix)
             from collections import defaultdict
             groups = defaultdict(list)
             for b in batches:
                 gn = self._extract_batch_group(b.get("name", str(b["id"])))
                 groups[gn].append(b)
 
-            # Deduplicate each group to exactly 5 day slots
             families = {}
             for gn, batch_list in groups.items():
                 families[gn] = self._deduplicate_batches_by_day(batch_list)
 
-            # Sort families by priority
-            def _family_priority(item):
+            def _sort_key(item):
                 name, days = item
+                dates = []
+                for d in ["D1", "D3", "D5", "D7", "D10"]:
+                    b = days.get(d)
+                    if b and isinstance(b, dict) and b.get("scheduled_at"):
+                        try:
+                            dt = datetime.fromisoformat(b["scheduled_at"].replace("Z", "+00:00"))
+                            dates.append(dt)
+                        except:
+                            pass
+                due_key = min(dates) if dates else datetime.max
                 priority = 0
                 for d in ["D1", "D3", "D5", "D7", "D10"]:
                     b = days.get(d)
                     if b and isinstance(b, dict):
                         st = str(b.get("status", "")).lower()
                         if st == "running":
-                            return 5
+                            priority = max(priority, 5)
                         elif st == "scheduled":
                             priority = max(priority, 4)
                         elif st == "draft":
@@ -1256,14 +1633,27 @@ class RajChatApp(ctk.CTk):
                             priority = max(priority, 2)
                         elif st == "completed":
                             priority = max(priority, 1)
-                return priority
+                return (due_key, -priority)
 
-            for family_name, days in sorted(families.items(), key=_family_priority, reverse=True):
-                self._family_days_cache[family_name] = days
-                self._render_batch_family_card(family_name, days)
+            return sorted(families.items(), key=_sort_key)
 
-        except Exception as e:
-            ctk.CTkLabel(self.all_batches_frame, text=f"Error: {e}", text_color=C_DANGER).pack(pady=20)
+        self._run_bg(_fetch, self._build_all_batches_ui, self._show_batches_error)
+
+    def _build_all_batches_ui(self, sorted_families):
+        for widget in self.all_batches_frame.winfo_children():
+            widget.destroy()
+        if not sorted_families:
+            ctk.CTkLabel(self.all_batches_frame, text="No batches yet. Create one above.",
+                         font=self._font(12), text_color=C_TEXT_DIM).pack(pady=self._sf(30))
+            return
+        for family_name, days in sorted_families:
+            self._family_days_cache[family_name] = days
+            self._render_batch_family_card(family_name, days)
+
+    def _show_batches_error(self, msg):
+        for widget in self.all_batches_frame.winfo_children():
+            widget.destroy()
+        ctk.CTkLabel(self.all_batches_frame, text=f"Error: {msg}", text_color=C_DANGER).pack(pady=20)
 
     def _render_batch_family_card(self, family_name, days):
         """5-day pipeline card for Batches tab. Exactly 5 day pills per group."""
@@ -1286,7 +1676,6 @@ class RajChatApp(ctk.CTk):
         for day_code in ["D1", "D3", "D5", "D7", "D10"]:
             b = days.get(day_code)
             if b and isinstance(b, dict):
-                filled_days += 1
                 if not seq_id:
                     seq_id = b.get("sequence_id", "").upper()
                 if family_total == 0:
@@ -1295,6 +1684,15 @@ class RajChatApp(ctk.CTk):
                         family_total = sum(counts.values())
                     except:
                         pass
+                # Only count as "filled" if all emails sent (COMPLETED)
+                try:
+                    counts = self.engine.db.batch_count_by_status(b["id"])
+                    sent = counts.get("sent", 0)
+                    total = sum(counts.values())
+                    if sent >= total and total > 0:
+                        filled_days += 1
+                except:
+                    pass
 
         name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id == "CSR" else "white"
 
@@ -1312,7 +1710,7 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(left_hdr, text=f"  {filled_days}/5 days  •  {family_total} recipients",
                      font=self._font(10), text_color=C_TEXT_DIM).pack(side="left")
 
-        # Overall progress: days completed out of 5
+        # Overall progress: truly completed days out of 5
         if filled_days > 0:
             prog_pct = min(100, int(filled_days / 5 * 100))
             prog_frame = ctk.CTkFrame(header, fg_color="#1a1a2e", height=self._sf(6),
@@ -1368,11 +1766,15 @@ class RajChatApp(ctk.CTk):
             actual_status = status
             if status == "COMPLETED" and sent < total and total > 0:
                 actual_status = "DRAFT"
+            elif scheduled and actual_status not in ["COMPLETED", "RUNNING"]:
+                actual_status = "SCHEDULED"
 
-            # Colors
+            # Colors — SCHEDULED = yellow, COMPLETED = green, RUNNING/DRAFT = teal
             if actual_status == "COMPLETED":
-                bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
-            elif actual_status in ["RUNNING", "SCHEDULED", "DRAFT"]:
+                bg, border, accent = "#0a3a2a", "#2ecc71", "#2ecc71"
+            elif actual_status == "SCHEDULED":
+                bg, border, accent = "#3a2a0d", "#febe32", "#febe32"
+            elif actual_status in ["RUNNING", "DRAFT"]:
                 bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
             elif actual_status == "PAUSED":
                 bg, border, accent = "#2a2a1a", "#d29922", "#d29922"
@@ -1424,12 +1826,13 @@ class RajChatApp(ctk.CTk):
             # Mini progress bar inside pill
             if total > 0:
                 prog_pct = int(sent / total * 100)
+                bar_w = self._sf(100)
                 bar_bg = ctk.CTkFrame(pill, fg_color="#1a1a2e", height=self._sf(4),
-                                       corner_radius=self._sf(2))
-                bar_bg.pack(fill="x", padx=self._sf(8), pady=(self._sf(4), self._sf(4)))
+                                       corner_radius=self._sf(2), width=bar_w)
+                bar_bg.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(4)))
                 bar_bg.pack_propagate(False)
                 if prog_pct > 0:
-                    fill_w = max(2, int(self._sf(100) * prog_pct / 100))
+                    fill_w = max(2, int(bar_w * prog_pct / 100))
                     ctk.CTkFrame(bar_bg, fg_color=C_SUCCESS if prog_pct == 100 else C_ACCENT,
                                  height=self._sf(4), corner_radius=self._sf(2), width=fill_w
                                  ).pack(side="left")
@@ -1438,8 +1841,8 @@ class RajChatApp(ctk.CTk):
             states = {"COMPLETED": "Done", "RUNNING": "Sending", "SCHEDULED": "Scheduled",
                       "DRAFT": "Ready", "PAUSED": "Paused", "NONE": "Queue"}
             badge_text = states.get(actual_status, "")
-            badge_color = C_SUCCESS if actual_status == "COMPLETED" else "#febe32" if actual_status == "RUNNING" else "#5a6a7a"
-            badge_bg = "#0d3a2a" if actual_status == "COMPLETED" else "#3a2a0d" if actual_status == "RUNNING" else "#1a1a2e"
+            badge_color = C_SUCCESS if actual_status == "COMPLETED" else "#febe32" if actual_status == "SCHEDULED" else "#0d9b8a" if actual_status == "RUNNING" else "#d29922" if actual_status == "PAUSED" else "#5a6a7a"
+            badge_bg = "#0d3a2a" if actual_status == "COMPLETED" else "#3a2a0d" if actual_status == "SCHEDULED" else "#0d2b2b" if actual_status == "RUNNING" else "#2a2a1a" if actual_status == "PAUSED" else "#1a1a2e"
             if badge_text:
                 badge = ctk.CTkLabel(pill, text=f"  {badge_text}  ", font=self._font(8, bold=True),
                                      text_color=badge_color, fg_color=badge_bg,
@@ -1609,7 +2012,7 @@ class RajChatApp(ctk.CTk):
                              font=self._font(10), text_color=C_TEXT_DIM).pack(pady=self._sf(10))
             else:
                 for r in recipients:
-                    status = r.get("status", "pending")
+                    status = r.get("batch_status", "pending")
                     color = C_SUCCESS if status == "sent" else C_DANGER if status == "bounced" else C_WARNING if status == "skipped" else C_TEXT_DIM
                     row = ctk.CTkFrame(rec_frame, fg_color="transparent")
                     row.pack(fill="x", pady=self._sf(2))
@@ -1778,9 +2181,9 @@ class RajChatApp(ctk.CTk):
         def do_scan():
             try:
                 result = self.engine.deep_bounce_scan(days=days)
-                self.after(0, lambda: self._on_bounce_scan_done(result))
+                self._safe_after(0, lambda: self._on_bounce_scan_done(result))
             except Exception as e:
-                self.after(0, lambda: self.bounce_status.configure(
+                self._safe_after(0, lambda: self.bounce_status.configure(
                     text=f"Error: {str(e)[:50]}", text_color=C_DANGER))
 
         threading.Thread(target=do_scan, daemon=True).start()
@@ -1885,9 +2288,20 @@ class RajChatApp(ctk.CTk):
             else:
                 btn.configure(fg_color="transparent", text_color=C_TEXT)
 
-        # Refresh specific views
+        # Debounce refreshes — don't hammer the UI on rapid tab switches
+        now = time.time()
+        last_refresh = getattr(self, '_last_refresh_time', {}).get(key, 0)
+        if now - last_refresh < 2.0:
+            return
+        if not hasattr(self, '_last_refresh_time'):
+            self._last_refresh_time = {}
+        self._last_refresh_time[key] = now
+
+        # Refresh specific views (lightweight — heavy DB work runs in threads)
         if key == "dashboard":
             self._refresh_dashboard()
+        elif key == "analytics":
+            self._refresh_analytics()
         elif key == "templates":
             self._refresh_templates()
         elif key == "batches":
@@ -1904,23 +2318,23 @@ class RajChatApp(ctk.CTk):
     def _do_bounce_scan(self):
         try:
             result = self.engine.scan_bounces(days_back=15)
-            self.after(0, lambda: self._log_activity(
+            self._safe_after(0, lambda: self._log_activity(
                 f"Bounce scan: {result['new_blacklisted']} new, {result['auto_replies']} auto-replies, {result['protected']} protected"
             ))
-            self.after(0, self._refresh_dashboard)
+            self._safe_after(0, self._refresh_dashboard)
         except Exception as e:
-            self.after(0, lambda: self._log_activity(f"Bounce scan error: {e}"))
+            self._safe_after(0, lambda: self._log_activity(f"Bounce scan error: {e}"))
 
     def _pause_engine(self):
         if self.engine.is_paused():
             self.engine.resume()
-            self.btn_pause.configure(text="⏸ Pause", fg_color=C_WARNING)
+            self.btn_pause.configure(text="⏸", fg_color=C_WARNING)
             self.status_text.configure(text="Running", text_color=C_SUCCESS)
             self.status_dot.configure(text_color=C_SUCCESS)
             self._log_activity("Engine resumed")
         else:
             self.engine.pause()
-            self.btn_pause.configure(text="▶ Resume", fg_color=C_SUCCESS)
+            self.btn_pause.configure(text="▶", fg_color=C_SUCCESS)
             self.status_text.configure(text="Paused", text_color=C_WARNING)
             self.status_dot.configure(text_color=C_WARNING)
             self._log_activity("Engine paused")
@@ -1979,6 +2393,18 @@ class RajChatApp(ctk.CTk):
             self.withdraw()
         else:
             self.destroy()
+
+    def _graceful_exit(self):
+        """Ctrl+Space or explicit close — stop engine and quit."""
+        try:
+            self._log_activity("Shutting down Raj...")
+            if hasattr(self, 'engine'):
+                self.engine.stop()
+        except:
+            pass
+        self.destroy()
+        import sys
+        sys.exit(0)
 
     # ═══════════════════════════════════════════════════════════
     # BATCH RECIPIENT IMPORT (for individual batch)

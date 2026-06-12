@@ -30,6 +30,7 @@ from collections import deque
 
 from db import Database
 from gmail import GmailClient
+from tracking_server import TrackingServer
 
 try:
     from smart_importer import SmartImporter
@@ -162,7 +163,10 @@ class Recipient:
     name: str
     org: str
     extra_json: str
-    imported_at: str
+    import_status: str = ""
+    import_error: str = ""
+    imported_at: str = ""
+    batched: int = 0
 
 @dataclass
 class BatchResult:
@@ -185,6 +189,7 @@ class CampaignEngine:
         self.drive = DriveManager() if DRIVE_AVAILABLE else None
         self.logs = deque(maxlen=200)
         self._log_callbacks = []
+        self.tracker = None
 
     def add_log_callback(self, fn):
         self._log_callbacks.append(fn)
@@ -204,6 +209,14 @@ class CampaignEngine:
     def start(self):
         if self._running: return
         self._running = True
+
+        # Start tracking server for engagement analytics
+        try:
+            self.tracker = TrackingServer(self.db.db_path)
+            self.tracker.start()
+            self._log(f"[Tracking] Engagement tracking active at {self.tracker.base_url}")
+        except Exception as e:
+            self._log(f"[Tracking] Failed to start: {e}")
 
         # RESUME-ON-BOOT: Check for batches stuck in "running" status
         try:
@@ -301,7 +314,7 @@ class CampaignEngine:
 
                 # Find next pending recipient
                 next_recipient = self.db.execute("""
-                    SELECT r.id, r.sequence_id, r.email, r.name, r.org, r.extra_json, r.imported_at
+                    SELECT r.id, r.sequence_id, r.email, r.name, r.org, r.extra_json, r.import_status, r.import_error, r.imported_at, r.batched
                     FROM recipients r
                     JOIN batch_recipients br ON r.id = br.recipient_id
                     WHERE br.batch_id = ? AND br.status = 'pending'
@@ -344,8 +357,24 @@ class CampaignEngine:
                     self._log(f"[Batch {batch_id}] SUNDAY — skipping send for {rec_email}, will resume Monday")
                     continue
 
+                # DEDUP: Skip if this recipient already received this sequence/day
+                already_sent = self.db.execute("""
+                    SELECT 1 FROM sends s
+                    JOIN recipients r ON s.recipient_id = r.id
+                    WHERE r.email = ? AND s.day = ? AND s.status = 'sent'
+                    LIMIT 1
+                """, (rec_email.lower().strip(), day_offset)).fetchone()
+                if already_sent:
+                    self._log(f"[DEDUP] {rec_email} already sent Day {day_offset} — marking skipped in batch {batch_id}")
+                    self.db.execute("""
+                        UPDATE batch_recipients SET status='sent'
+                        WHERE batch_id=? AND recipient_id=?
+                    """, (batch_id, next_recipient[0]))
+                    self.db.commit()
+                    continue
+
                 # Send email
-                rec = Recipient(*next_recipient[:7])
+                rec = Recipient(*next_recipient)
                 subj, body = self.render(seq_id, day_offset, rec)
                 if not subj:
                     self._log(f"[Batch {batch_id}] No template for {rec.email} Day {day_offset}, skipping")
@@ -354,13 +383,57 @@ class CampaignEngine:
                     continue
 
                 try:
-                    msg = self.gmail.send_email(rec.email, subj, body)
-                    self.db.execute("""
-                        UPDATE batch_recipients SET status='sent', sent_at=?
-                        WHERE batch_id=? AND recipient_id=?
-                    """, (now.isoformat(), batch_id, rec.id))
-                    self.db.campaign_queue_send(rec.id, day_offset, subj, msg.get("id"), "sent", batch_id)
-                    self._log(f"[Batch {batch['name']}] Sent to {rec.email} ({seq_id.upper()} Day {day_offset})")
+                    # Determine if draft or immediate send
+                    sched_str = batch.get("scheduled_at")
+                    use_draft = False
+                    if sched_str:
+                        try:
+                            sched_dt = datetime.fromisoformat(sched_str.replace("Z", "+00:00"))
+                            use_draft = sched_dt > now
+                        except:
+                            pass
+
+                    # Pre-insert sends record to get send_id for tracking
+                    placeholder_status = "drafted" if use_draft else "pending"
+                    send_id = self.db.campaign_queue_send(rec.id, day_offset, subj, "pending", placeholder_status, batch_id)
+
+                    # Inject tracking pixel and wrapped links with real send_id
+                    if self.tracker and self.tracker.base_url and send_id:
+                        body = self.tracker.inject_tracking(body, rec.id, batch_id, send_id)
+
+                    if use_draft:
+                        draft = self.gmail.create_scheduled_draft(rec.email, subj, body, sched_str)
+                        self.db.execute("""
+                            UPDATE batch_recipients SET status='drafted', sent_at=?
+                            WHERE batch_id=? AND recipient_id=?
+                        """, (now.isoformat(), batch_id, rec.id))
+                        self.db.execute("UPDATE sends SET draft_id=?, status='drafted' WHERE id=?",
+                                        (draft.get("id"), send_id))
+                        self.db.commit()
+                        self._log(f"[Batch {batch['name']}] Scheduled draft for {rec.email} ({seq_id.upper()} Day {day_offset})")
+                    else:
+                        # Delete any old scheduled draft before sending for real
+                        old_draft = self.db.execute("""
+                            SELECT draft_id FROM sends 
+                            WHERE recipient_id=? AND batch_id=? AND status='drafted' AND draft_id IS NOT NULL
+                            ORDER BY id DESC LIMIT 1
+                        """, (rec.id, batch_id)).fetchone()
+                        if old_draft and old_draft[0]:
+                            try:
+                                self.gmail.delete_draft(old_draft[0])
+                                self._log(f"[Batch {batch['name']}] Deleted old draft for {rec.email}")
+                            except Exception as del_err:
+                                self._log(f"[Batch {batch['name']}] Draft delete skipped: {del_err}")
+
+                        msg = self.gmail.send_email(rec.email, subj, body)
+                        self.db.execute("""
+                            UPDATE batch_recipients SET status='sent', sent_at=?
+                            WHERE batch_id=? AND recipient_id=?
+                        """, (now.isoformat(), batch_id, rec.id))
+                        self.db.execute("UPDATE sends SET draft_id=?, status='sent', sent_at=? WHERE id=?",
+                                        (msg.get("id"), now.isoformat(), send_id))
+                        self.db.commit()
+                        self._log(f"[Batch {batch['name']}] Sent to {rec.email} ({seq_id.upper()} Day {day_offset})")
                 except Exception as e:
                     err = str(e).lower()
                     self._log(f"[Batch {batch_id}] Failed to send to {rec.email}: {e}")
@@ -401,6 +474,15 @@ class CampaignEngine:
         base_name = parent_name.split("-D")[0] if "-D" in parent_name else parent_name
         next_name = f"{base_name}-D{next_day}"
 
+        # DEDUP: Skip if next-day batch already exists
+        existing = self.db.execute(
+            "SELECT id FROM batches WHERE name=? AND day_offset=? AND sequence_id=?",
+            (next_name, next_day, seq_id)
+        ).fetchone()
+        if existing:
+            self._log(f"[AUTO-ADVANCE] Skip: {next_name} already exists (ID: {existing[0]})")
+            return
+
         # Schedule for +2 days at 10 AM (from completion time, not now)
         completed_at = completed_batch.get('completed_at')
         if completed_at:
@@ -430,10 +512,13 @@ class CampaignEngine:
         self.db.execute("UPDATE batches SET status='scheduled' WHERE id=?", (new_batch_id,))
         self.db.commit()
 
-        # Only carry forward recipients who were successfully sent
+        # Only carry forward recipients who were successfully sent AND not blacklisted
         carried = 0
         for r in prev_recipients:
             if r.get("batch_status") == "sent":
+                # Skip if email was blacklisted after send (bounce, etc.)
+                if self.db.blacklist_has(r.get("email", "")):
+                    continue
                 self.db.batch_add_recipient(new_batch_id, r["id"])
                 carried += 1
 
@@ -441,10 +526,12 @@ class CampaignEngine:
         self._log(f"[AUTO-ADVANCE] Pipeline: {base_name} Day {current_day} → Day {next_day} (parent: {parent_batch_id})")
 
     def _check_auto_start_scheduled_batches(self, now: datetime):
-        """Auto-start scheduled batches when their time arrives."""
+        """Auto-start scheduled batches when their time arrives.
+        Includes draft/paused batches that have a scheduled_at date set."""
         scheduled = self.db.execute("""
             SELECT * FROM batches
-            WHERE status='scheduled' AND scheduled_at IS NOT NULL
+            WHERE scheduled_at IS NOT NULL AND scheduled_at != ''
+              AND status IN ('scheduled', 'draft', 'paused')
         """).fetchall()
 
         for batch_row in scheduled:
@@ -455,6 +542,16 @@ class CampaignEngine:
             try:
                 sched_dt = datetime.fromisoformat(sched_str)
                 if now >= sched_dt:
+                    # DEDUP: Don't start if another batch with same name/day/seq is already running
+                    dup = self.db.execute("""
+                        SELECT id FROM batches
+                        WHERE name=? AND day_offset=? AND sequence_id=? AND status='running' AND id != ?
+                        LIMIT 1
+                    """, (batch["name"], batch.get("day_offset", 1), batch["sequence_id"], batch["id"])).fetchone()
+                    if dup:
+                        self.db.batch_update_status(batch["id"], "paused")
+                        self._log(f"[AUTO-START] Skip '{batch['name']}' — duplicate already running (ID: {dup[0]})")
+                        continue
                     self.db.batch_update_status(batch["id"], "running")
                     self._log(f"[AUTO-START] Batch '{batch['name']}' is now running")
             except:
@@ -628,6 +725,10 @@ class CampaignEngine:
     def unlock_template(self, seq_id: str, day: int):
         self.db.set_meta(f"locked_{seq_id}_{day}", "false")
         self._log(f"Unlocked {seq_id.upper()} Day {day} for updates")
+
+    def lock_template(self, seq_id: str, day: int):
+        self.db.set_meta(f"locked_{seq_id}_{day}", "true")
+        self._log(f"Locked {seq_id.upper()} Day {day}")
 
     def is_template_locked(self, seq_id: str, day: int) -> bool:
         return self.db.get_meta(f"locked_{seq_id}_{day}") == "true"
@@ -925,8 +1026,14 @@ class CampaignEngine:
                 self._log(f"No template for {rec.email}, skipping")
                 continue
             try:
+                # Inject tracking
+                send_id = self.db.campaign_queue_send(rec.id, day, subj, "pending", "pending")
+                if self.tracker and self.tracker.base_url and send_id:
+                    body = self.tracker.inject_tracking(body, rec.id, None, send_id)
                 msg = self.gmail.send_email(rec.email, subj, body)
-                self.db.campaign_queue_send(rec.id, day, subj, msg.get("id"), "sent")
+                self.db.execute("UPDATE sends SET draft_id=?, status='sent' WHERE id=?",
+                                (msg.get("id"), send_id))
+                self.db.commit()
                 sent += 1
                 self._log(f"Sent to {rec.email}")
                 time.sleep(SEND_DELAY)
@@ -1142,7 +1249,7 @@ class CampaignEngine:
                     continue
                 if addr.startswith(("wght@", "size@", "color@", "font@")):
                     continue
-                if addr.endswith("@robopirate.in"):
+                if self.is_protected_email(addr):
                     protected_count += 1
                     continue
                 if self.db.blacklist_has(addr):
@@ -1261,7 +1368,7 @@ class CampaignEngine:
                         continue
                     if self.db.blacklist_has(bounced_email):
                         continue
-                    if bounced_email.endswith('@robopirate.in') or bounced_email == 'itsomkarsinghhh@gmail.com':
+                    if self.is_protected_email(bounced_email):
                         results['protected'] += 1
                         continue
                     if bounced_email not in our_emails:
@@ -1291,6 +1398,14 @@ class CampaignEngine:
         except Exception as e:
             self._log(f"[Engine] Deep bounce scan error: {e}")
             return results
+
+    @staticmethod
+    def is_protected_email(email: str) -> bool:
+        """Check if an email is protected from blacklisting."""
+        if not email:
+            return False
+        email = email.lower().strip()
+        return email.endswith("@robopirate.in") or email == "itsomkarsinghhh@gmail.com"
 
     def _classify_bounce(self, body: str) -> tuple:
         """Classify bounce as hard (permanent) or soft (temporary).
@@ -1431,16 +1546,16 @@ class CampaignEngine:
     def _extract_original_sender(self, subject: str, body: str, msg_or_full: dict = None) -> Optional[str]:
         """Extract the original sender email from an auto-reply or bounce message."""
         patterns = [
-            r"Original-From:\s*?",
-            r"From:\s*?",
-            r"Sender:\s*?",
-            r"Reply-To:\s*?",
-            r"was sent by\s*?",
-            r"sent by\s*?",
-            r"original message was sent by\s*?",
-            r"your message to\s*?",
-            r"email sent to\s*?",
-            r"message to\s*?\s*was",
+            r"Original-From:\s*<?([\w.+-]+@[\w.-]+)>?",
+            r"From:\s*<?([\w.+-]+@[\w.-]+)>?",
+            r"Sender:\s*<?([\w.+-]+@[\w.-]+)>?",
+            r"Reply-To:\s*<?([\w.+-]+@[\w.-]+)>?",
+            r"was sent by\s+([\w.+-]+@[\w.-]+)",
+            r"sent by\s+([\w.+-]+@[\w.-]+)",
+            r"original message was sent by\s+([\w.+-]+@[\w.-]+)",
+            r"your message to\s+([\w.+-]+@[\w.-]+)",
+            r"email sent to\s+([\w.+-]+@[\w.-]+)",
+            r"message to\s+([\w.+-]+@[\w.-]+)\s+was",
         ]
 
         texts = [body]
@@ -1454,12 +1569,12 @@ class CampaignEngine:
             for pattern in patterns:
                 match = re.search(pattern, text, re.IGNORECASE)
                 if match:
-                    email = match.group(1).strip().lower()
+                    email = match.group(1).strip().strip("<>").lower()
                     if "@" in email and "mailer-daemon" not in email and "postmaster" not in email:
                         return email
-            to_match = re.search(r"To:\s*?", text, re.IGNORECASE)
+            to_match = re.search(r"To:\s*<?([\w.+-]+@[\w.-]+)>?", text, re.IGNORECASE)
             if to_match:
-                email = to_match.group(1).strip().lower()
+                email = to_match.group(1).strip().strip("<>").lower()
                 if "@" in email and "mailer-daemon" not in email and "postmaster" not in email:
                     return email
 
@@ -1467,68 +1582,41 @@ class CampaignEngine:
 
     @staticmethod
     def _extract_bounced(text: str) -> List[str]:
-        if not text: return []
+        if not text:
+            return []
         addrs = []
 
-        for m in re.finditer(r"Final-Recipient:\s*rfc822;\s*?", text, re.I):
-            addrs.append(m.group(1))
+        patterns = [
+            r"Final-Recipient:\s*rfc822;\s*([\w.+-]+@[\w.-]+)",
+            r"Original-Recipient:\s*rfc822;\s*([\w.+-]+@[\w.-]+)",
+            r"To:\s*<([\w.+-]+@[\w.-]+)>",
+            r"Your message to\s+([\w.+-]+@[\w.-]+)\s+couldn'?t be delivered",
+            r"message to\s+([\w.+-]+@[\w.-]+)\s+was undeliverable",
+            r"(?:was not delivered to|wasn'?t delivered to|could not be delivered to|couldn't be delivered to|failed to deliver to)\s+([\w.+-]+@[\w.-]+)",
+            r"Address not found.*?(?:to|for)\s+([\w.+-]+@[\w.-]+)",
+            r"^\s*<([\w.+-]+@[\w.-]+)>:?\s*$",
+            r"([\w.+-]+@[\w.-]+):\s*(?:user unknown|mailbox unavailable|no such user|does not exist|mailbox full|invalid user|unknown local-part)",
+            r"did not reach.*?([\w.+-]+@[\w.-]+)",
+            r"address(?:es)? failed.*?([\w.+-]+@[\w.-]+)",
+        ]
 
-        for m in re.finditer(r"Final-Recipient:\s*rfc822;?", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"Final-Recipient:[^;]*;\s*?", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"Original-Recipient:\s*rfc822;\s*?", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"To:\s*?", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"Your message to\s*?\s*couldn'?t be delivered", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"message to\s*?\s*was undeliverable", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"(?:was not delivered to|wasn'?t delivered to|could not be delivered to|couldn't be delivered to|failed to deliver to)\s*?", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"Address not found.*?(?:to|for)\s*?", text, re.I | re.DOTALL):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"^\s*<([\w.+-]+@[\w.-]+)>:?\s*$", text, re.I | re.M):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"([\w.+-]+@[\w.-]+):\s*(?:user unknown|mailbox unavailable|no such user|does not exist|mailbox full|invalid user|unknown local-part)", text, re.I):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"did not reach.*?([\w.+-]+@[\w.-]+)", text, re.I | re.DOTALL):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
-
-        for m in re.finditer(r"address(?:es)? failed.*?([\w.+-]+@[\w.-]+)", text, re.I | re.DOTALL):
-            if m.group(1) not in addrs:
-                addrs.append(m.group(1))
+        for pat in patterns:
+            for m in re.finditer(pat, text, re.I | re.M | re.DOTALL):
+                email = m.group(1).strip().strip("<>").lower()
+                if "@" in email and "mailer-daemon" not in email and "postmaster" not in email:
+                    if email not in addrs:
+                        addrs.append(email)
 
         if not addrs:
             for m in re.finditer(r"<([\w.+-]+@[\w.-]+)>", text):
-                if m.group(1) not in addrs:
-                    addrs.append(m.group(1))
+                email = m.group(1).strip().lower()
+                if "mailer-daemon" not in email and "postmaster" not in email:
+                    if email not in addrs:
+                        addrs.append(email)
 
         if not addrs and any(k in text.lower() for k in ["delivery", "bounce", "failed", "undelivered", "address not found", "recipient", "mailer-daemon", "postmaster"]):
-            for m in re.finditer(r"([\w.+-]+@[\w.-]+)", text):
-                email = m.group(1)
+            for m in re.finditer(r"[\w.+-]+@[\w.-]+", text):
+                email = m.group().lower()
                 if any(x in email for x in ["mailer-daemon", "postmaster", "robopirate.in", "google.com", "gmail.com", "instagram", "facebook", "twitter", "linkedin", "youtube", "2x", "3x", "1x", "wght", "size", "color", "font"]):
                     continue
                 if "@" in email:

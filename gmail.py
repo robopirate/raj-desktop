@@ -7,6 +7,8 @@ import os
 import re
 import base64
 import pickle
+import time
+import ssl
 from pathlib import Path
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -48,6 +50,24 @@ class GmailClient:
 
         self.service = build('gmail', 'v1', credentials=creds)
 
+    @staticmethod
+    def _with_retry(func, max_retries=3, delay=1.0):
+        """Retry Gmail API calls on SSL/transient errors."""
+        last_err = None
+        for attempt in range(max_retries):
+            try:
+                return func()
+            except Exception as e:
+                last_err = e
+                err_str = str(e).lower()
+                if any(x in err_str for x in ['ssl', 'decryption', 'wrong_version', 'bad_record', 'winerror', 'connection was aborted', 'software in your host machine']):
+                    print(f'[Gmail] SSL/transient error (attempt {attempt + 1}/{max_retries}): {e}')
+                    if attempt < max_retries - 1:
+                        time.sleep(delay)
+                    continue
+                raise
+        raise last_err
+
     def send_email(self, to, subject, body_html):
         message = MIMEText(body_html, 'html', 'utf-8')
         message['to'] = to
@@ -59,6 +79,18 @@ class GmailClient:
         message = MIMEText(body_html, 'html', 'utf-8')
         message['to'] = to
         message['subject'] = subject
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+        return self.service.users().drafts().create(userId='me', body={'message': {'raw': raw}}).execute()
+
+    def create_scheduled_draft(self, to, subject, body_html, send_at_iso):
+        """Create a Gmail draft with a schedule prefix in the subject.
+        Format: [RAJ-SCHEDULE:2026-06-05T10:00:00] Original Subject
+        A Google Apps Script will pick these up and send them at the right time.
+        """
+        scheduled_subject = f"[RAJ-SCHEDULE:{send_at_iso}] {subject}"
+        message = MIMEText(body_html, 'html', 'utf-8')
+        message['to'] = to
+        message['subject'] = scheduled_subject
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
         return self.service.users().drafts().create(userId='me', body={'message': {'raw': raw}}).execute()
 
@@ -76,6 +108,14 @@ class GmailClient:
                     break
             out.append({'id': d['id'], 'subject': subject})
         return out
+
+    def delete_draft(self, draft_id):
+        try:
+            self.service.users().drafts().delete(userId='me', id=draft_id).execute()
+            return True
+        except Exception as e:
+            print(f'[Gmail] delete_draft failed: {e}')
+            return False
 
     def get_draft_full(self, draft_id):
         try:
@@ -95,11 +135,15 @@ class GmailClient:
 
     def search_messages(self, query, max_results=20):
         try:
-            result = self.service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
+            result = self._with_retry(
+                lambda: self.service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
+            )
             msgs = result.get('messages', [])
             out = []
             for m in msgs:
-                full = self.service.users().messages().get(userId='me', id=m['id'], format='full').execute()
+                full = self._with_retry(
+                    lambda: self.service.users().messages().get(userId='me', id=m['id'], format='full').execute()
+                )
                 payload = full.get('payload', {})
                 headers = payload.get('headers', [])
                 from_addr = subject = ''
@@ -130,7 +174,9 @@ class GmailClient:
 
     def get_message_full(self, msg_id):
         try:
-            full = self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
+            full = self._with_retry(
+                lambda: self.service.users().messages().get(userId='me', id=msg_id, format='full').execute()
+            )
             payload = full.get('payload', {})
             headers = payload.get('headers', [])
             from_addr = subject = ''
@@ -157,7 +203,9 @@ class GmailClient:
     def trash_message(self, msg_id):
         """Move a message to trash."""
         try:
-            self.service.users().messages().trash(userId='me', id=msg_id).execute()
+            self._with_retry(
+                lambda: self.service.users().messages().trash(userId='me', id=msg_id).execute()
+            )
             print(f'[Gmail] Trashed message {msg_id[:20]}...')
             return True
         except Exception as e:

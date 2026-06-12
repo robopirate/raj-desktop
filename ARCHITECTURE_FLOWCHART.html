@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Raj System Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a1a; color: #e0e0e0; padding: 30px; max-width: 1200px; margin: 0 auto; }
+  h1 { color: #0d9b8a; border-bottom: 2px solid #0d9b8a; padding-bottom: 10px; }
+  h2 { color: #f5a623; margin-top: 40px; }
+  h3 { color: #0bc5b0; }
+  .mermaid { background: #12122a; border-radius: 8px; padding: 20px; margin: 20px 0; }
+  .note { background: #1a1a3e; border-left: 4px solid #f5a623; padding: 12px 16px; margin: 15px 0; border-radius: 4px; }
+  .code { background: #1a1a3e; padding: 12px 16px; border-radius: 4px; font-family: monospace; color: #0bc5b0; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { background: #1a6b6b; color: white; padding: 10px; text-align: left; }
+  td { background: #12122a; padding: 10px; border-bottom: 1px solid #2a2a4e; }
+  .green { color: #4ade80; }
+  .red { color: #f87171; }
+  .yellow { color: #f5a623; }
+</style>
+</head>
+<body>
+
+<h1>🤖 Raj — System Architecture & Flowcharts</h1>
+
+<div class="note">
+  <strong>Last updated:</strong> 2026-06-08 | <strong>Version:</strong> v5.0+ (RoboPirate Campaign Engine)
+</div>
+
+<h2>1. System Overview</h2>
+<div class="mermaid">
+graph TB
+    subgraph "User Layer"
+        UI[CustomTkinter GUI<br/>raj_chat.py]
+        USER[User Actions]
+    end
+
+    subgraph "Core Engine"
+        ENGINE[Campaign Engine<br/>engine.py]
+        LOOP[60s Tick Loop]
+        RENDER[Template Render]
+    end
+
+    subgraph "External APIs"
+        GMAIL[Gmail API<br/>gmail.py]
+        CAL[Google Calendar<br/>calendar_integration.py]
+        DRIVE[Google Drive<br/>drive_integration.py]
+    end
+
+    subgraph "Data Layer"
+        DB[(SQLite<br/>campaign_data.db)]
+        TEMPLATES[Email Templates<br/>5-day sequences]
+        BLACKLIST[Blacklist<br/>219 emails]
+    end
+
+    subgraph "Monitoring"
+        GUARD[Raj Guard<br/>raj_guard.py]
+        TRAY[System Tray]
+    end
+
+    USER -->|Clicks, imports, edits| UI
+    UI -->|Calls| ENGINE
+    ENGINE -->|Read/Write| DB
+    ENGINE -->|Send/Draft/Search| GMAIL
+    ENGINE -->|Create events| CAL
+    ENGINE -->|Upload reports| DRIVE
+    DB -->|Store| TEMPLATES
+    DB -->|Store| BLACKLIST
+    GUARD -->|Watch| DB
+    GUARD -->|Health check| ENGINE
+    GUARD -->|Health check| UI
+    TRAY -->|Minimize/Restore| UI
+</div>
+
+<h2>2. Campaign Lifecycle — The Full Journey</h2>
+<div class="mermaid">
+graph LR
+    A[Import Leads<br/>CSV/Excel] -->|smart_importer.py| B[Recipient Pool<br/>recipients table]
+    B -->|User creates batch| C[Batch Created<br/>status: draft]
+    C -->|User starts| D[Batch Running<br/>status: running]
+    D -->|Engine tick| E[Send Email<br/>or Create Draft]
+    E -->|Success| F[Update batch_recipients<br/>status: sent]
+    E -->|Success| G[Log to sends table]
+    F -->|All sent?| H[Batch Completed<br/>status: completed]
+    H -->|Auto-advance| I[Create Next-Day Batch<br/>+2 days @ 10 AM]
+    I -->|Schedule| J[Batch Scheduled<br/>status: scheduled]
+    J -->|Time arrives| D
+    H -->|Last day?| K[Sequence Complete]
+</div>
+
+<div class="note">
+  <strong>Key concept:</strong> A "batch" is one day's emails for one group of recipients. 
+  Days are <span class="yellow">1 → 3 → 5 → 7 → 10</span> (not consecutive). Auto-advance creates the next batch only after the current one finishes.
+</div>
+
+<h2>3. Engine Tick Loop — What Happens Every 60 Seconds</h2>
+<div class="mermaid">
+graph TD
+    START[Engine Tick<br/>every 60s] --> SUNDAY{Is it Sunday?}
+    SUNDAY -->|Yes| SKIP_ALL[Skip all sends]
+    SUNDAY -->|No| SCHEDULED{_check_scheduled_sends<br/>Is it 10:00 AM?}
+    
+    SCHEDULED -->|Yes| DUE_CHECK[Find recipients whose<br/>scheduled day = today]
+    SCHEDULED -->|No| RUNNING[_process_running_batches]
+    
+    DUE_CHECK --> ADD_BATCH[Add to running batches]
+    ADD_BATCH --> RUNNING
+    
+    RUNNING --> FOR_EACH[For each running batch]
+    FOR_EACH --> NEXT_REC{Next pending<br/>recipient?}
+    NEXT_REC -->|No| COMPLETE[Mark batch<br/>completed]
+    NEXT_REC -->|Yes| BLACKLIST{Blacklisted?}
+    
+    BLACKLIST -->|Yes| SKIP[Skip + log]
+    BLACKLIST -->|No| DEDUP{Already sent<br/>this day?}
+    
+    DEDUP -->|Yes| MARK_SENT[Mark sent + skip]
+    DEDUP -->|No| STAGGER{Enough time<br/>since last send?}
+    
+    STAGGER -->|No| WAIT[Wait next tick]
+    STAGGER -->|Yes| SCHED_FUTURE{Batch has<br/>future schedule?}
+    
+    SCHED_FUTURE -->|Yes| CREATE_DRAFT[Create Gmail Draft<br/>[RAJ-SCHEDULE:timestamp]]
+    SCHED_FUTURE -->|No| SEND_NOW[Send Email Now]
+    
+    CREATE_DRAFT --> LOG_DRAFT[Log: drafted]
+    SEND_NOW --> LOG_SENT[Log: sent]
+    
+    LOG_DRAFT --> FOR_EACH
+    LOG_SENT --> FOR_EACH
+    COMPLETE --> AUTO_ADV[_auto_advance_batch]
+    
+    AUTO_ADV --> EXISTS{Next-day batch<br/>already exists?}
+    EXISTS -->|Yes| SKIP_ADV[Skip creation]
+    EXISTS -->|No| CREATE_NEXT[Create next batch<br/>scheduled +2 days]
+    
+    SKIP_ALL --> BOUNCE[_check_bounce_scan]
+    RUNNING --> BOUNCE
+    CREATE_NEXT --> BOUNCE
+    SKIP_ADV --> BOUNCE
+    
+    BOUNCE --> REPLY[_check_reply_scan]
+    REPLY --> EOD[_check_eod]
+    EOD --> WAIT_TICK[Wait 60s]
+    WAIT_TICK --> START
+</div>
+
+<h2>4. Bounce Handling Flow</h2>
+<div class="mermaid">
+graph TD
+    A[Every 6 hours] --> B[Search Gmail for bounces]
+    B --> C[Query 1: mailer-daemon,<br/>postmaster]
+    B --> D[Query 2: undelivered,<br/>delivery failure]
+    B --> E[Query 3: out of office,<br/>auto-reply]
+    
+    C --> F[Collect all messages]
+    D --> F
+    E --> F
+    
+    F --> G{Is auto-reply?}
+    G -->|Yes| H[Delete email]
+    G -->|No| I{Looks like bounce?}
+    
+    I -->|No| H
+    I -->|Yes| J[Extract bounced email]
+    J --> K[3-Layer Verification]
+    
+    subgraph "3-Layer Verification"
+        L[Layer 1:<br/>In recipient pool?]
+        M[Layer 2:<br/>Was sent to them?]
+        N[Layer 3:<br/>Hard or soft bounce?]
+    end
+    
+    K --> L
+    L -->|No| SKIP[Skip + log]
+    L -->|Yes| M
+    M -->|No| SKIP
+    M -->|Yes| N
+    N -->|Soft| SOFT[Log soft bounce<br/>do NOT blacklist]
+    N -->|Hard| HARD[Blacklist email<br/>with reason]
+    
+    HARD --> H
+    SOFT --> H
+    SKIP --> H
+</div>
+
+<div class="note">
+  <strong>Soft vs Hard Bounce:</strong><br>
+  <span class="green">Soft</span> = temporary (mailbox full, SMTP 4xx) → retry later, don't blacklist<br>
+  <span class="red">Hard</span> = permanent (user unknown, domain not found, SMTP 5xx) → blacklist immediately
+</div>
+
+<h2>5. Database Schema — Key Tables</h2>
+
+<table>
+<tr><th>Table</th><th>Purpose</th><th>Key Fields</th></tr>
+<tr><td><code>recipients</code></td><td>Lead pool (all imported contacts)</td><td>id, email, name, org, sequence_id, extra_json</td></tr>
+<tr><td><code>batches</code></td><td>Email campaigns (one per day per group)</td><td>id, name, sequence_id, status, scheduled_at, day_offset</td></tr>
+<tr><td><code>batch_recipients</code></td><td>Link: which recipient is in which batch</td><td>batch_id, recipient_id, status (pending/sent/failed)</td></tr>
+<tr><td><code>sends</code></td><td>Audit log of every email sent/drafted</td><td>id, recipient_id, batch_id, day, subject, draft_id, status</td></tr>
+<tr><td><code>templates</code></td><td>HTML email templates per sequence/day</td><td>sequence_id, day, subject, html_body, locked</td></tr>
+<tr><td><code>blacklist</code></td><td>Emails that bounced or unsubscribed</td><td>email, reason, created_at</td></tr>
+<tr><td><code>replies</code></td><td>Tracked replies from recipients</td><td>id, email, subject, body, sentiment, category</td></tr>
+</table>
+
+<h2>6. SCHOOL vs CSR Sequences</h2>
+<div class="mermaid">
+graph LR
+    subgraph "SCHOOL Sequence"
+        S1[Day 1<br/>Intro + What we do] --> S2[Day 3<br/>NEP 2020 Compliance]
+        S2 --> S3[Day 5<br/>Student Story + VBV Report]
+        S3 --> S4[Day 7<br/>Join 85+ Schools]
+        S4 --> S5[Day 10<br/>WSL Decision Kit]
+    end
+
+    subgraph "CSR Sequence"
+        C1[Day 1<br/>Opening + Schedule VII] --> C2[Day 3<br/>Compliance Deep Dive]
+        C2 --> C3[Day 5<br/>Sangli Case Study]
+        C3 --> C4[Day 7<br/>Budget Urgency + Videos]
+        C4 --> C5[Day 10<br/>FY27 Partnership Kit]
+    end
+</div>
+
+<div class="note">
+  <strong>Timing:</strong> Days are <span class="yellow">1, 3, 5, 7, 10</span> — not daily. Auto-advance schedules the next batch for <strong>+2 days at 10:00 AM</strong> after the current batch completes.
+</div>
+
+<h2>7. Data Flow — Send One Email</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant E as Engine
+    participant DB as SQLite DB
+    participant G as Gmail API
+    participant R as Recipient
+
+    E->>DB: Get next pending recipient
+    DB-->>E: recipient_id, email, name
+    E->>DB: Check blacklist
+    DB-->>E: Not blacklisted
+    E->>DB: Check sends table (dedup)
+    DB-->>E: Not sent yet
+    E->>E: Render template (merge fields)
+    E->>G: send_email(to, subject, body)
+    G-->>E: message_id
+    E->>DB: UPDATE batch_recipients SET status='sent'
+    E->>DB: INSERT INTO sends (status='sent', draft_id=message_id)
+    E->>E: Log: "Sent to X (SCHOOL Day 5)"
+</div>
+
+<h2>8. Guard Health Check — Every Hour</h2>
+<div class="mermaid">
+graph TD
+    A[Every 1 hour] --> B[Check file syntax<br/>engine.py, raj_chat.py, db.py]
+    B --> C{Syntax OK?}
+    C -->|No| D[Log FAIL]
+    C -->|Yes| E[Check DB integrity]
+    E --> F{Duplicates?}
+    F -->|Yes| G[Log FAIL: duplicate batches]
+    F -->|No| H[Check engine thread]
+    H --> I{Running?}
+    I -->|No| J[Log FAIL]
+    I -->|Yes| K[Check UI responsiveness]
+    K --> L{Responsive?}
+    L -->|No| M[Log FAIL]
+    L -->|Yes| N[Log OK: 0 issues]
+</div>
+
+<h2>9. Key File Responsibilities</h2>
+
+<table>
+<tr><th>File</th><th>Role</th></tr>
+<tr><td><code>raj_chat.py</code></td><td>CustomTkinter GUI — Dashboard, Batches, Templates, Chat, all visual interactions</td></tr>
+<tr><td><code>engine.py</code></td><td>Core campaign engine — send loop, auto-advance, bounce/reply scans, scheduling</td></tr>
+<tr><td><code>db.py</code></td><td>SQLite database layer — all CRUD operations, WAL mode enabled</td></tr>
+<tr><td><code>gmail.py</code></td><td>Gmail API wrapper — send, draft, search, trash, with SSL retry</td></tr>
+<tr><td><code>raj_brain.py</code></td><td>AI/NLU layer — sentiment analysis, reply categorization, chat responses</td></tr>
+<tr><td><code>raj_guard.py</code></td><td>Monitoring daemon — file watcher, health checks, DB integrity</td></tr>
+<tr><td><code>smart_importer.py</code></td><td>Lead import — dedup, validation, fuzzy matching for CSV/Excel</td></tr>
+</table>
+
+<h2>10. Quick Reference — Status Values</h2>
+
+<table>
+<tr><th>Status</th><th>Meaning</th><th>Where Used</th></tr>
+<tr><td><code>draft</code></td><td>Batch created but not started</td><td>batches.status</td></tr>
+<tr><td><code>running</code></td><td>Actively sending emails</td><td>batches.status</td></tr>
+<tr><td><code>scheduled</code></td><td>Waiting for future date/time</td><td>batches.status</td></tr>
+<tr><td><code>paused</code></td><td>User paused or dedup-blocked</td><td>batches.status</td></tr>
+<tr><td><code>completed</code></td><td>All recipients processed</td><td>batches.status</td></tr>
+<tr><td><code>pending</code></td><td>Not yet sent in this batch</td><td>batch_recipients.status</td></tr>
+<tr><td><code>sent</code></td><td>Email successfully delivered</td><td>batch_recipients.status, sends.status</td></tr>
+<tr><td><code>drafted</code></td><td>Gmail draft created for future send</td><td>batch_recipients.status, sends.status</td></tr>
+<tr><td><code>failed</code></td><td>Send failed permanently</td><td>batch_recipients.status</td></tr>
+<tr><td><code>skipped</code></td><td>Blacklisted or dedup-blocked</td><td>batch_recipients.status</td></tr>
+</table>
+
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+[OK] Smart Importer loaded
+==================================================
+  Raj — Email Command Center v4.0
+  Dashboard | Batches | Pipeline | Calendar | Drive
+==================================================
+
+[1/3] Connecting to Gmail...
+OK Gmail connected
+[2/3] Starting engine...
+[Calendar] Connected to Google Calendar
+[Drive] Connected to Google Drive
+[Tracking] Server started on http://127.0.0.1:56437
+[Engine] [Tracking] Engagement tracking active at http://127.0.0.1:56437
+[Engine] [RESUME] No running batches from previous session
+[Engine] Raj Engine started
+OK Engine ready
+   Calendar: [ON]
+   Drive: [ON]
+[3/3] Initializing Raj...
+OK Raj v4.0 is online
+[GUARD]  [2026-06-08 20:30:52] [GUARD] Raj Guard v1.0 initialized
+[GUARD]  [2026-06-08 20:30:52] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[GUARD]  [2026-06-08 20:30:52] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[GUARD]  [2026-06-08 20:30:52] [GUARD] Guard daemon started
+[GUARD]  [2026-06-08 20:30:52] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[GUARD]  [2026-06-08 20:30:52] [SCAN] Running health check...
+
+READY! Dashboard opening...
+   [DASH] Dashboard shows live pipeline
+   [BATCH] Batches tab for campaign management
+   Type 'help' to see commands
+
+[GUARD]  [2026-06-08 20:30:52] [OK] All core files syntax OK
+[GUARD]  [2026-06-08 20:30:52] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[GUARD]  [2026-06-08 20:30:52] [OK] Engine health OK
+[GUARD]  [2026-06-08 20:30:52] [OK] UI health OK
+[GUARD]  [2026-06-08 20:30:52] [OK] Health check complete — 0 issues, 0 fixes
+[20:31:01] Raj v4.2 RoboPirate Brand Theme initialized
+[Tray] System tray icon active
+[20:54:08] Shutting down Raj...
+[Engine] Engine stopping...

@@ -21,7 +21,7 @@ from typing import Dict, List, Tuple, Optional
 # CONFIGURATION
 # ───────────────────────────────────────────────
 GUARD_VERSION = "1.0"
-CHECK_INTERVAL = 30  # seconds between health checks
+CHECK_INTERVAL = 3600  # seconds between health checks (1 hour)
 MORNING_BRIEF_HOUR = 8  # 8 AM IST
 MORNING_BRIEF_MINUTE = 0
 
@@ -262,6 +262,15 @@ class RajGuard:
             issues.append("SQL query selects too many columns — will crash batch processing")
         if "is_protected_email" not in engine_code:
             issues.append("Missing @robopirate.in protection in bounce scan")
+        # Verify db.py has bounce verification methods
+        db_path = self.app_folder / "db.py"
+        if db_path.exists():
+            with open(db_path, "r", encoding="utf-8") as f:
+                db_code = f.read()
+            if "def recipient_exists" not in db_code:
+                issues.append("Missing recipient_exists() in db.py — bounce verification broken")
+            if "def was_sent_to" not in db_code:
+                issues.append("Missing was_sent_to() in db.py — bounce verification broken")
         return {"status": "ok" if not issues else "issues", "issues": issues, "fixes": fixes}
 
     def check_ui_health(self) -> Dict:

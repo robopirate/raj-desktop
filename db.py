@@ -15,6 +15,9 @@ class Database:
         self.db_path = db_path or str(DB_PATH)
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        # Enable WAL mode for concurrent reads during writes (fixes UI lag)
+        self.conn.execute("PRAGMA journal_mode = WAL")
+        self.conn.execute("PRAGMA synchronous = NORMAL")
         self._init_tables()
         self._migrate_schema()
 
@@ -202,6 +205,25 @@ class Database:
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+
+            -- Engagement Events (opens, clicks)
+            CREATE TABLE IF NOT EXISTS engagement_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipient_id INTEGER,
+                batch_id INTEGER,
+                send_id INTEGER,
+                event_type TEXT NOT NULL,
+                url TEXT,
+                user_agent TEXT,
+                ip_address TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (recipient_id) REFERENCES recipients(id),
+                FOREIGN KEY (batch_id) REFERENCES batches(id),
+                FOREIGN KEY (send_id) REFERENCES sends(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_engagement_type ON engagement_events(event_type);
+            CREATE INDEX IF NOT EXISTS idx_engagement_recipient ON engagement_events(recipient_id);
+            CREATE INDEX IF NOT EXISTS idx_engagement_batch ON engagement_events(batch_id);
         """)
 
         for seq_id, name, audience in [("school","SCHOOL","private_school"), ("csr","CSR","csr")]:
@@ -219,6 +241,32 @@ class Database:
             self.conn.execute("ALTER TABLE batches ADD COLUMN parent_batch_id INTEGER")
             self.conn.commit()
             print("[DB] Migration complete: parent_batch_id added")
+        # Add engagement_events table if missing
+        try:
+            self.conn.execute("SELECT 1 FROM engagement_events LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding engagement_events table...")
+            self.conn.executescript("""
+                CREATE TABLE IF NOT EXISTS engagement_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    recipient_id INTEGER,
+                    batch_id INTEGER,
+                    send_id INTEGER,
+                    event_type TEXT NOT NULL,
+                    url TEXT,
+                    user_agent TEXT,
+                    ip_address TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (recipient_id) REFERENCES recipients(id),
+                    FOREIGN KEY (batch_id) REFERENCES batches(id),
+                    FOREIGN KEY (send_id) REFERENCES sends(id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_engagement_type ON engagement_events(event_type);
+                CREATE INDEX IF NOT EXISTS idx_engagement_recipient ON engagement_events(recipient_id);
+                CREATE INDEX IF NOT EXISTS idx_engagement_batch ON engagement_events(batch_id);
+            """)
+            self.conn.commit()
+            print("[DB] Migration complete: engagement_events table added")
 
         # Add batched flag to recipients if missing
         try:
@@ -308,11 +356,12 @@ class Database:
 
     # -- POOL METHODS (NEW) --
     def get_pool(self, sequence_id, limit=None):
-        """Get unbatched leads from the pool."""
+        """Get unbatched leads from the pool. Excludes blacklisted emails."""
         sql = """
-            SELECT * FROM recipients 
-            WHERE sequence_id=? AND batched=0 
-            ORDER BY id
+            SELECT r.* FROM recipients r
+            WHERE r.sequence_id=? AND r.batched=0
+              AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
+            ORDER BY r.id
         """
         params = [sequence_id]
         if limit:
@@ -322,11 +371,12 @@ class Database:
         return [dict(r) for r in rows]
 
     def get_pool_count(self, sequence_id):
-        """Count unbatched leads in pool."""
-        row = self.execute(
-            "SELECT COUNT(*) FROM recipients WHERE sequence_id=? AND batched=0", 
-            (sequence_id,)
-        ).fetchone()
+        """Count unbatched leads in pool. Excludes blacklisted emails."""
+        row = self.execute("""
+            SELECT COUNT(*) FROM recipients r
+            WHERE r.sequence_id=? AND r.batched=0
+              AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
+        """, (sequence_id,)).fetchone()
         return row[0] if row else 0
 
     def mark_batched(self, recipient_ids):
@@ -491,11 +541,12 @@ class Database:
 
     # -- SENDS / PIPELINE --
     def campaign_queue_send(self, recipient_id, day, subject, draft_id, status="drafted", batch_id=None):
-        self.execute("""
+        cur = self.execute("""
             INSERT INTO sends (recipient_id, day, subject, draft_id, status, batch_id)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (recipient_id, day, subject, draft_id, status, batch_id))
         self.commit()
+        return cur.lastrowid
 
     def get_pipeline(self, sequence_id=None):
         sql = """
@@ -563,6 +614,94 @@ class Database:
     def blacklist_get_all(self):
         rows = self.execute("SELECT * FROM blacklist ORDER BY added_at DESC").fetchall()
         return [dict(r) for r in rows]
+
+    # -- ENGAGEMENT TRACKING --
+    def record_engagement(self, event_type, recipient_id=None, batch_id=None, send_id=None, url=None, user_agent=None, ip_address=None):
+        """Record an open or click event."""
+        self.execute("""
+            INSERT INTO engagement_events (recipient_id, batch_id, send_id, event_type, url, user_agent, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (recipient_id, batch_id, send_id, event_type, url, user_agent, ip_address))
+        # Also update the sends table for quick lookups
+        if send_id:
+            if event_type == 'open':
+                self.execute("UPDATE sends SET opened_at=COALESCE(opened_at, CURRENT_TIMESTAMP) WHERE id=?", (send_id,))
+            elif event_type == 'click':
+                self.execute("UPDATE sends SET clicked_at=COALESCE(clicked_at, CURRENT_TIMESTAMP) WHERE id=?", (send_id,))
+        self.commit()
+
+    def get_engagement_stats(self, batch_id=None, sequence_id=None, days_back=30):
+        """Get aggregated engagement stats. Returns dict with sent, opened, clicked, ctr."""
+        params = []
+        where = "WHERE s.status='sent'"
+        if batch_id:
+            where += " AND s.batch_id=?"
+            params.append(batch_id)
+        if sequence_id:
+            where += " AND b.sequence_id=?"
+            params.append(sequence_id)
+        if days_back:
+            where += " AND s.sent_at >= datetime('now', '-{} days')".format(int(days_back))
+
+        sent = self.execute(f"SELECT COUNT(*) FROM sends s JOIN batches b ON s.batch_id=b.id {where}", params).fetchone()[0] or 0
+        opened = self.execute(f"SELECT COUNT(DISTINCT s.id) FROM sends s JOIN batches b ON s.batch_id=b.id {where} AND s.opened_at IS NOT NULL", params).fetchone()[0] or 0
+        clicked = self.execute(f"SELECT COUNT(DISTINCT s.id) FROM sends s JOIN batches b ON s.batch_id=b.id {where} AND s.clicked_at IS NOT NULL", params).fetchone()[0] or 0
+
+        return {
+            "sent": sent,
+            "opened": opened,
+            "clicked": clicked,
+            "open_rate": round(opened / sent * 100, 1) if sent else 0,
+            "ctr": round(clicked / sent * 100, 1) if sent else 0,
+            "ctor": round(clicked / opened * 100, 1) if opened else 0,
+        }
+
+    def get_engagement_by_day(self, sequence_id=None, days_back=30):
+        """Get daily engagement breakdown for charting."""
+        params = []
+        where = "WHERE s.status='sent'"
+        if sequence_id:
+            where += " AND b.sequence_id=?"
+            params.append(sequence_id)
+        if days_back:
+            where += " AND date(s.sent_at) >= date('now', '-{} days')".format(int(days_back))
+
+        rows = self.execute(f"""
+            SELECT date(s.sent_at) as day,
+                   COUNT(*) as sent,
+                   SUM(CASE WHEN s.opened_at IS NOT NULL THEN 1 ELSE 0 END) as opened,
+                   SUM(CASE WHEN s.clicked_at IS NOT NULL THEN 1 ELSE 0 END) as clicked
+            FROM sends s
+            JOIN batches b ON s.batch_id=b.id
+            {where}
+            GROUP BY date(s.sent_at)
+            ORDER BY day
+        """, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_top_clicked_links(self, batch_id=None, limit=10):
+        """Get most clicked URLs."""
+        where = "WHERE event_type='click'"
+        params = []
+        if batch_id:
+            where += " AND batch_id=?"
+            params.append(batch_id)
+        rows = self.execute(f"""
+            SELECT url, COUNT(*) as clicks
+            FROM engagement_events
+            {where}
+            GROUP BY url
+            ORDER BY clicks DESC
+            LIMIT ?
+        """, params + [limit]).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_send_id_by_recipient_batch(self, recipient_id, batch_id):
+        """Get the latest send_id for a recipient in a batch."""
+        row = self.execute("""
+            SELECT id FROM sends WHERE recipient_id=? AND batch_id=? ORDER BY id DESC LIMIT 1
+        """, (recipient_id, batch_id)).fetchone()
+        return row[0] if row else None
 
     # -- META --
     def set_meta(self, key, value):

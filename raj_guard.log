@@ -1878,3 +1878,685 @@ d started (parallel to Raj)
 [2026-06-04 15:48:16] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
 [2026-06-04 15:48:16] [OK] UI health OK
 [2026-06-04 15:48:16] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:48:46] [SCAN] Running health check...
+[2026-06-04 15:48:46] [OK] All core files syntax OK
+[2026-06-04 15:48:46] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:48:46] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:48:46] [OK] UI health OK
+[2026-06-04 15:48:46] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:49:16] [SCAN] Running health check...
+[2026-06-04 15:49:16] [OK] All core files syntax OK
+[2026-06-04 15:49:16] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:49:16] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:49:16] [OK] UI health OK
+[2026-06-04 15:49:16] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:49:46] [SCAN] Running health check...
+[2026-06-04 15:49:47] [OK] All core files syntax OK
+[2026-06-04 15:49:47] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:49:47] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:49:47] [OK] UI health OK
+[2026-06-04 15:49:47] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:50:17] [SCAN] Running health check...
+[2026-06-04 15:50:17] [OK] All core files syntax OK
+[2026-06-04 15:50:17] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:50:17] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:50:17] [OK] UI health OK
+[2026-06-04 15:50:17] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:50:47] [SCAN] Running health check...
+[2026-06-04 15:50:47] [OK] All core files syntax OK
+[2026-06-04 15:50:47] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:50:47] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:50:47] [OK] UI health OK
+[2026-06-04 15:50:47] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:51:17] [SCAN] Running health check...
+[2026-06-04 15:51:17] [OK] All core files syntax OK
+[2026-06-04 15:51:17] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:51:17] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:51:17] [OK] UI health OK
+[2026-06-04 15:51:17] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:51:47] [SCAN] Running health check...
+[2026-06-04 15:51:47] [OK] All core files syntax OK
+[2026-06-04 15:51:47] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:51:47] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:51:47] [OK] UI health OK
+[2026-06-04 15:51:47] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:52:17] [SCAN] Running health check...
+[2026-06-04 15:52:17] [OK] All core files syntax OK
+[2026-06-04 15:52:17] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:52:17] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:52:17] [OK] UI health OK
+[2026-06-04 15:52:17] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:52:47] [SCAN] Running health check...
+[2026-06-04 15:52:47] [OK] All core files syntax OK
+[2026-06-04 15:52:47] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:52:47] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:52:47] [OK] UI health OK
+[2026-06-04 15:52:47] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:53:17] [SCAN] Running health check...
+[2026-06-04 15:53:18] [OK] All core files syntax OK
+[2026-06-04 15:53:18] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:53:18] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:53:18] [OK] UI health OK
+[2026-06-04 15:53:18] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:53:48] [SCAN] Running health check...
+[2026-06-04 15:53:48] [OK] All core files syntax OK
+[2026-06-04 15:53:48] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:53:48] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:53:48] [OK] UI health OK
+[2026-06-04 15:53:48] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:54:18] [SCAN] Running health check...
+[2026-06-04 15:54:18] [OK] All core files syntax OK
+[2026-06-04 15:54:18] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:54:18] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:54:18] [OK] UI health OK
+[2026-06-04 15:54:18] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:54:27] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 15:54:27] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 15:54:27] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 15:54:27] [GUARD] Guard daemon started
+d started (parallel to Raj)
+[2026-06-04 15:54:27] [SCAN] Running health check...
+[2026-06-04 15:54:28] [OK] All core files syntax OK
+[2026-06-04 15:54:28] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:54:28] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:54:28] [OK] UI health OK
+[2026-06-04 15:54:28] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:54:58] [SCAN] Running health check...
+[2026-06-04 15:54:58] [OK] All core files syntax OK
+[2026-06-04 15:54:58] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:54:58] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:54:58] [OK] UI health OK
+[2026-06-04 15:54:58] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:55:28] [SCAN] Running health check...
+[2026-06-04 15:55:28] [OK] All core files syntax OK
+[2026-06-04 15:55:28] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:55:28] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:55:28] [OK] UI health OK
+[2026-06-04 15:55:28] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:55:58] [SCAN] Running health check...
+[2026-06-04 15:55:58] [OK] All core files syntax OK
+[2026-06-04 15:55:58] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:55:58] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:55:58] [OK] UI health OK
+[2026-06-04 15:55:58] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:56:28] [SCAN] Running health check...
+[2026-06-04 15:56:28] [OK] All core files syntax OK
+[2026-06-04 15:56:28] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:56:28] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:56:28] [OK] UI health OK
+[2026-06-04 15:56:28] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:56:58] [SCAN] Running health check...
+[2026-06-04 15:56:58] [OK] All core files syntax OK
+[2026-06-04 15:56:58] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:56:58] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:56:58] [OK] UI health OK
+[2026-06-04 15:56:58] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:57:28] [SCAN] Running health check...
+[2026-06-04 15:57:28] [OK] All core files syntax OK
+[2026-06-04 15:57:28] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:57:28] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:57:28] [OK] UI health OK
+[2026-06-04 15:57:28] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:57:58] [SCAN] Running health check...
+[2026-06-04 15:57:58] [OK] All core files syntax OK
+[2026-06-04 15:57:58] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:57:58] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:57:58] [OK] UI health OK
+[2026-06-04 15:57:58] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:58:28] [SCAN] Running health check...
+[2026-06-04 15:58:29] [OK] All core files syntax OK
+[2026-06-04 15:58:29] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:58:29] [WARN]  Engine: Missing @robopirate.in protection in bounce scan
+[2026-06-04 15:58:29] [OK] UI health OK
+[2026-06-04 15:58:29] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-04 15:58:59] [SCAN] Running health check...
+[2026-06-04 15:58:59] [OK] All core files syntax OK
+[2026-06-04 15:58:59] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:58:59] [OK] Engine health OK
+[2026-06-04 15:58:59] [OK] UI health OK
+[2026-06-04 15:58:59] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 15:59:29] [SCAN] Running health check...
+[2026-06-04 15:59:29] [OK] All core files syntax OK
+[2026-06-04 15:59:29] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:59:29] [OK] Engine health OK
+[2026-06-04 15:59:29] [OK] UI health OK
+[2026-06-04 15:59:29] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 15:59:59] [SCAN] Running health check...
+[2026-06-04 15:59:59] [OK] All core files syntax OK
+[2026-06-04 15:59:59] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 15:59:59] [OK] Engine health OK
+[2026-06-04 15:59:59] [OK] UI health OK
+[2026-06-04 15:59:59] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:00:29] [SCAN] Running health check...
+[2026-06-04 16:00:29] [OK] All core files syntax OK
+[2026-06-04 16:00:29] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:00:29] [OK] Engine health OK
+[2026-06-04 16:00:29] [OK] UI health OK
+[2026-06-04 16:00:29] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:00:59] [SCAN] Running health check...
+[2026-06-04 16:00:59] [OK] All core files syntax OK
+[2026-06-04 16:00:59] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:00:59] [OK] Engine health OK
+[2026-06-04 16:00:59] [OK] UI health OK
+[2026-06-04 16:00:59] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:01:29] [SCAN] Running health check...
+[2026-06-04 16:01:29] [OK] All core files syntax OK
+[2026-06-04 16:01:29] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:01:29] [OK] Engine health OK
+[2026-06-04 16:01:29] [OK] UI health OK
+[2026-06-04 16:01:29] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:01:59] [SCAN] Running health check...
+[2026-06-04 16:02:00] [OK] All core files syntax OK
+[2026-06-04 16:02:00] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:02:00] [OK] Engine health OK
+[2026-06-04 16:02:00] [OK] UI health OK
+[2026-06-04 16:02:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:02:30] [SCAN] Running health check...
+[2026-06-04 16:02:30] [OK] All core files syntax OK
+[2026-06-04 16:02:30] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:02:30] [OK] Engine health OK
+[2026-06-04 16:02:30] [OK] UI health OK
+[2026-06-04 16:02:30] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:03:00] [SCAN] Running health check...
+[2026-06-04 16:03:00] [OK] All core files syntax OK
+[2026-06-04 16:03:00] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:03:00] [OK] Engine health OK
+[2026-06-04 16:03:00] [OK] UI health OK
+[2026-06-04 16:03:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:03:30] [SCAN] Running health check...
+[2026-06-04 16:03:30] [OK] All core files syntax OK
+[2026-06-04 16:03:30] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:03:30] [OK] Engine health OK
+[2026-06-04 16:03:30] [OK] UI health OK
+[2026-06-04 16:03:30] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:04:00] [SCAN] Running health check...
+[2026-06-04 16:04:00] [OK] All core files syntax OK
+[2026-06-04 16:04:00] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:04:00] [OK] Engine health OK
+[2026-06-04 16:04:00] [OK] UI health OK
+[2026-06-04 16:04:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:04:30] [SCAN] Running health check...
+[2026-06-04 16:04:30] [OK] All core files syntax OK
+[2026-06-04 16:04:30] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:04:30] [OK] Engine health OK
+[2026-06-04 16:04:30] [OK] UI health OK
+[2026-06-04 16:04:30] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:05:00] [SCAN] Running health check...
+[2026-06-04 16:05:00] [OK] All core files syntax OK
+[2026-06-04 16:05:00] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:05:00] [OK] Engine health OK
+[2026-06-04 16:05:00] [OK] UI health OK
+[2026-06-04 16:05:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:05:30] [SCAN] Running health check...
+[2026-06-04 16:05:30] [OK] All core files syntax OK
+[2026-06-04 16:05:30] [FAIL] DB Issue: 10 duplicate batch names: ['CSR-B1-D5', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:05:30] [OK] Engine health OK
+[2026-06-04 16:05:30] [OK] UI health OK
+[2026-06-04 16:05:30] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:06:00] [SCAN] Running health check...
+[2026-06-04 16:06:01] [OK] All core files syntax OK
+[2026-06-04 16:06:01] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:06:01] [OK] Engine health OK
+[2026-06-04 16:06:01] [OK] UI health OK
+[2026-06-04 16:06:01] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:06:31] [SCAN] Running health check...
+[2026-06-04 16:06:31] [OK] All core files syntax OK
+[2026-06-04 16:06:31] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:06:31] [OK] Engine health OK
+[2026-06-04 16:06:31] [OK] UI health OK
+[2026-06-04 16:06:31] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:07:01] [SCAN] Running health check...
+[2026-06-04 16:07:01] [OK] All core files syntax OK
+[2026-06-04 16:07:01] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:07:01] [OK] Engine health OK
+[2026-06-04 16:07:01] [OK] UI health OK
+[2026-06-04 16:07:01] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:07:31] [SCAN] Running health check...
+[2026-06-04 16:07:31] [OK] All core files syntax OK
+[2026-06-04 16:07:31] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:07:31] [OK] Engine health OK
+[2026-06-04 16:07:31] [OK] UI health OK
+[2026-06-04 16:07:31] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 16:08:02] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 16:08:02] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 16:08:02] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 16:08:02] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-04 16:08:02] [SCAN] Running health check...
+[2026-06-04 16:08:02] [OK] All core files syntax OK
+[2026-06-04 16:08:02] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 16:08:02] [OK] Engine health OK
+[2026-06-04 16:08:02] [OK] UI health OK
+[2026-06-04 16:08:02] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 17:08:02] [SCAN] Running health check...
+[2026-06-04 17:08:03] [OK] All core files syntax OK
+[2026-06-04 17:08:03] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 17:08:03] [OK] Engine health OK
+[2026-06-04 17:08:03] [OK] UI health OK
+[2026-06-04 17:08:03] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 18:08:03] [SCAN] Running health check...
+[2026-06-04 18:08:03] [OK] All core files syntax OK
+[2026-06-04 18:08:03] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 18:08:03] [OK] Engine health OK
+[2026-06-04 18:08:03] [OK] UI health OK
+[2026-06-04 18:08:03] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 18:26:47] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 18:26:47] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 18:26:47] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 18:26:47] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-04 18:26:47] [SCAN] Running health check...
+[2026-06-04 18:26:48] [OK] All core files syntax OK
+[2026-06-04 18:26:48] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 18:26:48] [OK] Engine health OK
+[2026-06-04 18:26:48] [OK] UI health OK
+[2026-06-04 18:26:48] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 19:26:50] [SCAN] Running health check...
+[2026-06-04 19:26:50] [OK] All core files syntax OK
+[2026-06-04 19:26:50] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 19:26:50] [OK] Engine health OK
+[2026-06-04 19:26:50] [OK] UI health OK
+[2026-06-04 19:26:50] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 20:11:35] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 20:11:35] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 20:11:35] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 20:11:35] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-04 20:11:35] [SCAN] Running health check...
+[2026-06-04 20:11:35] [OK] All core files syntax OK
+[2026-06-04 20:11:35] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 20:11:35] [OK] Engine health OK
+[2026-06-04 20:11:35] [OK] UI health OK
+[2026-06-04 20:11:35] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 20:22:01] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 20:22:01] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 20:22:01] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 20:22:01] [GUARD] Guard daemon started
+d started (parallel to Raj)
+[2026-06-04 20:22:01] [SCAN] Running health check...
+[2026-06-04 20:22:02] [OK] All core files syntax OK
+[2026-06-04 20:22:02] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 20:22:02] [OK] Engine health OK
+[2026-06-04 20:22:02] [OK] UI health OK
+[2026-06-04 20:22:02] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 20:26:50] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 20:26:50] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 20:26:50] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 20:26:50] [GUARD] Guard daemon started
+[2026-06-04 20:26:50] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-04 20:26:50] [SCAN] Running health check...
+[2026-06-04 20:26:50] [OK] All core files syntax OK
+[2026-06-04 20:26:50] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 20:26:50] [OK] Engine health OK
+[2026-06-04 20:26:50] [OK] UI health OK
+[2026-06-04 20:26:50] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 20:31:27] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 20:31:27] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 20:31:27] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 20:31:27] [GUARD] Guard daemon started
+[2026-06-04 20:31:27] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-04 20:31:27] [SCAN] Running health check...
+[2026-06-04 20:31:27] [OK] All core files syntax OK
+[2026-06-04 20:31:27] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 20:31:27] [OK] Engine health OK
+[2026-06-04 20:31:27] [OK] UI health OK
+[2026-06-04 20:31:27] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-04 20:46:22] [GUARD] Raj Guard v1.0 initialized
+[2026-06-04 20:46:22] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-04 20:46:22] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-04 20:46:22] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-04 20:46:22] [SCAN] Running health check...
+[2026-06-04 20:46:23] [OK] All core files syntax OK
+[2026-06-04 20:46:23] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-04 20:46:23] [OK] Engine health OK
+[2026-06-04 20:46:23] [OK] UI health OK
+[2026-06-04 20:46:23] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 00:13:15] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 00:13:15] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 00:13:15] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 00:13:15] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 00:13:15] [SCAN] Running health check...
+[2026-06-05 00:13:15] [OK] All core files syntax OK
+[2026-06-05 00:13:15] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 00:13:15] [OK] Engine health OK
+[2026-06-05 00:13:15] [OK] UI health OK
+[2026-06-05 00:13:15] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 01:13:15] [SCAN] Running health check...
+[2026-06-05 01:13:15] [OK] All core files syntax OK
+[2026-06-05 01:13:15] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 01:13:15] [OK] Engine health OK
+[2026-06-05 01:13:15] [OK] UI health OK
+[2026-06-05 01:13:15] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 16:40:23] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 16:40:23] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 16:40:23] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 16:40:23] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 16:40:23] [SCAN] Running health check...
+[2026-06-05 16:40:24] [OK] All core files syntax OK
+[2026-06-05 16:40:24] [FAIL] DB Issue: 11 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 16:40:24] [OK] Engine health OK
+[2026-06-05 16:40:24] [OK] UI health OK
+[2026-06-05 16:40:24] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 16:56:31] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 16:56:31] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 16:56:31] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 16:56:31] [GUARD] Guard daemon started
+[2026-06-05 16:56:31] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 16:56:31] [SCAN] Running health check...
+[2026-06-05 16:56:31] [OK] All core files syntax OK
+[2026-06-05 16:56:31] [FAIL] DB Issue: 13 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 16:56:31] [OK] Engine health OK
+[2026-06-05 16:56:31] [OK] UI health OK
+[2026-06-05 16:56:31] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 17:18:42] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 17:18:42] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 17:18:42] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 17:18:42] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 17:18:42] [SCAN] Running health check...
+[2026-06-05 17:18:43] [OK] All core files syntax OK
+[2026-06-05 17:18:43] [FAIL] DB Issue: 13 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 17:18:43] [OK] Engine health OK
+[2026-06-05 17:18:43] [OK] UI health OK
+[2026-06-05 17:18:43] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 17:26:05] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 17:26:05] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 17:26:05] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 17:26:05] [GUARD] Guard daemon started
+d started (parallel to Raj)
+[2026-06-05 17:26:05] [SCAN] Running health check...
+[2026-06-05 17:26:05] [OK] All core files syntax OK
+[2026-06-05 17:26:05] [FAIL] DB Issue: 13 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 17:26:05] [OK] Engine health OK
+[2026-06-05 17:26:05] [OK] UI health OK
+[2026-06-05 17:26:05] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 17:33:13] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 17:33:13] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 17:33:13] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 17:33:13] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 17:33:13] [SCAN] Running health check...
+[2026-06-05 17:33:14] [OK] All core files syntax OK
+[2026-06-05 17:33:14] [FAIL] DB Issue: 13 duplicate batch names: ['CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 17:33:14] [FAIL] DB Issue: 14 stuck batches (running but 0 sends): ['a-D10', 'Pune_Email_ B1-B2-D10', 'a-D7', 'Master_Lead-B3', 'a-D10', 'Pune_Email_ B1-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'a-D7', 'a-D10', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'CSR-B1-D7', 'a-D10']
+[2026-06-05 17:33:14] [OK] Engine health OK
+[2026-06-05 17:33:14] [OK] UI health OK
+[2026-06-05 17:33:14] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-05 17:55:55] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 17:55:55] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 17:55:55] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 17:55:55] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 17:55:55] [SCAN] Running health check...
+[2026-06-05 17:55:55] [OK] All core files syntax OK
+[2026-06-05 17:55:55] [FAIL] DB Issue: 15 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 17:55:55] [OK] Engine health OK
+[2026-06-05 17:55:55] [OK] UI health OK
+[2026-06-05 17:55:55] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 18:55:55] [SCAN] Running health check...
+[2026-06-05 18:55:55] [OK] All core files syntax OK
+[2026-06-05 18:55:55] [FAIL] DB Issue: 15 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 18:55:55] [OK] Engine health OK
+[2026-06-05 18:55:55] [OK] UI health OK
+[2026-06-05 18:55:55] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 19:55:55] [SCAN] Running health check...
+[2026-06-05 19:55:56] [OK] All core files syntax OK
+[2026-06-05 19:55:56] [FAIL] DB Issue: 15 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 19:55:56] [OK] Engine health OK
+[2026-06-05 19:55:56] [OK] UI health OK
+[2026-06-05 19:55:56] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 20:02:11] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 20:02:11] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 20:02:11] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 20:02:11] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 20:02:11] [SCAN] Running health check...
+[2026-06-05 20:02:12] [OK] All core files syntax OK
+[2026-06-05 20:02:12] [FAIL] DB Issue: 16 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D10', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 20:02:12] [OK] Engine health OK
+[2026-06-05 20:02:12] [OK] UI health OK
+[2026-06-05 20:02:12] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 20:08:46] [GUARD] Raj Guard v1.0 initialized
+[2026-06-05 20:08:46] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-05 20:08:46] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-05 20:08:46] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-05 20:08:46] [SCAN] Running health check...
+[2026-06-05 20:08:46] [OK] All core files syntax OK
+[2026-06-05 20:08:46] [FAIL] DB Issue: 16 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D10', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 20:08:46] [OK] Engine health OK
+[2026-06-05 20:08:46] [OK] UI health OK
+[2026-06-05 20:08:46] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-05 21:08:46] [SCAN] Running health check...
+[2026-06-05 21:08:46] [OK] All core files syntax OK
+[2026-06-05 21:08:46] [FAIL] DB Issue: 16 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D10', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-05 21:08:46] [OK] Engine health OK
+[2026-06-05 21:08:46] [OK] UI health OK
+[2026-06-05 21:08:46] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-08 12:57:24] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 12:57:24] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 12:57:24] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 12:57:24] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-08 12:57:24] [SCAN] Running health check...
+[2026-06-08 12:57:26] [OK] All core files syntax OK
+[2026-06-08 12:57:26] [FAIL] DB Issue: 17 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'Master_Lead-B1-D3', 'Master_Lead-B1-D5', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D10', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-08 12:57:26] [OK] Engine health OK
+[2026-06-08 12:57:26] [OK] UI health OK
+[2026-06-08 12:57:26] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-08 13:57:26] [SCAN] Running health check...
+[2026-06-08 13:57:26] [OK] All core files syntax OK
+[2026-06-08 13:57:26] [FAIL] DB Issue: 18 duplicate batch names: ['CSR-B1-D10', 'CSR-B1-D5', 'CSR-B1-D7', 'MUMBAI SCHOOL-B1-D5', 'MUMBAI SCHOOL-B1-D7', 'Master_Lead-B1-D3', 'Master_Lead-B1-D5', 'Master_Lead-B1-D7', 'Master_Lead-B2-D5', 'Pune_Email_ B1-B1-D10', 'Pune_Email_ B1-B1-D5', 'Pune_Email_ B1-B1-D7', 'Pune_Email_ B1-B2-D10', 'Pune_Email_ B1-B2-D5', 'Pune_Email_ B1-B2-D7', 'a-D10', 'a-D5', 'a-D7']
+[2026-06-08 13:57:26] [OK] Engine health OK
+[2026-06-08 13:57:26] [OK] UI health OK
+[2026-06-08 13:57:26] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-08 14:57:26] [SCAN] Running health check...
+[2026-06-08 14:57:27] [OK] All core files syntax OK
+[2026-06-08 14:57:27] [OK] Database OK — {'recipients': 597, 'batches': 32, 'batch_recipients': 1930, 'sends': 2727, 'replies': 1, 'blacklist': 219, 'templates': 10, 'audit_log': 14}
+[2026-06-08 14:57:27] [OK] Engine health OK
+[2026-06-08 14:57:27] [OK] UI health OK
+[2026-06-08 14:57:27] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 15:29:11] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 15:29:11] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 15:29:11] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 15:29:11] [GUARD] Guard daemon started
+d started (parallel to Raj)
+[2026-06-08 15:29:11] [SCAN] Running health check...
+[2026-06-08 15:29:12] [OK] All core files syntax OK
+[2026-06-08 15:29:12] [OK] Database OK — {'recipients': 597, 'batches': 32, 'batch_recipients': 1930, 'sends': 2766, 'replies': 1, 'blacklist': 219, 'templates': 10, 'audit_log': 14}
+[2026-06-08 15:29:12] [OK] Engine health OK
+[2026-06-08 15:29:12] [OK] UI health OK
+[2026-06-08 15:29:12] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 16:29:12] [SCAN] Running health check...
+[2026-06-08 16:29:12] [OK] All core files syntax OK
+[2026-06-08 16:29:12] [OK] Database OK — {'recipients': 597, 'batches': 34, 'batch_recipients': 2099, 'sends': 2839, 'replies': 1, 'blacklist': 317, 'templates': 10, 'audit_log': 14}
+[2026-06-08 16:29:12] [OK] Engine health OK
+[2026-06-08 16:29:12] [OK] UI health OK
+[2026-06-08 16:29:12] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 17:29:12] [SCAN] Running health check...
+[2026-06-08 17:29:13] [OK] All core files syntax OK
+[2026-06-08 17:29:13] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 317, 'templates': 10, 'audit_log': 14}
+[2026-06-08 17:29:13] [OK] Engine health OK
+[2026-06-08 17:29:13] [OK] UI health OK
+[2026-06-08 17:29:13] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 18:29:13] [SCAN] Running health check...
+[2026-06-08 18:29:13] [OK] All core files syntax OK
+[2026-06-08 18:29:13] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 317, 'templates': 10, 'audit_log': 14}
+[2026-06-08 18:29:13] [OK] Engine health OK
+[2026-06-08 18:29:13] [OK] UI health OK
+[2026-06-08 18:29:13] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 19:29:13] [SCAN] Running health check...
+[2026-06-08 19:29:13] [OK] All core files syntax OK
+[2026-06-08 19:29:13] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 19:29:13] [OK] Engine health OK
+[2026-06-08 19:29:13] [OK] UI health OK
+[2026-06-08 19:29:13] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 20:29:13] [SCAN] Running health check...
+[2026-06-08 20:29:14] [OK] All core files syntax OK
+[2026-06-08 20:29:14] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 20:29:14] [OK] Engine health OK
+[2026-06-08 20:29:14] [OK] UI health OK
+[2026-06-08 20:29:14] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 20:30:21] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 20:30:21] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 20:30:21] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 20:30:21] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-08 20:30:21] [SCAN] Running health check...
+[2026-06-08 20:30:23] [OK] All core files syntax OK
+[2026-06-08 20:30:23] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 20:30:23] [OK] Engine health OK
+[2026-06-08 20:30:23] [OK] UI health OK
+[2026-06-08 20:30:23] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 20:30:52] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 20:30:52] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 20:30:52] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 20:30:52] [GUARD] Guard daemon started
+[2026-06-08 20:30:52] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-08 20:30:52] [SCAN] Running health check...
+[2026-06-08 20:30:52] [OK] All core files syntax OK
+[2026-06-08 20:30:52] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 20:30:52] [OK] Engine health OK
+[2026-06-08 20:30:52] [OK] UI health OK
+[2026-06-08 20:30:52] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 20:32:11] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 20:32:11] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 20:32:11] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 20:32:11] [GUARD] Guard daemon started
+d started (parallel to Raj)
+[2026-06-08 20:32:11] [SCAN] Running health check...
+[2026-06-08 20:32:11] [OK] All core files syntax OK
+[2026-06-08 20:32:11] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 20:32:11] [OK] Engine health OK
+[2026-06-08 20:32:11] [OK] UI health OK
+[2026-06-08 20:32:11] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 21:02:49] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 21:02:49] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 21:02:49] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 21:02:49] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-08 21:02:49] [SCAN] Running health check...
+[2026-06-08 21:02:50] [OK] All core files syntax OK
+[2026-06-08 21:02:50] [OK] Database OK — {'recipients': 597, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 21:02:50] [OK] Engine health OK
+[2026-06-08 21:02:50] [OK] UI health OK
+[2026-06-08 21:02:50] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-08 21:10:45] [GUARD] Raj Guard v1.0 initialized
+[2026-06-08 21:10:45] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-08 21:10:45] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-08 21:10:45] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-08 21:10:45] [SCAN] Running health check...
+[2026-06-08 21:10:46] [OK] All core files syntax OK
+[2026-06-08 21:10:46] [OK] Database OK — {'recipients': 620, 'batches': 35, 'batch_recipients': 2161, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-08 21:10:46] [OK] Engine health OK
+[2026-06-08 21:10:46] [OK] UI health OK
+[2026-06-08 21:10:46] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-09 12:48:25] [GUARD] Raj Guard v1.0 initialized
+[2026-06-09 12:48:25] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-09 12:48:25] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-09 12:48:25] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-09 12:48:25] [SCAN] Running health check...
+[2026-06-09 12:48:26] [OK] All core files syntax OK
+[2026-06-09 12:48:26] [OK] Database OK — {'recipients': 762, 'batches': 37, 'batch_recipients': 2412, 'sends': 2863, 'replies': 1, 'blacklist': 337, 'templates': 10, 'audit_log': 14}
+[2026-06-09 12:48:26] [OK] Engine health OK
+[2026-06-09 12:48:26] [OK] UI health OK
+[2026-06-09 12:48:26] [OK] Health check complete — 0 issues, 0 fixes
+[2026-06-09 13:12:26] [GUARD] Raj Guard v1.0 initialized
+[2026-06-09 13:12:26] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-09 13:12:26] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-09 13:12:26] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-09 13:12:26] [SCAN] Running health check...
+[2026-06-09 13:12:26] [OK] All core files syntax OK
+[2026-06-09 13:12:26] [FAIL] DB Issue: 1 stuck batches (running but 0 sends): ['Master_Lead-B3-D5']
+[2026-06-09 13:12:26] [OK] Engine health OK
+[2026-06-09 13:12:26] [OK] UI health OK
+[2026-06-09 13:12:26] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-09 13:30:30] [GUARD] Raj Guard v1.0 initialized
+[2026-06-09 13:30:30] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-09 13:30:30] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-09 13:30:30] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-09 13:30:30] [SCAN] Running health check...
+[2026-06-09 13:30:31] [OK] All core files syntax OK
+[2026-06-09 13:30:31] [FAIL] DB Issue: 1 stuck batches (running but 0 sends): ['Master_Lead-B3-D5']
+[2026-06-09 13:30:31] [OK] Engine health OK
+[2026-06-09 13:30:31] [OK] UI health OK
+[2026-06-09 13:30:31] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-09 14:39:51] [SCAN] Running health check...
+[2026-06-09 14:39:51] [OK] All core files syntax OK
+[2026-06-09 14:39:51] [FAIL] DB Issue: 1 duplicate batch names: ['Master_Lead-B2-D10']
+[2026-06-09 14:39:51] [FAIL] DB Issue: 1 stuck batches (running but 0 sends): ['Master_Lead-B3-D5']
+[2026-06-09 14:39:51] [OK] Engine health OK
+[2026-06-09 14:39:51] [OK] UI health OK
+[2026-06-09 14:39:51] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-09 16:05:01] [GUARD] Raj Guard v1.0 initialized
+[2026-06-09 16:05:01] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-09 16:05:01] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-09 16:05:01] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-09 16:05:01] [SCAN] Running health check...
+[2026-06-09 16:05:02] [OK] All core files syntax OK
+[2026-06-09 16:05:02] [FAIL] DB Issue: 1 duplicate batch names: ['Master_Lead-B2-D10']
+[2026-06-09 16:05:02] [OK] Engine health OK
+[2026-06-09 16:05:02] [OK] UI health OK
+[2026-06-09 16:05:02] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-09 17:05:02] [SCAN] Running health check...
+[2026-06-09 17:05:03] [OK] All core files syntax OK
+[2026-06-09 17:05:03] [FAIL] DB Issue: 1 duplicate batch names: ['Master_Lead-B2-D10']
+[2026-06-09 17:05:03] [OK] Engine health OK
+[2026-06-09 17:05:03] [OK] UI health OK
+[2026-06-09 17:05:03] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-10 14:35:57] [GUARD] Raj Guard v1.0 initialized
+[2026-06-10 14:35:57] [DIR] Watching folder: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop
+[2026-06-10 14:35:57] [DB]  Database: C:\Users\itsom\OneDrive\Documents\GitHub\raj-desktop\campaign_data.db
+[2026-06-10 14:35:57] [GUARD] Raj Guard daemon thread started (parallel to Raj)
+[2026-06-10 14:35:57] [SCAN] Running health check...
+[2026-06-10 14:35:59] [OK] All core files syntax OK
+[2026-06-10 14:35:59] [FAIL] DB Issue: 1 duplicate batch names: ['Master_Lead-B2-D10']
+[2026-06-10 14:35:59] [FAIL] DB Issue: 2 stuck batches (running but 0 sends): ['Master_Lead-B3-D3', 'Master_Lead-B2-D10']
+[2026-06-10 14:35:59] [OK] Engine health OK
+[2026-06-10 14:35:59] [OK] UI health OK
+[2026-06-10 14:35:59] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-10 15:35:59] [SCAN] Running health check...
+[2026-06-10 15:35:59] [OK] All core files syntax OK
+[2026-06-10 15:35:59] [FAIL] DB Issue: 1 duplicate batch names: ['Master_Lead-B2-D10']
+[2026-06-10 15:35:59] [FAIL] DB Issue: 1 stuck batches (running but 0 sends): ['Master_Lead-B2-D10']
+[2026-06-10 15:35:59] [OK] Engine health OK
+[2026-06-10 15:35:59] [OK] UI health OK
+[2026-06-10 15:35:59] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-10 16:35:59] [SCAN] Running health check...
+[2026-06-10 16:35:59] [OK] All core files syntax OK
+[2026-06-10 16:35:59] [FAIL] DB Issue: 1 duplicate batch names: ['Master_Lead-B2-D10']
+[2026-06-10 16:35:59] [FAIL] DB Issue: 1 stuck batches (running but 0 sends): ['Master_Lead-B2-D10']
+[2026-06-10 16:35:59] [OK] Engine health OK
+[2026-06-10 16:35:59] [OK] UI health OK
+[2026-06-10 16:35:59] [OK] Health check complete — 2 issues, 0 fixes
+[2026-06-10 17:35:59] [SCAN] Running health check...
+[2026-06-10 17:36:00] [OK] All core files syntax OK
+[2026-06-10 17:36:00] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-10 17:36:00] [OK] Engine health OK
+[2026-06-10 17:36:00] [OK] UI health OK
+[2026-06-10 17:36:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-10 18:36:00] [SCAN] Running health check...
+[2026-06-10 18:36:00] [OK] All core files syntax OK
+[2026-06-10 18:36:00] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-10 18:36:00] [OK] Engine health OK
+[2026-06-10 18:36:00] [OK] UI health OK
+[2026-06-10 18:36:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-10 19:36:00] [SCAN] Running health check...
+[2026-06-10 19:36:00] [OK] All core files syntax OK
+[2026-06-10 19:36:00] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-10 19:36:00] [OK] Engine health OK
+[2026-06-10 19:36:00] [OK] UI health OK
+[2026-06-10 19:36:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-10 20:36:00] [SCAN] Running health check...
+[2026-06-10 20:36:00] [OK] All core files syntax OK
+[2026-06-10 20:36:00] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-10 20:36:00] [OK] Engine health OK
+[2026-06-10 20:36:00] [OK] UI health OK
+[2026-06-10 20:36:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-10 21:36:00] [SCAN] Running health check...
+[2026-06-10 21:36:00] [OK] All core files syntax OK
+[2026-06-10 21:36:00] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-10 21:36:00] [OK] Engine health OK
+[2026-06-10 21:36:00] [OK] UI health OK
+[2026-06-10 21:36:00] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-11 09:02:28] [SCAN] Running health check...
+[2026-06-11 09:02:29] [OK] All core files syntax OK
+[2026-06-11 09:02:29] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-11 09:02:29] [OK] Engine health OK
+[2026-06-11 09:02:29] [OK] UI health OK
+[2026-06-11 09:02:29] [OK] Health check complete — 1 issues, 0 fixes
+[2026-06-11 15:19:54] [SCAN] Running health check...
+[2026-06-11 15:19:54] [OK] All core files syntax OK
+[2026-06-11 15:19:54] [FAIL] DB Issue: 2 duplicate batch names: ['Master_Lead-B2-D10', 'Master_Lead-B3-D5']
+[2026-06-11 15:19:54] [OK] Engine health OK
+[2026-06-11 15:19:54] [OK] UI health OK
+[2026-06-11 15:19:54] [OK] Health check complete — 1 issues, 0 fixes
