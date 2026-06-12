@@ -1,4 +1,11 @@
 *.pickle 
 credentials.json 
 *.db 
+*.db-shm
+*.db-wal
+*.log
+__pycache__/
+fix_log.txt
+run_log.txt
+unicode_scan.txt
 dead_emails_blacklist.txt 
