@@ -111,6 +111,37 @@ SEQUENCES = {
                 "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
             }
         }
+    },
+    "csr-wsl-5": {
+        "days": [1, 3, 5, 7, 10],
+        "template_prefix": "CSR-WSL-5 EMAIL ",
+        "audience": "csr",
+        "persona": "csr",
+        "assets": {
+            1: {
+                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
+                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
+                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+            },
+            3: {
+                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
+                "video_abp": "https://youtu.be/FJ2_W53WjmA",
+                "video_star": "https://youtube.com/watch?v=iziKPBSfGKU",
+                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+            },
+            5: {
+                "video_wsl": "https://drive.google.com/file/d/1KPrC2IpdooxazGJiyVe79JgyWlJbOxzu/view",
+                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+            },
+            7: {
+                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
+                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+            },
+            10: {
+                "profile": "https://drive.google.com/file/d/1g9JJ4_VO_28QKYD7iVVDJZcv9l4uRbZu/view",
+                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+            }
+        }
     }
 }
 
@@ -823,6 +854,13 @@ class CampaignEngine:
                 5: "{{CSR_HEAD_NAME}}, Sangli Success Story for {{COMPANY_NAME}}",
                 7: "{{COMPANY_NAME}} — FY Budget Planning: STEM Investment ROI",
                 10: "{{CSR_HEAD_NAME}}, Partner with RoboPirate: Company Profile for {{COMPANY_NAME}}"
+            },
+            "csr-wsl-5": {
+                1: "{{COMPANY_NAME}} — A 5-Year STEM Lab Where You Fund Only Year 1",
+                3: "{{CSR_HEAD_NAME}}, We Already Did This — First WE Smart Lab, Full Academic Year, Government School",
+                5: "{{CSR_HEAD_NAME}}, The Job Your CSR Creates — 1 Trainer, 5 Years, Trained from Underprivileged Background",
+                7: "{{COMPANY_NAME}} — The Math: Rs.12L CSR + Rs.28L Government = 400 Students x 5 Years",
+                10: "{{CSR_HEAD_NAME}}, Final Call — FY 2026-27 Budget Window + 90-Day Launch Plan"
             }
         }
         return subjects.get(seq_id, {}).get(day, f"RoboPirate {seq_id.upper()} - Day {day}")
@@ -830,6 +868,8 @@ class CampaignEngine:
     def _generate_content(self, seq_id: str, day: int, assets: dict) -> str:
         if seq_id == "school":
             return self._generate_school_content(day, assets)
+        elif seq_id in ("csr", "csr-wsl-5"):
+            return self._generate_csr_content(day, assets)
         else:
             return self._generate_csr_content(day, assets)
 
@@ -1756,6 +1796,7 @@ class CampaignEngine:
         return {
             "school": "You are the RoboPirate school outreach team. Warm, professional HTML emails to Indian private school principals. Never salesy.",
             "csr": "You are the RoboPirate CSR team. Formal, impact-focused emails to CSR heads. Data-driven and professional.",
+            "csr-wsl-5": "You are the RoboPirate CSR team. Formal, impact-focused emails to CSR heads about the 5-year co-funded pilot model. Data-driven, employment-focused, and professional.",
         }.get(persona, "")
 
     # -- Morning Brief --

@@ -250,7 +250,7 @@ class RajChatApp(ctk.CTk):
         cards_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
         self.dashboard_cards = {}
-        sequences = [("school", "SCHOOL", C_ACCENT), ("csr", "CSR", C_WARNING),
+        sequences = [("school", "SCHOOL", C_ACCENT), ("csr", "CSR", C_WARNING), ("csr-wsl-5", "CSR-WSL-5", C_WARNING),
                      ("total", "TOTAL", C_SUCCESS), ("blacklist", "BLACKLIST", C_DANGER)]
 
         for col, (seq_id, label, color) in enumerate(sequences):
@@ -353,7 +353,7 @@ class RajChatApp(ctk.CTk):
             # ─── Overview Cards ───
             totals = {"leads": 0, "sent": 0, "replied": 0, "bounced": 0, "pool": 0}
 
-            for seq_id in ["school", "csr"]:
+            for seq_id in ["school", "csr", "csr-wsl-5"]:
                 seq_data = summary.get("sequences", {}).get(seq_id, {})
                 pipeline = seq_data.get("pipeline", {})
                 pool_count = seq_data.get("pool_count", 0)
@@ -393,7 +393,7 @@ class RajChatApp(ctk.CTk):
 
             # ─── Day-wise Pipeline Table (COMBINED SCHOOL + CSR) ───
             combined_day_wise = {}
-            for seq_id in ["school", "csr"]:
+            for seq_id in ["school", "csr", "csr-wsl-5"]:
                 seq_data = summary.get("sequences", {}).get(seq_id, {})
                 day_wise = seq_data.get("day_wise", {})
                 for day, metrics in day_wise.items():
@@ -442,7 +442,7 @@ class RajChatApp(ctk.CTk):
         try:
             scale = self._get_scale()
             # Overview card labels
-            for seq_id in ["school", "csr", "total", "blacklist"]:
+            for seq_id in ["school", "csr", "csr-wsl-5", "total", "blacklist"]:
                 if seq_id in self.dashboard_cards:
                     for metric, lbl in self.dashboard_cards[seq_id].items():
                         lbl.configure(font=self._font(11))
@@ -713,7 +713,7 @@ class RajChatApp(ctk.CTk):
                 except:
                     pass
 
-        name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id == "CSR" else "white"
+        name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id in ("CSR", "CSR-WSL-5") else "white"
 
         left_hdr = ctk.CTkFrame(header, fg_color="transparent")
         left_hdr.pack(side="left", fill="y")
@@ -721,7 +721,7 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(left_hdr, text=family_name, font=self._font(15, bold=True),
                      text_color=name_color).pack(side="left")
 
-        seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id == "CSR" else "#2a2a4e"
+        seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id in ("CSR", "CSR-WSL-5") else "#2a2a4e"
         ctk.CTkLabel(left_hdr, text=f"  {seq_id}  ", font=self._font(8, bold=True),
                      text_color=name_color, fg_color=seq_badge_bg,
                      corner_radius=self._sf(10)).pack(side="left", padx=(self._sf(8), 0))
@@ -1150,7 +1150,7 @@ class RajChatApp(ctk.CTk):
         seq_frame.pack(fill="x", pady=(0, 10))
         ctk.CTkLabel(seq_frame, text="Sequence:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
         self.import_seq_var = ctk.StringVar(value="school")
-        ctk.CTkOptionMenu(seq_frame, values=["school", "csr"], variable=self.import_seq_var,
+        ctk.CTkOptionMenu(seq_frame, values=["school", "csr", "csr-wsl-5"], variable=self.import_seq_var,
                           font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
 
         # File selector
@@ -1514,7 +1514,7 @@ class RajChatApp(ctk.CTk):
         seq_row.pack(fill="x", padx=15, pady=8)
         ctk.CTkLabel(seq_row, text="Sequence:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
         self.batch_seq = ctk.StringVar(value="school")
-        ctk.CTkOptionMenu(seq_row, values=["school", "csr"], variable=self.batch_seq,
+        ctk.CTkOptionMenu(seq_row, values=["school", "csr", "csr-wsl-5"], variable=self.batch_seq,
                           font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
 
         # Size
@@ -1694,7 +1694,7 @@ class RajChatApp(ctk.CTk):
                 except:
                     pass
 
-        name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id == "CSR" else "white"
+        name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id in ("CSR", "CSR-WSL-5") else "white"
 
         left_hdr = ctk.CTkFrame(header, fg_color="transparent")
         left_hdr.pack(side="left", fill="y")
@@ -1702,7 +1702,7 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(left_hdr, text=family_name, font=self._font(15, bold=True),
                      text_color=name_color).pack(side="left")
 
-        seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id == "CSR" else "#2a2a4e"
+        seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id in ("CSR", "CSR-WSL-5") else "#2a2a4e"
         ctk.CTkLabel(left_hdr, text=f"  {seq_id}  ", font=self._font(8, bold=True),
                      text_color=name_color, fg_color=seq_badge_bg,
                      corner_radius=self._sf(10)).pack(side="left", padx=(self._sf(8), 0))
@@ -2233,6 +2233,10 @@ class RajChatApp(ctk.CTk):
                                          font=("Segoe UI", 11), text_color=C_TEXT)
         self.pause_csr.pack(anchor="w", padx=15, pady=5)
 
+        self.pause_csr_wsl_5 = ctk.CTkCheckBox(pause_frame, text="Pause CSR-WSL-5",
+                                                font=("Segoe UI", 11), text_color=C_TEXT)
+        self.pause_csr_wsl_5.pack(anchor="w", padx=15, pady=5)
+
         ctk.CTkButton(pause_frame, text="Apply", font=("Segoe UI", 12),
                       fg_color=C_ACCENT, command=self._apply_pauses).pack(anchor="e", padx=15, pady=(5, 10))
 
@@ -2259,6 +2263,10 @@ class RajChatApp(ctk.CTk):
             self.engine.db.set_meta("pause_csr", "true")
         else:
             self.engine.db.set_meta("pause_csr", "false")
+        if self.pause_csr_wsl_5.get():
+            self.engine.db.set_meta("pause_csr_wsl_5", "true")
+        else:
+            self.engine.db.set_meta("pause_csr_wsl_5", "false")
         self._log_activity("Pause settings updated")
 
     def _export_state(self):

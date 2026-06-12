@@ -226,7 +226,7 @@ class Database:
             CREATE INDEX IF NOT EXISTS idx_engagement_batch ON engagement_events(batch_id);
         """)
 
-        for seq_id, name, audience in [("school","SCHOOL","private_school"), ("csr","CSR","csr")]:
+        for seq_id, name, audience in [("school","SCHOOL","private_school"), ("csr","CSR","csr"), ("csr-wsl-5","CSR-WSL-5","csr")]:
             self.execute("INSERT OR IGNORE INTO campaigns (id, name, audience) VALUES (?, ?, ?)", 
                         (seq_id, name, audience))
         self.conn.commit()
