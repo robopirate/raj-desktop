@@ -1857,6 +1857,7 @@ class CampaignEngine:
             subj = msg.get("subject", "").upper()
             if "STOP SCHOOL" in subj: self.db.set_meta("pause_school", "true"); self._log("SCHOOL paused")
             elif "STOP CSR" in subj: self.db.set_meta("pause_csr", "true"); self._log("CSR paused")
+            elif "STOP WSL" in subj: self.db.set_meta("pause_csr_wsl_5", "true"); self._log("CSR-WSL-5 paused")
             elif "STOP ALL" in subj: self.pause(); self._log("ALL paused")
             elif "RESUME" in subj: self.resume(); self.db.execute("DELETE FROM meta WHERE key LIKE 'pause_%'"); self._log("All resumed")
 
