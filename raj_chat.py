@@ -743,6 +743,13 @@ class RajChatApp(ctk.CTk):
             ctk.CTkLabel(header, text=f" {prog_pct}%", font=self._font(9, bold=True),
                          text_color=C_SUCCESS if prog_pct == 100 else C_TEXT_DIM).pack(side="left")
 
+        # Family delete button
+        ctk.CTkButton(header, text="🗑️", font=("Segoe UI", 10),
+                      fg_color="#3a1a1a", hover_color="#5a2a2a",
+                      text_color=C_DANGER, width=28, height=28,
+                      command=lambda fn=family_name, d=days, total=family_total: self._confirm_delete_family(fn, d, total)
+                      ).pack(side="right", padx=(self._sf(8), 0))
+
         # Pills row - RESPONSIVE GRID
         pills_row = ctk.CTkFrame(card, fg_color="transparent")
         pills_row.pack(fill="x", padx=self._sf(6), pady=(self._sf(2), self._sf(8)))
@@ -1812,26 +1819,21 @@ class RajChatApp(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def _confirm_delete_batch(self, batch_id, batch_name):
-        """Show confirmation popup before soft-deleting a batch."""
-        try:
-            count = self.engine.db.batch_count_recipients(batch_id)
-        except:
-            count = 0
-
+    def _confirm_delete_family(self, family_name, days, total_leads):
+        """Show confirmation popup before soft-deleting an entire family."""
         popup = ctk.CTkToplevel(self)
-        popup.title("Delete Batch")
-        popup.geometry("420x200")
+        popup.title("Delete Family")
+        popup.geometry("460x220")
         popup.configure(fg_color=C_BG)
         popup.transient(self)
         popup.grab_set()
 
-        ctk.CTkLabel(popup, text="🗑️ Delete Batch?", font=("Segoe UI", 18, "bold"),
+        ctk.CTkLabel(popup, text="🗑️ Delete Family?", font=("Segoe UI", 18, "bold"),
                      text_color=C_DANGER).pack(pady=(20, 5))
-        ctk.CTkLabel(popup, text=f"{batch_name}", font=("Segoe UI", 12, "bold"),
+        ctk.CTkLabel(popup, text=f"'{family_name}'", font=("Segoe UI", 13, "bold"),
                      text_color=C_TEXT).pack()
-        ctk.CTkLabel(popup, text=f"{count} leads will return to the pool.", font=("Segoe UI", 11),
-                     text_color=C_TEXT_DIM).pack(pady=(5, 20))
+        ctk.CTkLabel(popup, text=f"All {total_leads} leads will return to the pool.\nThis cannot be undone.",
+                     font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(pady=(10, 20))
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=10)
@@ -1842,25 +1844,34 @@ class RajChatApp(ctk.CTk):
 
         def do_delete():
             popup.destroy()
-            self._delete_batch(batch_id)
+            self._delete_family(family_name, days)
 
         ctk.CTkButton(btn_frame, text="Yes, Delete", font=("Segoe UI", 12, "bold"),
                       fg_color=C_DANGER, hover_color="#8a1c1c",
                       command=do_delete).pack(side="left", padx=5)
 
-    def _delete_batch(self, batch_id):
-        """Soft-delete a batch and refresh the view."""
+    def _delete_family(self, family_name, days):
+        """Soft-delete all day batches in a family and return leads to pool."""
         try:
-            result = self.engine.delete_batch(batch_id)
-            if result.get("success"):
-                returned = result.get("returned", 0)
-                self._log_activity(f"Batch deleted — {returned} leads returned to pool")
-                self._refresh_all_batches()
-                self._refresh_dashboard()
-                self._refresh_source_pools()
-                self._refresh_history()
-            else:
-                messagebox.showwarning("Cannot Delete", result.get("error", "Unknown error"))
+            returned_total = 0
+            batch_ids = []
+            for day_code in ["D1", "D3", "D5", "D7", "D10"]:
+                b = days.get(day_code)
+                if b and isinstance(b, dict) and b.get("id"):
+                    batch_ids.append(b["id"])
+
+            for batch_id in batch_ids:
+                # Skip already deleted batches
+                batch = self.engine.db.batch_get(batch_id)
+                if batch and batch.get("deleted_at"):
+                    continue
+                returned = self.engine.db.batch_soft_delete(batch_id)
+                returned_total += returned
+
+            self._log_activity(f"Deleted family '{family_name}' — {returned_total} leads returned to pool")
+            self._refresh_all_batches()
+            self._refresh_dashboard()
+            self._refresh_source_pools()
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -1994,24 +2005,30 @@ class RajChatApp(ctk.CTk):
             widget.destroy()
         ctk.CTkLabel(self.all_batches_frame, text=f"Error: {msg}", text_color=C_DANGER).pack(pady=20)
 
-    def _render_batch_family_card(self, family_name, days):
-        """5-day pipeline card for Batches tab. Exactly 5 day pills per group."""
+    def _render_batch_family_card(self, family_name, days, history_mode=False):
+        """5-day pipeline card for Batches tab. Exactly 5 day pills per group.
+        history_mode=True renders a compact card for the history section."""
         scale = self._get_scale()
-        is_expanded = self._expanded_families.get(family_name, False)
+        is_expanded = self._expanded_families.get(family_name, False) if not history_mode else False
 
-        card = ctk.CTkFrame(self.all_batches_frame, fg_color=C_PANEL, corner_radius=self._sf(12),
+        parent = self.history_content if history_mode else self.all_batches_frame
+        card_bg = "#12122a" if history_mode else C_PANEL
+        card = ctk.CTkFrame(parent, fg_color=card_bg, corner_radius=self._sf(10),
                             border_width=1, border_color="#1e3a5f")
-        card.pack(fill="x", pady=self._sf(8), padx=self._sf(6))
+        card.pack(fill="x", pady=self._sf(4) if history_mode else self._sf(8), padx=self._sf(6))
         self._family_card_widgets[family_name] = card
 
         # ── Header ──
-        header = ctk.CTkFrame(card, fg_color="transparent", height=self._sf(36))
-        header.pack(fill="x", padx=self._sf(14), pady=(self._sf(10), self._sf(4)))
+        header_h = self._sf(36) if not history_mode else self._sf(42)
+        header = ctk.CTkFrame(card, fg_color="transparent", height=header_h)
+        header.pack(fill="x", padx=self._sf(14), pady=(self._sf(10), self._sf(4)) if not history_mode else (self._sf(6), self._sf(6)))
         header.pack_propagate(False)
 
         seq_id = ""
         family_total = 0
         filled_days = 0
+        any_deleted = False
+        completed_date = ""
         for day_code in ["D1", "D3", "D5", "D7", "D10"]:
             b = days.get(day_code)
             if b and isinstance(b, dict):
@@ -2032,13 +2049,17 @@ class RajChatApp(ctk.CTk):
                         filled_days += 1
                 except:
                     pass
+                if b.get("deleted_at"):
+                    any_deleted = True
+                if b.get("completed_at"):
+                    completed_date = b.get("completed_at")
 
         name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id in ("CSR", "CSR-WSL-5") else "white"
 
         left_hdr = ctk.CTkFrame(header, fg_color="transparent")
         left_hdr.pack(side="left", fill="y")
 
-        ctk.CTkLabel(left_hdr, text=family_name, font=self._font(15, bold=True),
+        ctk.CTkLabel(left_hdr, text=family_name, font=self._font(15, bold=True) if not history_mode else self._font(13, bold=True),
                      text_color=name_color).pack(side="left")
 
         seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id in ("CSR", "CSR-WSL-5") else "#2a2a4e"
@@ -2046,209 +2067,240 @@ class RajChatApp(ctk.CTk):
                      text_color=name_color, fg_color=seq_badge_bg,
                      corner_radius=self._sf(10)).pack(side="left", padx=(self._sf(8), 0))
 
-        ctk.CTkLabel(left_hdr, text=f"  {filled_days}/5 days  •  {family_total} recipients",
-                     font=self._font(10), text_color=C_TEXT_DIM).pack(side="left")
+        if history_mode:
+            # Compact history info
+            status_text = "Deleted" if any_deleted else "Completed"
+            date_text = ""
+            date_source = completed_date if not any_deleted else None
+            # Use deleted_at from any deleted batch if no completed date
+            if not date_source:
+                for b in days.values():
+                    if isinstance(b, dict) and b.get("deleted_at"):
+                        date_source = b.get("deleted_at")
+                        break
+            if date_source:
+                try:
+                    dt = datetime.fromisoformat(str(date_source).replace("Z", "+00:00"))
+                    date_text = dt.strftime("%d %b %Y")
+                except:
+                    date_text = str(date_source)[:10]
+            ctk.CTkLabel(left_hdr, text=f"  {family_total} leads  •  {status_text} {date_text}",
+                         font=self._font(10), text_color=C_TEXT_DIM).pack(side="left", padx=(self._sf(8), 0))
+        else:
+            ctk.CTkLabel(left_hdr, text=f"  {filled_days}/5 days  •  {family_total} recipients",
+                         font=self._font(10), text_color=C_TEXT_DIM).pack(side="left")
 
-        # Overall progress: truly completed days out of 5
-        if filled_days > 0:
-            prog_pct = min(100, int(filled_days / 5 * 100))
-            prog_frame = ctk.CTkFrame(header, fg_color="#1a1a2e", height=self._sf(6),
-                                       corner_radius=self._sf(3), width=self._sf(120))
-            prog_frame.pack(side="left", padx=(self._sf(14), 0))
-            prog_frame.pack_propagate(False)
-            if prog_pct > 0:
-                fill_w = int(120 * scale * prog_pct / 100)
-                ctk.CTkFrame(prog_frame, fg_color=C_SUCCESS, height=self._sf(6),
-                             corner_radius=self._sf(3), width=fill_w).pack(side="left")
-            ctk.CTkLabel(header, text=f" {prog_pct}%", font=self._font(9, bold=True),
-                         text_color=C_SUCCESS if prog_pct == 100 else C_TEXT_DIM).pack(side="left")
+            # Overall progress: truly completed days out of 5
+            if filled_days > 0:
+                prog_pct = min(100, int(filled_days / 5 * 100))
+                prog_frame = ctk.CTkFrame(header, fg_color="#1a1a2e", height=self._sf(6),
+                                           corner_radius=self._sf(3), width=self._sf(120))
+                prog_frame.pack(side="left", padx=(self._sf(14), 0))
+                prog_frame.pack_propagate(False)
+                if prog_pct > 0:
+                    fill_w = int(120 * scale * prog_pct / 100)
+                    ctk.CTkFrame(prog_frame, fg_color=C_SUCCESS, height=self._sf(6),
+                                 corner_radius=self._sf(3), width=fill_w).pack(side="left")
+                ctk.CTkLabel(header, text=f" {prog_pct}%", font=self._font(9, bold=True),
+                             text_color=C_SUCCESS if prog_pct == 100 else C_TEXT_DIM).pack(side="left")
 
-        # Expand / collapse toggle
-        toggle_text = "▲ Collapse" if is_expanded else "▼ Expand"
-        toggle_btn = ctk.CTkButton(header, text=toggle_text, font=self._font(9),
-                                   fg_color="transparent", hover_color="#1e3a5f",
-                                   text_color=C_ACCENT, width=self._sf(80), height=self._sf(24),
-                                   command=lambda fn=family_name: self._toggle_family_expand(fn))
-        toggle_btn.pack(side="right")
-        self._family_toggle_buttons[family_name] = toggle_btn
+            # Expand / collapse toggle
+            toggle_text = "▲ Collapse" if is_expanded else "▼ Expand"
+            toggle_btn = ctk.CTkButton(header, text=toggle_text, font=self._font(9),
+                                       fg_color="transparent", hover_color="#1e3a5f",
+                                       text_color=C_ACCENT, width=self._sf(80), height=self._sf(24),
+                                       command=lambda fn=family_name: self._toggle_family_expand(fn))
+            toggle_btn.pack(side="right")
+            self._family_toggle_buttons[family_name] = toggle_btn
+
+        # Family delete button (shown for all families)
+        ctk.CTkButton(header, text="🗑️", font=("Segoe UI", 10),
+                      fg_color="#3a1a1a", hover_color="#5a2a2a",
+                      text_color=C_DANGER, width=28, height=28,
+                      command=lambda fn=family_name, d=days, total=family_total: self._confirm_delete_family(fn, d, total)
+                      ).pack(side="right", padx=(self._sf(6), 0))
+
+        if history_mode:
+            # Click header to expand/collapse full pills
+            header.bind("<Button-1>", lambda e, fn=family_name: self._toggle_family_expand(fn))
+            for child in header.winfo_children():
+                child.bind("<Button-1>", lambda e, fn=family_name: self._toggle_family_expand(fn))
 
         # ── 5 Day Pills Row ──
-        pills_row = ctk.CTkFrame(card, fg_color="transparent")
-        pills_row.pack(fill="x", padx=self._sf(8), pady=(self._sf(4), self._sf(8)))
-        for i in range(5):
-            pills_row.grid_columnconfigure(i, weight=1, uniform="pill")
+        show_pills = not history_mode or is_expanded
+        if show_pills:
+            pills_row = ctk.CTkFrame(card, fg_color="transparent")
+            pills_row.pack(fill="x", padx=self._sf(8), pady=(self._sf(4), self._sf(8)))
+            for i in range(5):
+                pills_row.grid_columnconfigure(i, weight=1, uniform="pill")
 
-        day_list = [("D1", 1, "D1"), ("D3", 3, "D3"), ("D5", 5, "D5"), ("D7", 7, "D7"), ("D10", 10, "D10")]
+            day_list = [("D1", 1, "D1"), ("D3", 3, "D3"), ("D5", 5, "D5"), ("D7", 7, "D7"), ("D10", 10, "D10")]
 
-        for col, (day_code, day_num, day_label) in enumerate(day_list):
-            batch = days.get(day_code)
-            if batch and not isinstance(batch, dict):
-                batch = None
-
-            status = str(batch.get("status", "")).strip().upper() if batch else "NONE"
-            batch_id = batch.get("id") if batch else None
-            scheduled = batch.get("scheduled_at", "") if batch and batch.get("scheduled_at") else ""
-
-            sent = 0
-            total = family_total
-            due = 0
-            if batch:
-                try:
-                    counts = self.engine.db.batch_count_by_status(batch["id"])
-                    sent = counts.get("sent", 0)
-                    due = total - sent
-                except:
-                    pass
-            else:
-                due = total
-
-            actual_status = status
-            if status == "COMPLETED" and sent < total and total > 0:
-                actual_status = "DRAFT"
-            elif scheduled and actual_status not in ["COMPLETED", "RUNNING"]:
-                actual_status = "SCHEDULED"
-
-            # Colors — SCHEDULED = yellow, COMPLETED = green, RUNNING/DRAFT = teal
-            if actual_status == "COMPLETED":
-                bg, border, accent = "#0a3a2a", "#2ecc71", "#2ecc71"
-            elif actual_status == "SCHEDULED":
-                bg, border, accent = "#3a2a0d", "#febe32", "#febe32"
-            elif actual_status in ["RUNNING", "DRAFT"]:
-                bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
-            elif actual_status == "PAUSED":
-                bg, border, accent = "#2a2a1a", "#d29922", "#d29922"
-            else:
-                bg, border, accent = "#151528", "#2a2a4e", "#555577"
-
-            # Elongated pill
-            pill_h = self._sf(200)
-            pill = ctk.CTkFrame(pills_row, fg_color=bg, corner_radius=self._sf(8),
-                                border_width=1, border_color=border, height=pill_h)
-            pill.grid(row=0, column=col, padx=self._sf(4), pady=self._sf(3), sticky="nsew")
-            pill.grid_propagate(False)
-
-            # Day label + date
-            day_frame = ctk.CTkFrame(pill, fg_color="transparent", height=self._sf(20))
-            day_frame.pack(fill="x", padx=self._sf(8), pady=(self._sf(6), 0))
-            day_frame.pack_propagate(False)
-
-            ctk.CTkLabel(day_frame, text=day_label, font=self._font(10, bold=True),
-                         text_color=accent).pack(side="left")
-
-            date_text = ""
-            if scheduled:
-                try:
-                    dt = datetime.fromisoformat(scheduled.replace("Z", "+00:00"))
-                    date_text = dt.strftime("%d %b")
-                except Exception:
-                    for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S.%f",
-                                "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"]:
-                        try:
-                            dt = datetime.strptime(scheduled, fmt)
-                            date_text = dt.strftime("%d %b")
-                            break
-                        except ValueError:
-                            continue
-            elif status in ["NONE", "NOT_CREATED"]:
-                date_text = "Not scheduled"
-            else:
+            for col, (day_code, day_num, day_label) in enumerate(day_list):
+                batch = days.get(day_code)
+                if batch and not isinstance(batch, dict):
+                    batch = None
+    
+                status = str(batch.get("status", "")).strip().upper() if batch else "NONE"
+                batch_id = batch.get("id") if batch else None
+                scheduled = batch.get("scheduled_at", "") if batch and batch.get("scheduled_at") else ""
+    
+                sent = 0
+                total = family_total
+                due = 0
+                if batch:
+                    try:
+                        counts = self.engine.db.batch_count_by_status(batch["id"])
+                        sent = counts.get("sent", 0)
+                        due = total - sent
+                    except:
+                        pass
+                else:
+                    due = total
+    
+                actual_status = status
+                if status == "COMPLETED" and sent < total and total > 0:
+                    actual_status = "DRAFT"
+                elif scheduled and actual_status not in ["COMPLETED", "RUNNING"]:
+                    actual_status = "SCHEDULED"
+    
+                # Colors — SCHEDULED = yellow, COMPLETED = green, RUNNING/DRAFT = teal
+                if actual_status == "COMPLETED":
+                    bg, border, accent = "#0a3a2a", "#2ecc71", "#2ecc71"
+                elif actual_status == "SCHEDULED":
+                    bg, border, accent = "#3a2a0d", "#febe32", "#febe32"
+                elif actual_status in ["RUNNING", "DRAFT"]:
+                    bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
+                elif actual_status == "PAUSED":
+                    bg, border, accent = "#2a2a1a", "#d29922", "#d29922"
+                else:
+                    bg, border, accent = "#151528", "#2a2a4e", "#555577"
+    
+                # Elongated pill
+                pill_h = self._sf(200)
+                pill = ctk.CTkFrame(pills_row, fg_color=bg, corner_radius=self._sf(8),
+                                    border_width=1, border_color=border, height=pill_h)
+                pill.grid(row=0, column=col, padx=self._sf(4), pady=self._sf(3), sticky="nsew")
+                pill.grid_propagate(False)
+    
+                # Day label + date
+                day_frame = ctk.CTkFrame(pill, fg_color="transparent", height=self._sf(20))
+                day_frame.pack(fill="x", padx=self._sf(8), pady=(self._sf(6), 0))
+                day_frame.pack_propagate(False)
+    
+                ctk.CTkLabel(day_frame, text=day_label, font=self._font(10, bold=True),
+                             text_color=accent).pack(side="left")
+    
                 date_text = ""
-            if date_text:
-                color = "#484f58" if status == "NOT_CREATED" else "#4a5a6a"
-                ctk.CTkLabel(day_frame, text=f"  {date_text}", font=self._font(8),
-                             text_color=color).pack(side="left")
+                if scheduled:
+                    try:
+                        dt = datetime.fromisoformat(scheduled.replace("Z", "+00:00"))
+                        date_text = dt.strftime("%d %b")
+                    except Exception:
+                        for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S.%f",
+                                    "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"]:
+                            try:
+                                dt = datetime.strptime(scheduled, fmt)
+                                date_text = dt.strftime("%d %b")
+                                break
+                            except ValueError:
+                                continue
+                elif status in ["NONE", "NOT_CREATED"]:
+                    date_text = "Not scheduled"
+                else:
+                    date_text = ""
+                if date_text:
+                    color = "#484f58" if status == "NOT_CREATED" else "#4a5a6a"
+                    ctk.CTkLabel(day_frame, text=f"  {date_text}", font=self._font(8),
+                                 text_color=color).pack(side="left")
+    
+                # Sent / Total big
+                ctk.CTkLabel(pill, text=f"{sent}/{total}", font=self._font(18, bold=True),
+                             text_color="white").pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+    
+                # Mini progress bar inside pill
+                if total > 0:
+                    prog_pct = int(sent / total * 100)
+                    bar_w = self._sf(100)
+                    bar_bg = ctk.CTkFrame(pill, fg_color="#1a1a2e", height=self._sf(4),
+                                           corner_radius=self._sf(2), width=bar_w)
+                    bar_bg.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(4)))
+                    bar_bg.pack_propagate(False)
+                    if prog_pct > 0:
+                        fill_w = max(2, int(bar_w * prog_pct / 100))
+                        ctk.CTkFrame(bar_bg, fg_color=C_SUCCESS if prog_pct == 100 else C_ACCENT,
+                                     height=self._sf(4), corner_radius=self._sf(2), width=fill_w
+                                     ).pack(side="left")
+    
+                # Status badge
+                states = {"COMPLETED": "Done", "RUNNING": "Sending", "SCHEDULED": "Scheduled",
+                          "DRAFT": "Ready", "PAUSED": "Paused", "NONE": "Queue"}
+                badge_text = states.get(actual_status, "")
+                badge_color = C_SUCCESS if actual_status == "COMPLETED" else "#febe32" if actual_status == "SCHEDULED" else "#0d9b8a" if actual_status == "RUNNING" else "#d29922" if actual_status == "PAUSED" else "#5a6a7a"
+                badge_bg = "#0d3a2a" if actual_status == "COMPLETED" else "#3a2a0d" if actual_status == "SCHEDULED" else "#0d2b2b" if actual_status == "RUNNING" else "#2a2a1a" if actual_status == "PAUSED" else "#1a1a2e"
+                if badge_text:
+                    badge = ctk.CTkLabel(pill, text=f"  {badge_text}  ", font=self._font(8, bold=True),
+                                         text_color=badge_color, fg_color=badge_bg,
+                                         corner_radius=self._sf(10))
+                    badge.pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+    
+                # Due / to-send line
+                if actual_status == "COMPLETED":
+                    st_text, st_color = "All sent", "#0d9b8a"
+                elif due > 0 and actual_status not in ["NONE"]:
+                    st_text, st_color = f"{due} due", "#febe32"
+                elif actual_status == "NONE" and family_total > 0:
+                    st_text, st_color = f"{family_total} to send", "#febe32"
+                else:
+                    st_text, st_color = "", C_TEXT_DIM
+                if st_text:
+                    ctk.CTkLabel(pill, text=st_text, font=self._font(9),
+                                 text_color=st_color).pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+    
+                # Buttons row
+                btn_h = self._sf(26)
+                btn_frame = ctk.CTkFrame(pill, fg_color="transparent", height=btn_h)
+                btn_frame.pack(fill="x", padx=self._sf(4), pady=(self._sf(4), self._sf(6)))
+                btn_frame.grid_columnconfigure(0, weight=1)
+                btn_frame.grid_columnconfigure(1, weight=1)
+                btn_frame.grid_columnconfigure(2, weight=1)
+                btn_frame.pack_propagate(False)
+    
+                if history_mode:
+                    # Read-only history view: only report button
+                    ctk.CTkButton(btn_frame, text="📊", font=self._font(9),
+                                  fg_color="#1a1a3e", hover_color="#2a2a5e",
+                                  text_color="white", corner_radius=self._sf(4), height=btn_h,
+                                  command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
+                                  ).grid(row=0, column=0, padx=(0, 0), sticky="nsew")
+                else:
+                    if actual_status in ["COMPLETED", "NOT_CREATED"]:
+                        action_text = None
+                    elif actual_status in ["DRAFT", "SCHEDULED", "PAUSED"]:
+                        action_text, action_color = "▶ Start", "#0d9b8a"
+                    elif actual_status == "RUNNING":
+                        action_text, action_color = "⏸ Pause", "#d29922"
+                    else:
+                        action_text, action_color = "+ Create", "#3a3a5e"
 
-            # Sent / Total big
-            ctk.CTkLabel(pill, text=f"{sent}/{total}", font=self._font(18, bold=True),
-                         text_color="white").pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+                    if action_text:
+                        ctk.CTkButton(btn_frame, text=action_text, font=self._font(9, bold=True),
+                                      fg_color=action_color, hover_color=action_color,
+                                      text_color="white", corner_radius=self._sf(4), height=btn_h,
+                                      command=lambda b=batch_id, s=actual_status, d=day_num, f=family_name, sq=seq_id: self._on_pill_click(b, s, d, f, sq)
+                                      ).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
+                    else:
+                        ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
 
-            # Mini progress bar inside pill
-            if total > 0:
-                prog_pct = int(sent / total * 100)
-                bar_w = self._sf(100)
-                bar_bg = ctk.CTkFrame(pill, fg_color="#1a1a2e", height=self._sf(4),
-                                       corner_radius=self._sf(2), width=bar_w)
-                bar_bg.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(4)))
-                bar_bg.pack_propagate(False)
-                if prog_pct > 0:
-                    fill_w = max(2, int(bar_w * prog_pct / 100))
-                    ctk.CTkFrame(bar_bg, fg_color=C_SUCCESS if prog_pct == 100 else C_ACCENT,
-                                 height=self._sf(4), corner_radius=self._sf(2), width=fill_w
-                                 ).pack(side="left")
-
-            # Status badge
-            states = {"COMPLETED": "Done", "RUNNING": "Sending", "SCHEDULED": "Scheduled",
-                      "DRAFT": "Ready", "PAUSED": "Paused", "NONE": "Queue"}
-            badge_text = states.get(actual_status, "")
-            badge_color = C_SUCCESS if actual_status == "COMPLETED" else "#febe32" if actual_status == "SCHEDULED" else "#0d9b8a" if actual_status == "RUNNING" else "#d29922" if actual_status == "PAUSED" else "#5a6a7a"
-            badge_bg = "#0d3a2a" if actual_status == "COMPLETED" else "#3a2a0d" if actual_status == "SCHEDULED" else "#0d2b2b" if actual_status == "RUNNING" else "#2a2a1a" if actual_status == "PAUSED" else "#1a1a2e"
-            if badge_text:
-                badge = ctk.CTkLabel(pill, text=f"  {badge_text}  ", font=self._font(8, bold=True),
-                                     text_color=badge_color, fg_color=badge_bg,
-                                     corner_radius=self._sf(10))
-                badge.pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
-
-            # Due / to-send line
-            if actual_status == "COMPLETED":
-                st_text, st_color = "All sent", "#0d9b8a"
-            elif due > 0 and actual_status not in ["NONE"]:
-                st_text, st_color = f"{due} due", "#febe32"
-            elif actual_status == "NONE" and family_total > 0:
-                st_text, st_color = f"{family_total} to send", "#febe32"
-            else:
-                st_text, st_color = "", C_TEXT_DIM
-            if st_text:
-                ctk.CTkLabel(pill, text=st_text, font=self._font(9),
-                             text_color=st_color).pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
-
-            # Buttons row
-            btn_h = self._sf(26)
-            btn_frame = ctk.CTkFrame(pill, fg_color="transparent", height=btn_h)
-            btn_frame.pack(fill="x", padx=self._sf(4), pady=(self._sf(4), self._sf(6)))
-            btn_frame.grid_columnconfigure(0, weight=1)
-            btn_frame.grid_columnconfigure(1, weight=1)
-            btn_frame.grid_columnconfigure(2, weight=1)
-            btn_frame.pack_propagate(False)
-
-            if actual_status in ["COMPLETED", "NOT_CREATED"]:
-                action_text = None
-            elif actual_status in ["DRAFT", "SCHEDULED", "PAUSED"]:
-                action_text, action_color = "▶ Start", "#0d9b8a"
-            elif actual_status == "RUNNING":
-                action_text, action_color = "⏸ Pause", "#d29922"
-            else:
-                action_text, action_color = "+ Create", "#3a3a5e"
-
-            # Deletable only for completed or draft batches
-            can_delete = batch_id and status in ("COMPLETED", "DRAFT")
-
-            if action_text:
-                ctk.CTkButton(btn_frame, text=action_text, font=self._font(9, bold=True),
-                              fg_color=action_color, hover_color=action_color,
-                              text_color="white", corner_radius=self._sf(4), height=btn_h,
-                              command=lambda b=batch_id, s=actual_status, d=day_num, f=family_name, sq=seq_id: self._on_pill_click(b, s, d, f, sq)
-                              ).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
-            else:
-                ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
-
-            if can_delete:
-                ctk.CTkButton(btn_frame, text="🗑️", font=self._font(9),
-                              fg_color=C_DANGER, hover_color="#8a1c1c",
-                              text_color="white", corner_radius=self._sf(4), height=btn_h,
-                              command=lambda b=batch_id, n=batch.get("name", ""): self._confirm_delete_batch(b, n)
-                              ).grid(row=0, column=1, padx=(1, 1), sticky="nsew")
-            else:
-                ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=1, padx=(1, 1), sticky="nsew")
-
-            ctk.CTkButton(btn_frame, text="📊", font=self._font(9),
-                          fg_color="#1a1a3e", hover_color="#2a2a5e",
-                          text_color="white", corner_radius=self._sf(4), height=btn_h,
-                          command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
-                          ).grid(row=0, column=2, padx=(1, 0), sticky="nsew")
-
-            if batch_id:
-                pill.bind("<Button-1>", lambda e, b=batch_id, fn=family_name, dc=day_code: self._on_pill_select(b, fn, dc))
-
+                    ctk.CTkButton(btn_frame, text="📊", font=self._font(9),
+                                  fg_color="#1a1a3e", hover_color="#2a2a5e",
+                                  text_color="white", corner_radius=self._sf(4), height=btn_h,
+                                  command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
+                                  ).grid(row=0, column=1, padx=(1, 0), sticky="nsew")
+    
+                if batch_id:
+                    pill.bind("<Button-1>", lambda e, b=batch_id, fn=family_name, dc=day_code: self._on_pill_select(b, fn, dc))
+    
         # ── Expanded section ──
         if is_expanded:
             self._render_family_expanded_section(card, family_name, days)
