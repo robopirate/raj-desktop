@@ -617,18 +617,18 @@ class CampaignEngine:
         self.db.set_meta("last_scheduled_send_date", today)
 
     # -- Import --
-    def smart_import(self, filepath: str, sequence_id: str = None) -> dict:
+    def smart_import(self, filepath: str, sequence_id: str = None, sub_pool: str = None) -> dict:
         """Smart import to POOL only (no batch creation). Leads go to DB first."""
         if not SMART_IMPORT_AVAILABLE:
             return {"success": False, "error": "smart_importer.py not available"}
         try:
             importer = SmartImporter(self.db, self)
-            return importer.import_to_pool(filepath, sequence_id or "leads")
+            return importer.import_to_pool(filepath, sequence_id or "leads", sub_pool=sub_pool)
         except Exception as e:
             self._log(f"Smart import error: {e}")
             return {"success": False, "error": str(e)}
 
-    def import_recipients(self, path: str, sequence_id: str = None, mapping: dict = None) -> Tuple[int, int]:
+    def import_recipients(self, path: str, sequence_id: str = None, mapping: dict = None, sub_pool: str = None) -> Tuple[int, int]:
         try:
             import openpyxl
         except ImportError:
@@ -655,8 +655,8 @@ class CampaignEngine:
 
             extra = {k: v for k, v in row_dict.items() if k not in mapping.values()}
             try:
-                self.db.execute("INSERT INTO recipients (sequence_id, email, name, org, extra_json) VALUES (?, ?, ?, ?, ?)",
-                    (sequence_id or "leads", email, name, org, json.dumps(extra)))
+                self.db.execute("INSERT INTO recipients (sequence_id, email, name, org, extra_json, sub_pool) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sequence_id or "leads", email, name, org, json.dumps(extra), sub_pool or ''))
                 imported += 1
             except:
                 skipped += 1
@@ -1176,26 +1176,27 @@ class CampaignEngine:
         return self.db.batch_get_all_pipelines(sequence_id)
 
     # -- POOL METHODS (NEW) --
-    def get_pool(self, sequence_id: str, limit: int = None) -> list:
-        return self.db.get_pool(sequence_id, limit)
+    def get_pool(self, sequence_id: str, sub_pool: str = None, limit: int = None) -> list:
+        return self.db.get_pool(sequence_id, sub_pool, limit)
 
-    def get_pool_count(self, sequence_id: str) -> int:
-        return self.db.get_pool_count(sequence_id)
+    def get_pool_count(self, sequence_id: str, sub_pool: str = None) -> int:
+        return self.db.get_pool_count(sequence_id, sub_pool)
 
     def create_batch_from_pool(self, name: str, sequence_id: str = None, batch_size: int = 10,
-                                day_offset: int = 1, scheduled_at: str = None,
+                                sub_pool: str = None, day_offset: int = 1, scheduled_at: str = None,
                                 timezone: str = 'Asia/Kolkata', send_rate: int = 0,
                                 stagger_minutes: int = 2) -> dict:
         pool_seq = sequence_id or "leads"
-        pool_count = self.get_pool_count(pool_seq)
+        pool_count = self.get_pool_count(pool_seq, sub_pool)
         if pool_count == 0:
-            return {"success": False, "error": f"No unbatched leads in generic pool"}
+            return {"success": False, "error": f"No unbatched leads in {'generic' if not sub_pool else sub_pool} pool"}
 
         batch_seq = sequence_id if sequence_id else "unassigned"
         batch_id, error = self.db.batch_from_pool(
             name=name,
             sequence_id=batch_seq,
             batch_size=batch_size,
+            sub_pool=sub_pool,
             day_offset=day_offset,
             scheduled_at=scheduled_at,
             timezone=timezone,

@@ -1205,6 +1205,13 @@ class RajChatApp(ctk.CTk):
                           font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
         ctk.CTkLabel(seq_frame, text="→ Leads are generic, assign sequence at launch", font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(15, 0))
 
+        # Sub-Pool selector
+        subpool_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
+        subpool_frame.pack(fill="x", pady=(0, 10))
+        ctk.CTkLabel(subpool_frame, text="Sub-Pool Name:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.import_subpool_entry = ctk.CTkEntry(subpool_frame, font=("Segoe UI", 12), width=250, placeholder_text="e.g. Mumbai-Schools, Tier1-CSR (optional)")
+        self.import_subpool_entry.pack(side="left", padx=(10, 0))
+
         # File selector
         file_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
         file_frame.pack(fill="x", pady=(0, 10))
@@ -1316,10 +1323,14 @@ class RajChatApp(ctk.CTk):
         # Map display text to actual sequence_id
         if seq_id == "leads (generic pool)":
             seq_id = "leads"
+        sub_pool = self.import_subpool_entry.get().strip() or None
         try:
-            result = self.engine.smart_import(self.import_filepath, seq_id)
+            result = self.engine.smart_import(self.import_filepath, seq_id, sub_pool=sub_pool)
             if result.get("success"):
-                msg = f"Imported {result.get('imported', 0)} leads to {seq_id.upper()} pool\nSkipped: {result.get('skipped', 0)}"
+                msg = f"Imported {result.get('imported', 0)} leads to {seq_id.upper()} pool"
+                if result.get('sub_pool'):
+                    msg += f" (sub-pool: {result['sub_pool']})"
+                msg += f"\nSkipped: {result.get('skipped', 0)}"
                 self._append_import_preview(msg)
                 self._refresh_dashboard()
                 if hasattr(self, '_refresh_pool_count'):
@@ -1640,8 +1651,23 @@ class RajChatApp(ctk.CTk):
             # Extract the sequence_id from the first option
             if pools[0] != "No pools available (0)":
                 self.batch_source.set(pools[0])
+            self._refresh_sub_pools()
         except Exception as e:
             self.batch_source_menu.configure(values=[f"Error: {e}"])
+
+    def _refresh_sub_pools(self):
+        """Refresh the Sub-Pool dropdown based on selected source sequence."""
+        try:
+            seq_id = self._get_batch_source_seq()
+            rows = self.engine.db.execute(
+                "SELECT DISTINCT sub_pool FROM recipients WHERE sequence_id=? AND sub_pool != '' AND batched=0 ORDER BY sub_pool",
+                (seq_id,)
+            ).fetchall()
+            options = ["(All)"] + [r[0] for r in rows]
+            self.batch_sub_pool_menu.configure(values=options)
+            self.batch_sub_pool.set("(All)")
+        except Exception as e:
+            self.batch_sub_pool_menu.configure(values=[f"Error: {e}"])
 
     def _get_batch_source_seq(self):
         """Extract sequence_id from the selected dropdown option."""
@@ -1680,10 +1706,20 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(source_row, text="Pull From:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
         self.batch_source = ctk.StringVar(value="leads")
         self.batch_source_menu = ctk.CTkOptionMenu(source_row, values=["Loading..."], variable=self.batch_source,
-                                                    font=("Segoe UI", 12), width=200)
+                                                    font=("Segoe UI", 12), width=200,
+                                                    command=lambda _: self._refresh_sub_pools())
         self.batch_source_menu.pack(side="left", padx=(10, 0))
         ctk.CTkButton(source_row, text="🔄 Refresh", font=("Segoe UI", 10), fg_color=C_PANEL, width=60, height=24,
                       command=lambda: self._refresh_source_pools()).pack(side="left", padx=(10, 0))
+
+        # Sub-Pool
+        subpool_row = ctk.CTkFrame(form, fg_color="transparent")
+        subpool_row.pack(fill="x", padx=15, pady=8)
+        ctk.CTkLabel(subpool_row, text="Sub-Pool:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.batch_sub_pool = ctk.StringVar(value="(All)")
+        self.batch_sub_pool_menu = ctk.CTkOptionMenu(subpool_row, values=["(All)"], variable=self.batch_sub_pool,
+                                                      font=("Segoe UI", 12), width=200)
+        self.batch_sub_pool_menu.pack(side="left", padx=(10, 0))
 
         # Size
         size_row = ctk.CTkFrame(form, fg_color="transparent")
@@ -1728,6 +1764,9 @@ class RajChatApp(ctk.CTk):
             day = int(self.batch_day.get())
             sched = self.batch_sched.get().strip()
             source_seq = self._get_batch_source_seq()
+            sub_pool = self.batch_sub_pool.get()
+            if sub_pool == "(All)":
+                sub_pool = None
 
             if not name:
                 messagebox.showwarning("Missing Name", "Please enter a batch name")
@@ -1735,11 +1774,13 @@ class RajChatApp(ctk.CTk):
 
             result = self.engine.create_batch_from_pool(
                 name=name, sequence_id=source_seq, batch_size=size,
-                day_offset=day, scheduled_at=sched
+                sub_pool=sub_pool, day_offset=day, scheduled_at=sched
             )
 
             if result.get("success"):
                 pool_name = "Generic" if source_seq == "leads" else source_seq.upper()
+                if sub_pool:
+                    pool_name += f" [{sub_pool}]"
                 self._log_activity(f"Created batch '{name}' with {result['size']} leads from {pool_name}")
                 self._refresh_all_batches()
                 self._refresh_dashboard()

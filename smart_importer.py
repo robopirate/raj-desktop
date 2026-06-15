@@ -366,7 +366,8 @@ class SmartImporter:
 
     def import_leads(self, filepath: str, sequence_id: str, batch_size: int = 50,
                      custom_mapping: Dict = None, auto_create_batches: bool = True,
-                     batch_name_prefix: str = None, start_day: int = 1) -> Dict:
+                     batch_name_prefix: str = None, start_day: int = 1,
+                     sub_pool: str = None) -> Dict:
         """
         Import leads from file and optionally auto-create batches.
 
@@ -447,7 +448,7 @@ class SmartImporter:
 
             extra_json = json.dumps(extra) if extra else None
 
-            ok, err = self.db.recipient_add(sequence_id, email, name, org, extra_json)
+            ok, err = self.db.recipient_add(sequence_id, email, name, org, extra_json, sub_pool=sub_pool)
             if ok:
                 imported += 1
                 # Get the recipient ID
@@ -498,7 +499,7 @@ class SmartImporter:
         return result
 
     def import_to_pool(self, filepath: str, sequence_id: str,
-                       custom_mapping: Dict = None) -> Dict:
+                       custom_mapping: Dict = None, sub_pool: str = None) -> Dict:
         """
         Import leads to POOL only (no batch creation).
         All leads go to DB first as single source of truth.
@@ -572,7 +573,7 @@ class SmartImporter:
 
             extra_json = json.dumps(extra) if extra else None
 
-            ok, err = self.db.recipient_add(sequence_id, email, name, org, extra_json)
+            ok, err = self.db.recipient_add(sequence_id, email, name, org, extra_json, sub_pool=sub_pool)
             if ok:
                 imported += 1
             else:
@@ -598,6 +599,7 @@ class SmartImporter:
             "duplicates": duplicates,
             "total_rows": len(rows),
             "sequence": sequence_id,
+            "sub_pool": sub_pool,
             "pool_count": pool_count,
             "total_in_sequence": total_count,
             "mapping": {

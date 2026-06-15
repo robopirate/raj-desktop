@@ -41,6 +41,7 @@ class Database:
                 name TEXT,
                 org TEXT,
                 extra_json TEXT,
+                sub_pool TEXT DEFAULT '',
                 import_status TEXT DEFAULT 'pending',
                 import_error TEXT,
                 imported_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -268,6 +269,16 @@ class Database:
             self.conn.commit()
             print("[DB] Migration complete: engagement_events table added")
 
+        # Add sub_pool to recipients if missing
+        try:
+            self.conn.execute("SELECT sub_pool FROM recipients LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding sub_pool to recipients...")
+            self.conn.execute("ALTER TABLE recipients ADD COLUMN sub_pool TEXT DEFAULT ''")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_recipients_sub_pool ON recipients(sub_pool)")
+            self.conn.commit()
+            print("[DB] Migration complete: sub_pool added")
+
         # Add batched flag to recipients if missing
         try:
             self.conn.execute("SELECT batched FROM recipients LIMIT 1")
@@ -325,15 +336,15 @@ class Database:
         self.conn.commit()
 
     # -- RECIPIENTS / POOL --
-    def recipient_add(self, sequence_id, email, name, org, extra_json=None):
+    def recipient_add(self, sequence_id, email, name, org, extra_json=None, sub_pool=None):
         try:
             self.execute("""
-                INSERT INTO recipients (sequence_id, email, name, org, extra_json, import_status, batched)
-                VALUES (?, ?, ?, ?, ?, 'success', 0)
+                INSERT INTO recipients (sequence_id, email, name, org, extra_json, sub_pool, import_status, batched)
+                VALUES (?, ?, ?, ?, ?, ?, 'success', 0)
                 ON CONFLICT(sequence_id, email) DO UPDATE SET
                     name=excluded.name, org=excluded.org, extra_json=excluded.extra_json,
-                    import_status='success', import_error=NULL, batched=0
-            """, (sequence_id, email.lower().strip(), name, org, extra_json))
+                    sub_pool=excluded.sub_pool, import_status='success', import_error=NULL, batched=0
+            """, (sequence_id, email.lower().strip(), name, org, extra_json, sub_pool or ''))
             self.commit()
             return True, None
         except Exception as e:
@@ -355,14 +366,18 @@ class Database:
         self.commit()
 
     # -- POOL METHODS (NEW) --
-    def get_pool(self, sequence_id, limit=None):
-        """Get unbatched leads from the pool. Excludes blacklisted emails."""
+    def get_pool(self, sequence_id, sub_pool=None, limit=None):
+        """Get unbatched leads from the pool. Excludes blacklisted emails.
+        Optionally filter by sub_pool tag."""
         if sequence_id is None or sequence_id == "leads":
             where_clause = "r.sequence_id='leads' AND r.batched=0"
             params = []
         else:
             where_clause = "r.sequence_id=? AND r.batched=0"
             params = [sequence_id]
+        if sub_pool:
+            where_clause += " AND r.sub_pool = ?"
+            params.append(sub_pool)
         sql = f"""
             SELECT r.* FROM recipients r
             WHERE {where_clause}
@@ -375,14 +390,18 @@ class Database:
         rows = self.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
 
-    def get_pool_count(self, sequence_id):
-        """Count unbatched leads in pool. Excludes blacklisted emails."""
+    def get_pool_count(self, sequence_id, sub_pool=None):
+        """Count unbatched leads in pool. Excludes blacklisted emails.
+        Optionally filter by sub_pool tag."""
         if sequence_id is None or sequence_id == "leads":
             where_clause = "r.sequence_id='leads' AND r.batched=0"
-            params = ()
+            params = []
         else:
             where_clause = "r.sequence_id=? AND r.batched=0"
-            params = (sequence_id,)
+            params = [sequence_id]
+        if sub_pool:
+            where_clause += " AND r.sub_pool = ?"
+            params.append(sub_pool)
         row = self.execute(f"""
             SELECT COUNT(*) FROM recipients r
             WHERE {where_clause}
@@ -483,14 +502,15 @@ class Database:
         return {r[0]: r[1] for r in rows}
 
     # -- CREATE BATCH FROM POOL (NEW) --
-    def batch_from_pool(self, name, sequence_id, batch_size, day_offset=1, 
+    def batch_from_pool(self, name, sequence_id, batch_size, sub_pool=None, day_offset=1, 
                         scheduled_at=None, timezone='Asia/Kolkata', send_rate=0, stagger_minutes=0, campaign_id=None):
         """Create a batch from unbatched leads in the pool.
-        SAFETY: Only picks leads with batched=0. Double-checks before marking."""
+        SAFETY: Only picks leads with batched=0. Double-checks before marking.
+        Optionally filter by sub_pool tag."""
         pool_seq_id = "leads" if sequence_id is None or sequence_id == "leads" else sequence_id
         batch_seq_id = "unassigned" if sequence_id is None or sequence_id == "leads" else sequence_id
         
-        pool = self.get_pool(pool_seq_id, limit=batch_size)
+        pool = self.get_pool(pool_seq_id, sub_pool, limit=batch_size)
         if not pool:
             return None, "No unbatched leads in pool for this sequence"
 
