@@ -1530,6 +1530,7 @@ class CampaignEngine:
 
                 # ── All checks passed — blacklist with reason ──
                 self.db.blacklist_add(addr, f"bounce: {reason}")
+                self.db.mark_email_bounced(addr, reason)
                 new_blacklisted += 1
                 self._log(f"[BLACKLIST] {addr} — {reason}")
                 self._notify("Bounced", f"{addr}. Blacklisted.")
@@ -1636,6 +1637,7 @@ class CampaignEngine:
                         continue
 
                     self.db.blacklist_add(bounced_email, f"bounce: {reason} (deep scan {days}d)")
+                    self.db.mark_email_bounced(bounced_email, reason)
                     results['blacklisted'] += 1
                     results['details'].append({'email': bounced_email, 'action': 'BLACKLISTED'})
                     self.gmail.trash_message(msg['id'])

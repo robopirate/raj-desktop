@@ -748,6 +748,39 @@ class Database:
         rows = self.execute("SELECT * FROM blacklist ORDER BY added_at DESC").fetchall()
         return [dict(r) for r in rows]
 
+    def mark_email_bounced(self, email, reason="bounce"):
+        """Mark the latest sent send for an email as bounced and update batch_recipients."""
+        rows = self.execute(
+            "SELECT id FROM recipients WHERE email=? ORDER BY id",
+            (email.lower().strip(),)
+        ).fetchall()
+        if not rows:
+            return 0
+
+        updated = 0
+        for (recipient_id,) in rows:
+            send_row = self.execute(
+                """SELECT id, batch_id FROM sends
+                   WHERE recipient_id=? AND status='sent'
+                   ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1""",
+                (recipient_id,)
+            ).fetchone()
+            if not send_row:
+                continue
+            send_id, batch_id = send_row
+            self.execute("UPDATE sends SET status='bounced' WHERE id=?", (send_id,))
+            if batch_id:
+                self.execute(
+                    """UPDATE batch_recipients
+                       SET status='bounced', bounced_at=CURRENT_TIMESTAMP
+                       WHERE batch_id=? AND recipient_id=?""",
+                    (batch_id, recipient_id)
+                )
+            updated += 1
+
+        self.commit()
+        return updated
+
     # -- ENGAGEMENT TRACKING --
     def record_engagement(self, event_type, recipient_id=None, batch_id=None, send_id=None, url=None, user_agent=None, ip_address=None):
         """Record an open or click event."""
