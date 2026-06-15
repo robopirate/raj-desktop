@@ -63,7 +63,8 @@ class Database:
                 parent_batch_id INTEGER,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 started_at TEXT,
-                completed_at TEXT
+                completed_at TEXT,
+                deleted_at TEXT
             );
 
             -- Batch Recipients
@@ -308,6 +309,15 @@ class Database:
             self.conn.commit()
             print("[DB] Migration complete: campaign_id added")
 
+        # Add deleted_at to batches if missing
+        try:
+            self.conn.execute("SELECT deleted_at FROM batches LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding deleted_at to batches...")
+            self.conn.execute("ALTER TABLE batches ADD COLUMN deleted_at TEXT")
+            self.conn.commit()
+            print("[DB] Migration complete: deleted_at added")
+
         # Create outreach_campaigns table if missing
         try:
             self.conn.execute("SELECT 1 FROM outreach_campaigns LIMIT 1")
@@ -450,19 +460,38 @@ class Database:
 
     def batch_get_all(self, sequence_id=None):
         if sequence_id:
-            rows = self.execute("SELECT * FROM batches WHERE sequence_id=? ORDER BY created_at DESC", (sequence_id,)).fetchall()
+            rows = self.execute("SELECT * FROM batches WHERE sequence_id=? AND deleted_at IS NULL ORDER BY created_at DESC", (sequence_id,)).fetchall()
         else:
-            rows = self.execute("SELECT * FROM batches ORDER BY created_at DESC").fetchall()
+            rows = self.execute("SELECT * FROM batches WHERE deleted_at IS NULL ORDER BY created_at DESC").fetchall()
         return [dict(r) for r in rows]
+
+    def batch_soft_delete(self, batch_id):
+        """Soft delete a batch: mark as deleted and return leads to pool.
+        Returns number of leads returned."""
+        self.execute("UPDATE batches SET deleted_at = CURRENT_TIMESTAMP, status='deleted' WHERE id=?", (batch_id,))
+        recipient_rows = self.execute("SELECT recipient_id FROM batch_recipients WHERE batch_id=?", (batch_id,)).fetchall()
+        recipient_ids = [r[0] for r in recipient_rows]
+        self.unmark_batched(recipient_ids)
+        self.commit()
+        return len(recipient_ids)
+
+    def batch_get_deleted(self):
+        """Get all soft-deleted batches, newest first."""
+        rows = self.execute("SELECT * FROM batches WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC").fetchall()
+        return [dict(r) for r in rows]
+
+    def batch_exists(self, batch_id):
+        """Check if a batch exists (including deleted)."""
+        return self.batch_get(batch_id) is not None
 
     def get_running_batches(self):
         """Get all batches currently in 'running' status. For resume-on-boot."""
-        rows = self.execute("SELECT * FROM batches WHERE status='running' ORDER BY created_at").fetchall()
+        rows = self.execute("SELECT * FROM batches WHERE status='running' AND deleted_at IS NULL ORDER BY created_at").fetchall()
         return [dict(r) for r in rows]
 
     def get_scheduled_batches(self):
         """Get all batches in 'scheduled' status. For auto-start check."""
-        rows = self.execute("SELECT * FROM batches WHERE status='scheduled' ORDER BY scheduled_at").fetchall()
+        rows = self.execute("SELECT * FROM batches WHERE status='scheduled' AND deleted_at IS NULL ORDER BY scheduled_at").fetchall()
         return [dict(r) for r in rows]
 
     def batch_update_status(self, batch_id, status):

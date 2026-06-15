@@ -1754,8 +1754,29 @@ class RajChatApp(ctk.CTk):
         self.all_batches_frame = ctk.CTkFrame(view, fg_color="transparent")
         self.all_batches_frame.pack(fill="both", expand=True)
 
+        # ── Deleted Batches History ──
+        self.history_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
+        self.history_frame.pack(fill="x", pady=(15, 5), padx=self._sf(6))
+        self.history_frame.pack_propagate(False)
+        self.history_frame.configure(height=self._sf(42))
+
+        self.history_header = ctk.CTkFrame(self.history_frame, fg_color="transparent")
+        self.history_header.pack(fill="x", padx=15, pady=8)
+        self.history_header.bind("<Button-1>", lambda e: self._toggle_history())
+
+        self.history_title = ctk.CTkLabel(self.history_header, text="📜 History (0)", font=("Segoe UI", 12, "bold"),
+                                          text_color=C_TEXT_DIM)
+        self.history_title.pack(side="left")
+        self.history_toggle = ctk.CTkLabel(self.history_header, text="▼", font=("Segoe UI", 12, "bold"),
+                                           text_color=C_TEXT_DIM)
+        self.history_toggle.pack(side="right")
+
+        self.history_content = ctk.CTkFrame(self.history_frame, fg_color="transparent")
+        self.history_expanded = False
+
         self._refresh_source_pools()
         self._refresh_all_batches()
+        self._refresh_history()
 
     def _create_batch(self):
         try:
@@ -1790,6 +1811,111 @@ class RajChatApp(ctk.CTk):
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def _confirm_delete_batch(self, batch_id, batch_name):
+        """Show confirmation popup before soft-deleting a batch."""
+        try:
+            count = self.engine.db.batch_count_recipients(batch_id)
+        except:
+            count = 0
+
+        popup = ctk.CTkToplevel(self)
+        popup.title("Delete Batch")
+        popup.geometry("420x200")
+        popup.configure(fg_color=C_BG)
+        popup.transient(self)
+        popup.grab_set()
+
+        ctk.CTkLabel(popup, text="🗑️ Delete Batch?", font=("Segoe UI", 18, "bold"),
+                     text_color=C_DANGER).pack(pady=(20, 5))
+        ctk.CTkLabel(popup, text=f"{batch_name}", font=("Segoe UI", 12, "bold"),
+                     text_color=C_TEXT).pack()
+        ctk.CTkLabel(popup, text=f"{count} leads will return to the pool.", font=("Segoe UI", 11),
+                     text_color=C_TEXT_DIM).pack(pady=(5, 20))
+
+        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        btn_frame.pack(pady=10)
+
+        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_PANEL, hover_color="#3a3a5e",
+                      command=popup.destroy).pack(side="left", padx=5)
+
+        def do_delete():
+            popup.destroy()
+            self._delete_batch(batch_id)
+
+        ctk.CTkButton(btn_frame, text="Yes, Delete", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_DANGER, hover_color="#8a1c1c",
+                      command=do_delete).pack(side="left", padx=5)
+
+    def _delete_batch(self, batch_id):
+        """Soft-delete a batch and refresh the view."""
+        try:
+            result = self.engine.delete_batch(batch_id)
+            if result.get("success"):
+                returned = result.get("returned", 0)
+                self._log_activity(f"Batch deleted — {returned} leads returned to pool")
+                self._refresh_all_batches()
+                self._refresh_dashboard()
+                self._refresh_source_pools()
+                self._refresh_history()
+            else:
+                messagebox.showwarning("Cannot Delete", result.get("error", "Unknown error"))
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _toggle_history(self):
+        """Expand/collapse the deleted batches history section."""
+        self.history_expanded = not self.history_expanded
+        if self.history_expanded:
+            self.history_frame.configure(height=0)
+            self.history_toggle.configure(text="▲")
+            self.history_content.pack(fill="x", padx=15, pady=(0, 15), expand=True)
+            self._refresh_history()
+        else:
+            self.history_content.pack_forget()
+            self.history_frame.configure(height=self._sf(42))
+            self.history_toggle.configure(text="▼")
+
+    def _refresh_history(self):
+        """Refresh the deleted batches history list."""
+        for widget in self.history_content.winfo_children():
+            widget.destroy()
+
+        try:
+            deleted = self.engine.db.batch_get_deleted()
+            self.history_title.configure(text=f"📜 History ({len(deleted)})")
+
+            if not deleted:
+                ctk.CTkLabel(self.history_content, text="No deleted batches",
+                             font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(anchor="w", pady=(5, 0))
+                return
+
+            for batch in deleted[:20]:  # Show last 20
+                row = ctk.CTkFrame(self.history_content, fg_color="transparent")
+                row.pack(fill="x", pady=2)
+
+                name = batch.get("name", "Unknown")
+                seq = batch.get("sequence_id", "").upper()
+                deleted_at = batch.get("deleted_at", "") or "Unknown"
+                try:
+                    dt = datetime.fromisoformat(deleted_at.replace("Z", "+00:00"))
+                    deleted_at = dt.strftime("%d %b %Y")
+                except:
+                    pass
+
+                try:
+                    count = self.engine.db.batch_count_recipients(batch["id"])
+                except:
+                    count = 0
+
+                ctk.CTkLabel(row, text=f"• {name}", font=("Segoe UI", 11, "bold"),
+                             text_color=C_TEXT).pack(side="left")
+                ctk.CTkLabel(row, text=f"  {seq}  •  {count} leads  •  deleted {deleted_at}",
+                             font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(8, 0))
+        except Exception as e:
+            ctk.CTkLabel(self.history_content, text=f"Error loading history: {e}",
+                         font=("Segoe UI", 10), text_color=C_DANGER).pack(anchor="w", pady=(5, 0))
 
     def _refresh_all_batches(self):
         for widget in self.all_batches_frame.winfo_children():
@@ -2081,6 +2207,7 @@ class RajChatApp(ctk.CTk):
             btn_frame.pack(fill="x", padx=self._sf(4), pady=(self._sf(4), self._sf(6)))
             btn_frame.grid_columnconfigure(0, weight=1)
             btn_frame.grid_columnconfigure(1, weight=1)
+            btn_frame.grid_columnconfigure(2, weight=1)
             btn_frame.pack_propagate(False)
 
             if actual_status in ["COMPLETED", "NOT_CREATED"]:
@@ -2092,6 +2219,9 @@ class RajChatApp(ctk.CTk):
             else:
                 action_text, action_color = "+ Create", "#3a3a5e"
 
+            # Deletable only for completed or draft batches
+            can_delete = batch_id and status in ("COMPLETED", "DRAFT")
+
             if action_text:
                 ctk.CTkButton(btn_frame, text=action_text, font=self._font(9, bold=True),
                               fg_color=action_color, hover_color=action_color,
@@ -2101,11 +2231,20 @@ class RajChatApp(ctk.CTk):
             else:
                 ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
 
+            if can_delete:
+                ctk.CTkButton(btn_frame, text="🗑️", font=self._font(9),
+                              fg_color=C_DANGER, hover_color="#8a1c1c",
+                              text_color="white", corner_radius=self._sf(4), height=btn_h,
+                              command=lambda b=batch_id, n=batch.get("name", ""): self._confirm_delete_batch(b, n)
+                              ).grid(row=0, column=1, padx=(1, 1), sticky="nsew")
+            else:
+                ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=1, padx=(1, 1), sticky="nsew")
+
             ctk.CTkButton(btn_frame, text="📊", font=self._font(9),
                           fg_color="#1a1a3e", hover_color="#2a2a5e",
                           text_color="white", corner_radius=self._sf(4), height=btn_h,
                           command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
-                          ).grid(row=0, column=1, padx=(1, 0), sticky="nsew")
+                          ).grid(row=0, column=2, padx=(1, 0), sticky="nsew")
 
             if batch_id:
                 pill.bind("<Button-1>", lambda e, b=batch_id, fn=family_name, dc=day_code: self._on_pill_select(b, fn, dc))

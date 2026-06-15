@@ -1237,6 +1237,21 @@ class CampaignEngine:
             self._log(f"Failed to assign sequence: {e}")
             return {"success": False, "error": str(e)}
 
+    def delete_batch(self, batch_id) -> dict:
+        """Soft-delete a batch: hide from active view and return leads to pool."""
+        batch = self.db.batch_get(batch_id)
+        if not batch:
+            return {"success": False, "error": "Batch not found"}
+        if batch.get("status") == "running":
+            return {"success": False, "error": "Cannot delete a running batch. Pause it first."}
+        try:
+            returned = self.db.batch_soft_delete(batch_id)
+            self._log(f"Deleted batch {batch_id} — {returned} leads returned to pool")
+            return {"success": True, "returned": returned, "batch_id": batch_id}
+        except Exception as e:
+            self._log(f"Failed to delete batch {batch_id}: {e}")
+            return {"success": False, "error": str(e)}
+
     def blacklist_add(self, email: str, reason: str = "manual"):
         self.db.blacklist_add(email, reason)
         self._log(f"Blacklisted: {email}")
