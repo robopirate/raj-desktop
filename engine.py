@@ -31,6 +31,7 @@ from collections import deque
 from db import Database
 from gmail import GmailClient
 from tracking_server import TrackingServer
+from notifications import notify
 
 try:
     from smart_importer import SmartImporter
@@ -236,6 +237,16 @@ class CampaignEngine:
             except:
                 pass
 
+    def _notify(self, title: str, message: str, timeout: int = 5):
+        """Send a desktop notification if enabled in meta settings."""
+        try:
+            val = self.db.get_meta("desktop_notifications")
+            if val is not None and str(val).lower() in ("false", "0", "off"):
+                return
+            notify(title, message, timeout)
+        except Exception:
+            pass
+
     # -- Lifecycle --
     def start(self):
         if self._running: return
@@ -360,7 +371,11 @@ class CampaignEngine:
                 if not next_recipient:
                     # All sent - mark completed and auto-advance
                     self.db.batch_update_status(batch_id, "completed")
+                    counts = self.db.batch_count_by_status(batch_id)
+                    total = sum(counts.values())
+                    sent = counts.get("sent", 0)
                     self._log(f"[Batch {batch_id}] Completed: all recipients processed")
+                    self._notify("Batch Complete", f"'{batch.get('name', batch_id)}' done. {sent}/{total} sent.")
                     self._auto_advance_batch(batch)
                     continue
 
@@ -408,9 +423,35 @@ class CampaignEngine:
                     self.db.commit()
                     continue
 
-                # Send email
                 rec = Recipient(*next_recipient)
-                subj, body = self.render(seq_id, day_offset, rec)
+
+                # REPLY CHECK: Stop sequence if recipient has already replied
+                replied = self.db.execute(
+                    "SELECT 1 FROM replies WHERE recipient_id=? AND status IN ('pending','drafted','handled') LIMIT 1",
+                    (rec.id,)
+                ).fetchone()
+                if replied:
+                    self.stop_sequence_for_recipient(rec.id, f"{rec.email} already replied")
+                    self.db.execute("""
+                        UPDATE batch_recipients SET status='replied'
+                        WHERE batch_id=? AND recipient_id=?
+                    """, (batch_id, rec.id))
+                    self.db.commit()
+                    self._log(f"[SKIP] {rec.email} already replied — stopping sequence")
+                    continue
+
+                # BOUNCE CHECK: Stop sequence if the latest send for this day bounced
+                bounced = self.db.execute(
+                    "SELECT status FROM sends WHERE recipient_id=? AND day=? ORDER BY id DESC LIMIT 1",
+                    (rec.id, day_offset)
+                ).fetchone()
+                if bounced and bounced[0] == 'bounced':
+                    self.stop_sequence_for_recipient(rec.id, f"{rec.email} bounced")
+                    self._log(f"[SKIP] {rec.email} bounced — stopping sequence")
+                    continue
+
+                # Send email
+                subj, body, ab_variant = self.render(seq_id, day_offset, rec)
                 if not subj:
                     self._log(f"[Batch {batch_id}] No template for {rec.email} Day {day_offset}, skipping")
                     self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
@@ -430,7 +471,7 @@ class CampaignEngine:
 
                     # Pre-insert sends record to get send_id for tracking
                     placeholder_status = "drafted" if use_draft else "pending"
-                    send_id = self.db.campaign_queue_send(rec.id, day_offset, subj, "pending", placeholder_status, batch_id)
+                    send_id = self.db.campaign_queue_send(rec.id, day_offset, subj, "pending", placeholder_status, batch_id, ab_variant)
 
                     # Inject tracking pixel and wrapped links with real send_id
                     if self.tracker and self.tracker.base_url and send_id:
@@ -442,8 +483,8 @@ class CampaignEngine:
                             UPDATE batch_recipients SET status='drafted', sent_at=?
                             WHERE batch_id=? AND recipient_id=?
                         """, (now.isoformat(), batch_id, rec.id))
-                        self.db.execute("UPDATE sends SET draft_id=?, status='drafted' WHERE id=?",
-                                        (draft.get("id"), send_id))
+                        self.db.execute("UPDATE sends SET draft_id=?, status='drafted', ab_variant=? WHERE id=?",
+                                        (draft.get("id"), ab_variant, send_id))
                         self.db.commit()
                         self._log(f"[Batch {batch['name']}] Scheduled draft for {rec.email} ({seq_id.upper()} Day {day_offset})")
                     else:
@@ -465,8 +506,8 @@ class CampaignEngine:
                             UPDATE batch_recipients SET status='sent', sent_at=?
                             WHERE batch_id=? AND recipient_id=?
                         """, (now.isoformat(), batch_id, rec.id))
-                        self.db.execute("UPDATE sends SET draft_id=?, status='sent', sent_at=? WHERE id=?",
-                                        (msg.get("id"), now.isoformat(), send_id))
+                        self.db.execute("UPDATE sends SET draft_id=?, status='sent', sent_at=?, ab_variant=? WHERE id=?",
+                                        (msg.get("id"), now.isoformat(), ab_variant, send_id))
                         self.db.commit()
                         self._log(f"[Batch {batch['name']}] Sent to {rec.email} ({seq_id.upper()} Day {day_offset})")
                 except Exception as e:
@@ -485,6 +526,29 @@ class CampaignEngine:
             self._log(f"DEBUG ERROR in _process_running_batches: {e}")
             import traceback
             self._log(f"DEBUG TRACEBACK: {traceback.format_exc()}")
+
+    def stop_sequence_for_recipient(self, recipient_id, reason):
+        """Stop all pending sends for a recipient across all batches in their family."""
+        rows = self.db.execute("""
+            SELECT b.id, b.name
+            FROM batches b
+            JOIN batch_recipients br ON b.id = br.batch_id
+            WHERE br.recipient_id = ? AND br.status = 'pending'
+        """, (recipient_id,)).fetchall()
+
+        updated = 0
+        for batch_row in rows:
+            batch_id = batch_row["id"]
+            cur = self.db.execute("""
+                UPDATE batch_recipients SET status='stopped'
+                WHERE batch_id=? AND recipient_id=? AND status='pending'
+            """, (batch_id, recipient_id))
+            updated += cur.rowcount
+
+        self.db.commit()
+        if updated:
+            self._log(f"[STOP] recipient {recipient_id}: {reason} ({updated} pending days stopped)")
+        return updated
 
     def _auto_advance_batch(self, completed_batch: dict):
         """Auto-create next day batch and schedule it. Like Brevo — next day starts after delay."""
@@ -725,7 +789,14 @@ class CampaignEngine:
 
             full = self.gmail.get_draft_full(draft_id)
             if full and full.get("html_body"):
-                self.db.template_put(seq, day, full["subject"], full["html_body"])
+                # Preserve existing A/B test settings when syncing
+                existing = self.db.template_get(seq, day)
+                self.db.template_put(
+                    seq, day, full["subject"], full["html_body"],
+                    subject_b=existing.get("subject_b") if existing else None,
+                    ab_test=existing.get("ab_test", 0) if existing else 0,
+                    ab_split=existing.get("ab_split", 0.5) if existing else 0.5
+                )
                 loaded += 1
                 self._log(f"Loaded: {subject} -> {seq.upper()} Day {day}")
             else:
@@ -801,14 +872,20 @@ class CampaignEngine:
                         "exists": True,
                         "locked": locked,
                         "source": source,
-                        "subject": tmpl["subject"][:60]
+                        "subject": tmpl["subject"][:60],
+                        "subject_b": tmpl.get("subject_b", ""),
+                        "ab_test": bool(tmpl.get("ab_test", 0)),
+                        "ab_split": tmpl.get("ab_split", 0.5)
                     }
                 else:
                     status[seq_id][day] = {
                         "exists": False,
                         "locked": False,
                         "source": None,
-                        "subject": None
+                        "subject": None,
+                        "subject_b": None,
+                        "ab_test": False,
+                        "ab_split": 0.5
                     }
         return status
 
@@ -1039,11 +1116,22 @@ class CampaignEngine:
         return [Recipient(*r) for r in rows][:limit] if limit else [Recipient(*r) for r in rows]
 
     # -- Render --
-    def render(self, seq_id: str, day: int, rec: Recipient) -> Tuple[Optional[str], Optional[str]]:
+    def _ab_variant(self, email: str, ab_split: float) -> str:
+        """Deterministically assign A/B variant based on email hash."""
+        import hashlib
+        h = int(hashlib.md5(email.lower().strip().encode()).hexdigest(), 16)
+        return "A" if (h % 10000) / 10000.0 < ab_split else "B"
+
+    def render(self, seq_id: str, day: int, rec: Recipient) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         tmpl = self.db.template_get(seq_id, day)
-        if not tmpl: return None, None
+        if not tmpl: return None, None, None
 
         subj, body = tmpl["subject"] or "", tmpl["html_body"] or ""
+        variant = None
+        if tmpl.get("ab_test"):
+            variant = self._ab_variant(rec.email, tmpl.get("ab_split", 0.5))
+            subj = tmpl["subject"] if variant == "A" else (tmpl.get("subject_b") or tmpl["subject"])
+
         extra = json.loads(rec.extra_json or "{}")
 
         placeholders = {
@@ -1055,7 +1143,7 @@ class CampaignEngine:
         for ph, val in placeholders.items():
             subj = subj.replace(ph, str(val))
             body = body.replace(ph, str(val))
-        return subj, body
+        return subj, body, variant
 
     # -- Send Batch (AUTO-SEND for sequences) --
     def send_batch(self, seq_id: str, day: int, limit=None, dry_run=False) -> BatchResult:
@@ -1065,18 +1153,18 @@ class CampaignEngine:
 
         sent = 0
         for i, rec in enumerate(due):
-            subj, body = self.render(seq_id, day, rec)
+            subj, body, ab_variant = self.render(seq_id, day, rec)
             if not subj:
                 self._log(f"No template for {rec.email}, skipping")
                 continue
             try:
                 # Inject tracking
-                send_id = self.db.campaign_queue_send(rec.id, day, subj, "pending", "pending")
+                send_id = self.db.campaign_queue_send(rec.id, day, subj, "pending", "pending", None, ab_variant)
                 if self.tracker and self.tracker.base_url and send_id:
                     body = self.tracker.inject_tracking(body, rec.id, None, send_id)
                 msg = self.gmail.send_email(rec.email, subj, body)
-                self.db.execute("UPDATE sends SET draft_id=?, status='sent' WHERE id=?",
-                                (msg.get("id"), send_id))
+                self.db.execute("UPDATE sends SET draft_id=?, status='sent', ab_variant=? WHERE id=?",
+                                (msg.get("id"), ab_variant, send_id))
                 self.db.commit()
                 sent += 1
                 self._log(f"Sent to {rec.email}")
@@ -1086,7 +1174,7 @@ class CampaignEngine:
                 if "quota" in err.lower() or "rate" in err.lower() or "limit" in err.lower():
                     self._log("Rate limit hit. Saving remaining to pending_resumes...")
                     for r in due[i:]:
-                        rs, rb = self.render(seq_id, day, r)
+                        rs, rb, _ = self.render(seq_id, day, r)
                         self.db.execute(
                             "INSERT INTO pending_resumes (sequence_id, day, recipient_id, subject, status, error) VALUES (?, ?, ?, ?, ?, ?)",
                             (seq_id, day, r.id, rs or subj, "pending", err[:200])
@@ -1110,7 +1198,7 @@ class CampaignEngine:
         
         results = []
         for i, day in enumerate(days):
-            subj, body = self.render(seq_id, day, rec)
+            subj, body, _ = self.render(seq_id, day, rec)
             if not subj:
                 results.append({"day": day, "status": "skipped", "error": "No template"})
                 self._log(f"Trial Day {day}: No template, skipped")
@@ -1251,6 +1339,56 @@ class CampaignEngine:
         except Exception as e:
             self._log(f"Failed to delete batch {batch_id}: {e}")
             return {"success": False, "error": str(e)}
+
+    def clone_family(self, source_family_name: str, new_family_name: str, sub_pool: str = None) -> dict:
+        """Clone a campaign family: create a new Day 1 batch with the same settings and fresh leads."""
+        # Find the source Day 1 batch (handles old naming Family-B1 and new naming Family-B1-D1)
+        source_rows = self.db.execute("""
+            SELECT * FROM batches
+            WHERE (name=? OR name LIKE ?) AND day_offset=1 AND deleted_at IS NULL
+            ORDER BY id DESC LIMIT 1
+        """, (source_family_name, f"{source_family_name}-%")).fetchall()
+        if not source_rows:
+            return {"success": False, "error": f"Source family '{source_family_name}' not found"}
+        source = dict(source_rows[0])
+        seq_id = source["sequence_id"]
+        source_batch_id = source["id"]
+
+        # Determine source sub-pool if none provided
+        if sub_pool is None:
+            sub_rows = self.db.execute("""
+                SELECT DISTINCT r.sub_pool
+                FROM recipients r
+                JOIN batch_recipients br ON r.id = br.recipient_id
+                WHERE br.batch_id = ? AND r.sub_pool != ''
+            """, (source_batch_id,)).fetchall()
+            sub_pool = sub_rows[0][0] if sub_rows else None
+
+        # Match source size
+        source_size = self.db.batch_count_recipients(source_batch_id)
+        if source_size == 0:
+            return {"success": False, "error": "Source family has no leads"}
+
+        new_name = f"{new_family_name}-D1"
+        result = self.create_batch_from_pool(
+            name=new_name,
+            sequence_id=seq_id,
+            batch_size=source_size,
+            sub_pool=sub_pool,
+            day_offset=1
+        )
+        if not result.get("success"):
+            return result
+
+        self._log(f"[CLONE] '{source_family_name}' → '{new_family_name}' ({result['size']} leads, sub-pool: {sub_pool or 'all'})")
+        return {
+            "success": True,
+            "batch_id": result["batch_id"],
+            "name": new_name,
+            "sequence_id": seq_id,
+            "size": result["size"],
+            "sub_pool": sub_pool
+        }
 
     def blacklist_add(self, email: str, reason: str = "manual"):
         self.db.blacklist_add(email, reason)
@@ -1394,6 +1532,7 @@ class CampaignEngine:
                 self.db.blacklist_add(addr, f"bounce: {reason}")
                 new_blacklisted += 1
                 self._log(f"[BLACKLIST] {addr} — {reason}")
+                self._notify("Bounced", f"{addr}. Blacklisted.")
 
             self._delete_bounce_email(msg_id)
             deleted_count += 1
@@ -1791,9 +1930,9 @@ class CampaignEngine:
                 if self.db.execute("SELECT 1 FROM replies WHERE message_id=?", (msg["id"],)).fetchone():
                     continue
                 body = msg.get("body", "")[:2000]
-                self.db.execute("""INSERT INTO replies (send_id, thread_id, message_id, from_addr, subject, body, received_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (send_id, msg.get("threadId", ""), msg["id"], from_addr, msg.get("subject", ""), body, datetime.now().isoformat()))
+                self.db.execute("""INSERT INTO replies (send_id, recipient_id, thread_id, message_id, from_addr, subject, body, received_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (send_id, rec_id, msg.get("threadId", ""), msg["id"], from_addr, msg.get("subject", ""), body, datetime.now().isoformat()))
                 self.db.execute("UPDATE sends SET status='replied' WHERE id=?", (send_id,))
                 new_count += 1
                 self._log(f"New reply from {from_addr}: {msg.get('subject', '')[:60]}")
@@ -1802,6 +1941,7 @@ class CampaignEngine:
         self.db.set_meta("last_reply_scan", datetime.now().isoformat())
         if new_count:
             self._log(f"Found {new_count} new replies (checked {checked_count} messages)")
+            self._notify("New Reply", f"{new_count} replies. Check Replies tab.")
         else:
             self._log(f"No new replies found (checked {checked_count} messages)")
         return new_count
@@ -1851,10 +1991,11 @@ class CampaignEngine:
                     self._log(f"Auto-blacklisted {from_addr} ({sentiment})")
                     continue
 
-                draft = self.gmail.draft_reply(thread_id, result.get("draft_html", ""), f"Re: {subject}" if not subject.startswith("Re:") else subject)
+                draft_html = result.get("draft_html", "")
+                draft = self.gmail.draft_reply(thread_id, draft_html, f"Re: {subject}" if not subject.startswith("Re:") else subject)
                 draft_id = draft.get("id") if draft else None
-                self.db.execute("UPDATE replies SET status='drafted', sentiment=?, summary=?, draft_reply_id=? WHERE id=?",
-                    (sentiment, result.get("summary", ""), draft_id, reply_id))
+                self.db.execute("UPDATE replies SET status='drafted', sentiment=?, summary=?, draft_reply_id=?, draft_html=? WHERE id=?",
+                    (sentiment, result.get("summary", ""), draft_id, draft_html, reply_id))
                 counts["drafted"] += 1
                 self._log(f"Drafted reply for {from_addr} ({sentiment}) -- waiting for your approval")
             except Exception as e:
@@ -1870,6 +2011,90 @@ class CampaignEngine:
             "csr": "You are the RoboPirate CSR team. Formal, impact-focused emails to CSR heads. Data-driven and professional.",
             "csr-wsl-5": "You are the RoboPirate CSR team. Formal, impact-focused emails to CSR heads about the 5-year co-funded pilot model. Data-driven, employment-focused, and professional.",
         }.get(persona, "")
+
+    def generate_reply_draft(self, reply_id: int) -> dict:
+        """Generate an AI draft for a single reply. Returns sentiment, summary, draft_html."""
+        import requests
+        reply = self.db.execute("SELECT * FROM replies WHERE id=?", (reply_id,)).fetchone()
+        if not reply:
+            return {"success": False, "error": "Reply not found"}
+        reply = dict(reply)
+
+        rec = self.db.execute("""SELECT r.*, s.day, s.subject as orig_subject
+            FROM recipients r JOIN sends s ON s.recipient_id=r.id WHERE s.id=?""", (reply["send_id"],)).fetchone()
+        if not rec:
+            return {"success": False, "error": "Recipient not found"}
+        rec = dict(rec)
+
+        seq_id = rec.get("sequence_id", "")
+        persona = SEQUENCES.get(seq_id, {}).get("persona", "school")
+        name, org = rec.get("name", ""), rec.get("org", "")
+        subject = reply.get("subject", "")
+        body = reply.get("body", "")
+
+        system = self._persona_prompt(persona)
+        user = f"Recipient: {name} from {org}. Original: {rec.get('orig_subject', '')}. Reply: --- {body} --- Return JSON: {{sentiment, summary, draft_html}}"
+
+        try:
+            r = requests.post(f"{self.ollama_url}/api/chat", json={
+                "model": "gpt-oss:20b-cloud",
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                "stream": False
+            }, timeout=120)
+            content = r.json()["message"]["content"]
+            m = re.search(r"\{.*\}", content, re.DOTALL)
+            if not m:
+                return {"success": False, "error": "AI did not return JSON"}
+            result = json.loads(m.group())
+
+            sentiment = result.get("sentiment", "neutral")
+            summary = result.get("summary", "")
+            draft_html = result.get("draft_html", "")
+
+            self.db.execute("UPDATE replies SET sentiment=?, summary=?, draft_html=? WHERE id=?",
+                            (sentiment, summary, draft_html, reply_id))
+            self.db.commit()
+            return {"success": True, "sentiment": sentiment, "summary": summary, "draft_html": draft_html}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def send_reply_draft(self, reply_id: int, edited_html: str = None) -> dict:
+        """Send a reply draft. Uses edited_html if provided, else stored draft_html."""
+        reply = self.db.execute("SELECT * FROM replies WHERE id=?", (reply_id,)).fetchone()
+        if not reply:
+            return {"success": False, "error": "Reply not found"}
+        reply = dict(reply)
+
+        body = edited_html if edited_html is not None else reply.get("draft_html", "")
+        if not body:
+            return {"success": False, "error": "No draft to send"}
+
+        subject = reply.get("subject", "")
+        to_addr = reply.get("from_addr", "")
+        thread_id = reply.get("thread_id", "")
+
+        try:
+            reply_subject = f"Re: {subject}" if not subject.startswith("Re:") else subject
+            sent = self.gmail.send_email(to_addr, reply_subject, body, thread_id=thread_id)
+            if sent:
+                self.db.mark_reply_handled(reply_id)
+                self._log(f"Reply sent to {to_addr}")
+                return {"success": True, "message_id": sent.get("id")}
+            else:
+                return {"success": False, "error": "Failed to send reply"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def blacklist_from_reply(self, reply_id: int) -> dict:
+        """Blacklist the sender of a reply."""
+        reply = self.db.execute("SELECT from_addr FROM replies WHERE id=?", (reply_id,)).fetchone()
+        if not reply:
+            return {"success": False, "error": "Reply not found"}
+        from_addr = reply[0]
+        self.db.blacklist_add(from_addr, "user:reply")
+        self.db.mark_reply_handled(reply_id)
+        self._log(f"Blacklisted {from_addr} from reply inbox")
+        return {"success": True, "email": from_addr}
 
     # -- Morning Brief --
     def _check_morning_brief(self, now: datetime):
@@ -2026,13 +2251,13 @@ class CampaignEngine:
                 continue
             rec = Recipient(*rec_row)
 
-            subj, body = self.render(seq_id, day, rec)
+            subj, body, ab_variant = self.render(seq_id, day, rec)
             if not subj:
                 subj = subject
 
             try:
                 msg = self.gmail.send_email(rec.email, subj, body)
-                self.db.campaign_queue_send(rec.id, day, subj, msg.get("id"), "sent")
+                self.db.campaign_queue_send(rec.id, day, subj, msg.get("id"), "sent", None, ab_variant)
                 self.db.execute(
                     "UPDATE pending_resumes SET status='sent', resumed_at=? WHERE recipient_id=? AND sequence_id=? AND day=? AND status='pending'",
                     (datetime.now().isoformat(), rec.id, seq_id, day)

@@ -1427,6 +1427,8 @@ class RajChatApp(ctk.CTk):
         locked = info["locked"]
         subject = info.get("subject") or "No subject"
         source = info.get("source") or ""
+        ab_test = info.get("ab_test", False)
+        ab_split = info.get("ab_split", 0.5)
 
         key = (seq_id, day)
 
@@ -1436,7 +1438,7 @@ class RajChatApp(ctk.CTk):
                             border_color=seq_color if exists else C_DANGER)
         card.grid(row=0, column=col, sticky="nsew", padx=self._sf(4), pady=self._sf(4))
 
-        # Top: Day badge + lock icon
+        # Top: Day badge + A/B badge + lock icon
         top = ctk.CTkFrame(card, fg_color="transparent")
         top.pack(fill="x", padx=self._sf(8), pady=(self._sf(6), 0))
 
@@ -1445,6 +1447,11 @@ class RajChatApp(ctk.CTk):
                              text_color=C_BG if exists else "white",
                              fg_color=badge_bg, corner_radius=999)
         badge.pack(side="left")
+
+        if ab_test:
+            ctk.CTkLabel(top, text=" A/B ", font=self._font(8, bold=True),
+                         text_color=C_BG, fg_color="#febe32",
+                         corner_radius=999).pack(side="left", padx=(self._sf(6), 0))
 
         if locked:
             ctk.CTkLabel(top, text="🔒", font=self._font(11)).pack(side="right")
@@ -1455,6 +1462,19 @@ class RajChatApp(ctk.CTk):
         subj_lbl = ctk.CTkLabel(card, text=display_subj, font=self._font(9),
                                 text_color=subj_color)
         subj_lbl.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(2)))
+
+        # A/B results
+        results_lbl = None
+        if ab_test and exists:
+            results = self.engine.db.get_ab_test_results(seq_id, day)
+            a_rate = results.get("A", {}).get("open_rate", 0)
+            b_rate = results.get("B", {}).get("open_rate", 0)
+            a_sent = results.get("A", {}).get("sent", 0)
+            b_sent = results.get("B", {}).get("sent", 0)
+            results_text = f"A:{a_rate}% ({a_sent}) B:{b_rate}% ({b_sent})"
+            results_lbl = ctk.CTkLabel(card, text=results_text, font=self._font(8),
+                                       text_color=C_TEXT_DIM)
+            results_lbl.pack(anchor="w", padx=self._sf(8), pady=(0, self._sf(2)))
 
         # Source hint
         if source and source != "unknown":
@@ -1471,6 +1491,14 @@ class RajChatApp(ctk.CTk):
                                  fg_color=C_PANEL, width=self._sf(30), height=self._sf(24),
                                  command=lambda s=seq_id, d=day: self._preview_template_in_browser(s, d))
         prev_btn.pack(side="left", padx=(0, self._sf(3)))
+
+        # Edit button
+        edit_btn = None
+        if exists:
+            edit_btn = ctk.CTkButton(btn_row, text="✏️", font=self._font(10),
+                                     fg_color=C_ACCENT, width=self._sf(30), height=self._sf(24),
+                                     command=lambda s=seq_id, d=day: self._edit_template(s, d))
+            edit_btn.pack(side="left", padx=(0, self._sf(3)))
 
         # Lock / Unlock toggle
         if locked:
@@ -1496,10 +1524,14 @@ class RajChatApp(ctk.CTk):
             "card": card,
             "badge": badge,
             "subject": subj_lbl,
+            "results": results_lbl,
+            "edit_btn": edit_btn,
             "lock_btn": lock_btn,
             "gen_btn": gen_btn,
             "exists": exists,
             "locked": locked,
+            "ab_test": ab_test,
+            "ab_split": ab_split,
         }
         if full_tmpl:
             self._template_full_data[key] = full_tmpl
@@ -1519,6 +1551,79 @@ class RajChatApp(ctk.CTk):
             return
         html = tmpl.get("html_body", "")
         self._preview_html(html, title=f"{seq_id.upper()} Day {day}")
+
+    def _edit_template(self, seq_id, day):
+        """Open popup to edit template subject and A/B test settings."""
+        key = (seq_id, day)
+        tmpl = self._template_full_data.get(key)
+        if not tmpl:
+            tmpl = self.engine.db.template_get(seq_id, day)
+        if not tmpl:
+            self._log_activity(f"No template to edit for {seq_id.upper()} Day {day}")
+            return
+
+        popup = ctk.CTkToplevel(self)
+        popup.title(f"Edit {seq_id.upper()} Day {day}")
+        popup.geometry("500x420")
+        popup.configure(fg_color=C_BG)
+        popup.transient(self)
+        popup.grab_set()
+
+        ctk.CTkLabel(popup, text="Subject A", font=("Segoe UI", 12),
+                     text_color=C_TEXT).pack(anchor="w", padx=15, pady=(15, 0))
+        subj_a_entry = ctk.CTkEntry(popup, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        subj_a_entry.pack(fill="x", padx=15, pady=(0, 10))
+        subj_a_entry.insert(0, tmpl.get("subject", ""))
+
+        ab_var = ctk.BooleanVar(value=bool(tmpl.get("ab_test", 0)))
+        ab_checkbox = ctk.CTkCheckBox(popup, text="Enable A/B test", variable=ab_var,
+                                      text_color=C_TEXT, font=("Segoe UI", 12))
+        ab_checkbox.pack(anchor="w", padx=15, pady=(5, 5))
+
+        ctk.CTkLabel(popup, text="Subject B", font=("Segoe UI", 12),
+                     text_color=C_TEXT).pack(anchor="w", padx=15)
+        subj_b_entry = ctk.CTkEntry(popup, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        subj_b_entry.pack(fill="x", padx=15, pady=(0, 10))
+        subj_b_entry.insert(0, tmpl.get("subject_b", ""))
+
+        split_var = ctk.DoubleVar(value=float(tmpl.get("ab_split", 0.5)))
+        ctk.CTkLabel(popup, text=f"Split: A gets {int(split_var.get() * 100)}%",
+                     font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(anchor="w", padx=15)
+        split_slider = ctk.CTkSlider(popup, from_=0, to=1, number_of_steps=100,
+                                     variable=split_var, button_color=C_ACCENT)
+        split_slider.pack(fill="x", padx=15, pady=(0, 5))
+        split_lbl = ctk.CTkLabel(popup, text=f"A: {int(split_var.get() * 100)}% | B: {100 - int(split_var.get() * 100)}%",
+                                 font=("Segoe UI", 11), text_color=C_TEXT)
+        split_lbl.pack(anchor="w", padx=15)
+
+        def update_split_label(val):
+            pct = int(float(val) * 100)
+            split_lbl.configure(text=f"A: {pct}% | B: {100 - pct}%")
+            split_var.set(float(val))
+        split_slider.configure(command=update_split_label)
+
+        def save():
+            subject = subj_a_entry.get().strip()
+            subject_b = subj_b_entry.get().strip()
+            ab_test = 1 if ab_var.get() else 0
+            ab_split = split_var.get()
+            self.engine.db.template_put(
+                seq_id, day, subject, tmpl.get("html_body", ""),
+                source=tmpl.get("source", "unknown"),
+                subject_b=subject_b, ab_test=ab_test, ab_split=ab_split
+            )
+            self._log_activity(f"Updated {seq_id.upper()} Day {day} A/B settings")
+            popup.destroy()
+            self._refresh_templates()
+
+        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=15, pady=20)
+        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12),
+                      fg_color=C_PANEL, hover_color="#3a3a5e",
+                      command=popup.destroy).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Save", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+                      command=save).pack(side="left", padx=5)
 
     def _lock_single_template(self, seq_id, day):
         key = (seq_id, day)
@@ -1553,10 +1658,22 @@ class RajChatApp(ctk.CTk):
             if "error" in result:
                 self._log_activity(f"Generate error: {result['error']}")
                 return
-            self.engine.db.template_put(seq_id, day, result["subject"], result["html_body"], source="generated")
+            # Preserve existing A/B settings if regenerating
+            existing = self.engine.db.template_get(seq_id, day)
+            self.engine.db.template_put(
+                seq_id, day, result["subject"], result["html_body"],
+                source="generated",
+                subject_b=existing.get("subject_b") if existing else None,
+                ab_test=existing.get("ab_test", 0) if existing else 0,
+                ab_split=existing.get("ab_split", 0.5) if existing else 0.5
+            )
             self._log_activity(f"Generated {seq_id.upper()} Day {day}")
 
-            # Store full data
+            # Store full data, merging existing A/B settings
+            if existing:
+                result["subject_b"] = existing.get("subject_b", "")
+                result["ab_test"] = existing.get("ab_test", 0)
+                result["ab_split"] = existing.get("ab_split", 0.5)
             self._template_full_data[key] = result
         except Exception as e:
             self._log_activity(f"Generate error: {e}")
@@ -1833,12 +1950,8 @@ class RajChatApp(ctk.CTk):
         popup.transient(self)
         popup.grab_set()
 
-        ctk.CTkLabel(popup, text="🗑️ Delete Family?", font=("Segoe UI", 18, "bold"),
-                     text_color=C_DANGER).pack(pady=(20, 5))
-        ctk.CTkLabel(popup, text=f"'{family_name}'", font=("Segoe UI", 13, "bold"),
-                     text_color=C_TEXT).pack()
-        ctk.CTkLabel(popup, text=f"All {total_leads} leads will return to the pool.\nThis cannot be undone.",
-                     font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(pady=(10, 20))
+        ctk.CTkLabel(popup, text=f"Delete '{family_name}'?\nAll leads return to pool.",
+                     font=("Segoe UI", 14, "bold"), text_color=C_DANGER).pack(pady=(25, 20))
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=10)
@@ -1879,6 +1992,104 @@ class RajChatApp(ctk.CTk):
             self._refresh_source_pools()
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def _confirm_clone_family(self, family_name, days):
+        """Show popup to clone a family."""
+        popup = ctk.CTkToplevel(self)
+        popup.title("Clone Family")
+        popup.geometry("420x260")
+        popup.configure(fg_color=C_BG)
+        popup.transient(self)
+        popup.grab_set()
+
+        ctk.CTkLabel(popup, text="📋 Clone Family", font=("Segoe UI", 18, "bold"),
+                     text_color=C_ACCENT).pack(pady=(20, 5))
+        ctk.CTkLabel(popup, text=f"'{family_name}'", font=("Segoe UI", 13, "bold"),
+                     text_color=C_TEXT).pack()
+
+        # New name
+        name_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        name_frame.pack(fill="x", padx=20, pady=(15, 5))
+        ctk.CTkLabel(name_frame, text="New name:", font=("Segoe UI", 12),
+                     text_color=C_TEXT).pack(side="left")
+        name_entry = ctk.CTkEntry(name_frame, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        name_entry.insert(0, f"{family_name}-Clone")
+        name_entry.pack(side="left", fill="x", expand=True, padx=(10, 0))
+
+        # Sub-pool dropdown
+        seq_id = ""
+        for day_code in ["D1", "D3", "D5", "D7", "D10"]:
+            b = days.get(day_code)
+            if b and isinstance(b, dict):
+                seq_id = b.get("sequence_id", "")
+                break
+
+        options = ["(All)"]
+        default = "(All)"
+        if seq_id:
+            try:
+                rows = self.engine.db.execute(
+                    "SELECT DISTINCT sub_pool FROM recipients WHERE sequence_id=? AND sub_pool != '' AND batched=0 ORDER BY sub_pool",
+                    (seq_id,)
+                ).fetchall()
+                options += [r[0] for r in rows]
+            except Exception:
+                pass
+
+        # Default to source sub-pool if known
+        source_sub_pool = ""
+        batch_ids = [b["id"] for b in days.values() if isinstance(b, dict) and b.get("id")]
+        if batch_ids:
+            placeholders = ",".join("?" * len(batch_ids))
+            sub_rows = self.engine.db.execute(
+                f"SELECT DISTINCT r.sub_pool FROM recipients r JOIN batch_recipients br ON r.id=br.recipient_id WHERE br.batch_id IN ({placeholders}) AND r.sub_pool != ''",
+                tuple(batch_ids)
+            ).fetchall()
+            source_sub_pool = sub_rows[0][0] if sub_rows else ""
+        if source_sub_pool and source_sub_pool in options:
+            default = source_sub_pool
+
+        pool_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        pool_frame.pack(fill="x", padx=20, pady=5)
+        ctk.CTkLabel(pool_frame, text="Sub-pool:", font=("Segoe UI", 12),
+                     text_color=C_TEXT).pack(side="left")
+        pool_var = ctk.StringVar(value=default)
+        pool_menu = ctk.CTkOptionMenu(pool_frame, values=options, variable=pool_var,
+                                      fg_color=C_BG, text_color=C_TEXT)
+        pool_menu.pack(side="left", fill="x", expand=True, padx=(10, 0))
+
+        # Buttons
+        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_PANEL, hover_color="#3a3a5e",
+                      command=popup.destroy).pack(side="left", padx=5)
+
+        def do_clone():
+            new_name = name_entry.get().strip()
+            sub_pool = pool_var.get()
+            if sub_pool == "(All)":
+                sub_pool = None
+            popup.destroy()
+            self._do_clone_family(family_name, new_name, sub_pool)
+
+        ctk.CTkButton(btn_frame, text="Clone", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+                      command=do_clone).pack(side="left", padx=5)
+
+    def _do_clone_family(self, source_family_name, new_family_name, sub_pool):
+        """Execute family clone and refresh views."""
+        if not new_family_name:
+            messagebox.showerror("Error", "New family name is required")
+            return
+        result = self.engine.clone_family(source_family_name, new_family_name, sub_pool)
+        if result.get("success"):
+            self._log_activity(f"Cloned '{source_family_name}' → '{new_family_name}' ({result['size']} leads)")
+            self._refresh_all_batches()
+            self._refresh_dashboard()
+            self._refresh_source_pools()
+        else:
+            messagebox.showerror("Error", result.get("error", "Clone failed"))
 
     def _toggle_history(self):
         """Expand/collapse the history section."""
@@ -2031,7 +2242,7 @@ class RajChatApp(ctk.CTk):
         """5-day pipeline card for Batches tab. Exactly 5 day pills per group.
         history_mode=True renders a compact card for the history section."""
         scale = self._get_scale()
-        is_expanded = self._expanded_families.get(family_name, False) if not history_mode else False
+        is_expanded = self._expanded_families.get(family_name, False)
 
         parent = self.history_content if history_mode else self.active_inner_frame
         card_bg = "#12122a" if history_mode else C_PANEL
@@ -2041,7 +2252,7 @@ class RajChatApp(ctk.CTk):
         self._family_card_widgets[family_name] = card
 
         # ── Header ──
-        header_h = self._sf(36) if not history_mode else self._sf(42)
+        header_h = self._sf(36) if not history_mode else self._sf(36)
         header = ctk.CTkFrame(card, fg_color="transparent", height=header_h)
         header.pack(fill="x", padx=self._sf(14), pady=(self._sf(10), self._sf(4)) if not history_mode else (self._sf(6), self._sf(6)))
         header.pack_propagate(False)
@@ -2135,6 +2346,13 @@ class RajChatApp(ctk.CTk):
             toggle_btn.pack(side="right")
             self._family_toggle_buttons[family_name] = toggle_btn
 
+        # Clone button (shown for all families)
+        ctk.CTkButton(header, text="📋 Clone", font=("Segoe UI", 10),
+                      fg_color="#1a1a3e", hover_color="#2a2a5e",
+                      text_color="white", width=70, height=28,
+                      command=lambda fn=family_name, d=days: self._confirm_clone_family(fn, d)
+                      ).pack(side="right", padx=(self._sf(6), 0))
+
         # Family delete button (shown for all families)
         ctk.CTkButton(header, text="🗑️", font=("Segoe UI", 10),
                       fg_color="#3a1a1a", hover_color="#5a2a2a",
@@ -2143,10 +2361,16 @@ class RajChatApp(ctk.CTk):
                       ).pack(side="right", padx=(self._sf(6), 0))
 
         if history_mode:
-            # Click header to expand/collapse full pills
-            header.bind("<Button-1>", lambda e, fn=family_name: self._toggle_family_expand(fn))
+            # Click header to expand/collapse full pills; skip buttons
+            def _bind_expand(widget):
+                if isinstance(widget, ctk.CTkButton):
+                    return
+                widget.bind("<Button-1>", lambda e, fn=family_name: self._toggle_history_family_expand(fn))
+                for child in widget.winfo_children():
+                    _bind_expand(child)
+            header.bind("<Button-1>", lambda e, fn=family_name: self._toggle_history_family_expand(fn))
             for child in header.winfo_children():
-                child.bind("<Button-1>", lambda e, fn=family_name: self._toggle_family_expand(fn))
+                _bind_expand(child)
 
         # ── 5 Day Pills Row ──
         show_pills = not history_mode or is_expanded
@@ -2288,14 +2512,7 @@ class RajChatApp(ctk.CTk):
                 btn_frame.grid_columnconfigure(2, weight=1)
                 btn_frame.pack_propagate(False)
     
-                if history_mode:
-                    # Read-only history view: only report button
-                    ctk.CTkButton(btn_frame, text="📊", font=self._font(9),
-                                  fg_color="#1a1a3e", hover_color="#2a2a5e",
-                                  text_color="white", corner_radius=self._sf(4), height=btn_h,
-                                  command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
-                                  ).grid(row=0, column=0, padx=(0, 0), sticky="nsew")
-                else:
+                if not history_mode:
                     if actual_status in ["COMPLETED", "NOT_CREATED"]:
                         action_text = None
                     elif actual_status in ["DRAFT", "SCHEDULED", "PAUSED"]:
@@ -2320,11 +2537,11 @@ class RajChatApp(ctk.CTk):
                                   command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
                                   ).grid(row=0, column=1, padx=(1, 0), sticky="nsew")
     
-                if batch_id:
+                if batch_id and not history_mode:
                     pill.bind("<Button-1>", lambda e, b=batch_id, fn=family_name, dc=day_code: self._on_pill_select(b, fn, dc))
     
         # ── Expanded section ──
-        if is_expanded:
+        if is_expanded and not history_mode:
             self._render_family_expanded_section(card, family_name, days)
 
     def _on_pill_select(self, batch_id, family_name, day_code):
@@ -2367,6 +2584,18 @@ class RajChatApp(ctk.CTk):
         btn = self._family_toggle_buttons.get(family_name)
         if btn:
             btn.configure(text="▲ Collapse" if not currently_expanded else "▼ Expand")
+
+    def _toggle_history_family_expand(self, family_name):
+        """Toggle expand/collapse for a history family card — re-render full card."""
+        currently_expanded = self._expanded_families.get(family_name, False)
+        self._expanded_families[family_name] = not currently_expanded
+
+        card = self._family_card_widgets.get(family_name)
+        days = self._family_days_cache.get(family_name)
+        if card:
+            card.destroy()
+        if days:
+            self._render_batch_family_card(family_name, days, history_mode=True)
 
     def _update_expand_button_text(self, card, family_name, is_expanded):
         """Helper to update toggle button text (fallback)."""
@@ -2457,54 +2686,246 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkFrame(self.content, fg_color="transparent")
         self.views["replies"] = view
 
-        ctk.CTkLabel(view, text="💬 Replies", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+        # Header
+        header = ctk.CTkFrame(view, fg_color="transparent")
+        header.pack(fill="x", pady=(0, 15))
+        ctk.CTkLabel(header, text="💬 Reply Inbox", font=("Segoe UI", 24, "bold"),
+                     text_color="white").pack(side="left")
+        self.replies_unread_badge = ctk.CTkLabel(
+            header, text="  0  ", font=("Segoe UI", 12, "bold"),
+            text_color="white", fg_color=C_DANGER, corner_radius=self._sf(10)
+        )
+        self.replies_unread_badge.pack(side="left", padx=(10, 0))
 
-        self.replies_frame = ctk.CTkFrame(view, fg_color="transparent")
-        self.replies_frame.pack(fill="both", expand=True)
+        # Filter bar
+        filter_bar = ctk.CTkFrame(view, fg_color="transparent")
+        filter_bar.pack(fill="x", pady=(0, 10))
+        self.reply_filter = ctk.CTkSegmentedButton(
+            filter_bar,
+            values=["All", "Positive", "Neutral", "Hostile", "Unhandled"],
+            command=self._on_reply_filter_change
+        )
+        self.reply_filter.set("All")
+        self.reply_filter.pack(side="left")
+
+        self.reply_search = ctk.CTkEntry(
+            filter_bar, placeholder_text="Search email or subject...",
+            fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12)
+        )
+        self.reply_search.pack(side="left", fill="x", expand=True, padx=(10, 0))
+        self.reply_search.bind("<Return>", lambda e: self._refresh_replies())
+        ctk.CTkButton(filter_bar, text="🔍", width=30,
+                      command=self._refresh_replies).pack(side="left", padx=(5, 0))
+
+        # Scrollable reply list
+        self.replies_scroll = ctk.CTkScrollableFrame(view, fg_color="transparent")
+        self.replies_scroll.pack(fill="both", expand=True)
 
         self._refresh_replies()
 
+    def _on_reply_filter_change(self, value):
+        self._refresh_replies()
+
     def _refresh_replies(self):
-        for widget in self.replies_frame.winfo_children():
+        for widget in self.replies_scroll.winfo_children():
             widget.destroy()
 
         try:
-            replies = self.engine.db.execute("""
-                SELECT r.id, r.from_addr, r.subject, r.body, r.sentiment, r.status, r.received_at,
-                       s.recipient_id, rec.name, rec.org
-                FROM replies r
-                LEFT JOIN sends s ON r.send_id = s.id
-                LEFT JOIN recipients rec ON s.recipient_id = rec.id
-                ORDER BY r.received_at DESC
-            """).fetchall()
+            filter_val = self.reply_filter.get()
+            if filter_val == "All":
+                status, sentiment = None, None
+            elif filter_val == "Unhandled":
+                status, sentiment = "pending", None
+            else:
+                status, sentiment = None, filter_val.lower()
+            search = self.reply_search.get().strip() or None
+
+            replies = self.engine.db.get_replies_with_drafts(
+                filter_status=status, filter_sentiment=sentiment, search=search
+            )
+
+            # Update unread badge
+            unread_count = self.engine.db.execute(
+                "SELECT COUNT(*) FROM replies WHERE status='pending'"
+            ).fetchone()[0] or 0
+            self.replies_unread_badge.configure(text=f"  {unread_count}  ")
 
             if not replies:
-                ctk.CTkLabel(self.replies_frame, text="No replies yet",
+                ctk.CTkLabel(self.replies_scroll, text="No replies match your filters",
                              font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
                 return
 
             for reply in replies:
-                row = ctk.CTkFrame(self.replies_frame, fg_color=C_PANEL, corner_radius=8)
-                row.pack(fill="x", pady=4, padx=4)
-
-                from_addr = reply[1] or "Unknown"
-                subject = reply[2] or "No subject"
-                sentiment = reply[4] or "neutral"
-                status = reply[5] or "pending"
-                name = reply[8] or "Unknown"
-                org = reply[9] or ""
-
-                color = C_SUCCESS if sentiment == "positive" else C_DANGER if sentiment in ["hostile", "unsubscribe"] else C_WARNING
-                ctk.CTkLabel(row, text=f"● {name} ({from_addr})", font=("Segoe UI", 12, "bold"),
-                             text_color=color).pack(anchor="w", padx=10, pady=(8, 2))
-                ctk.CTkLabel(row, text=f"Subject: {subject}", font=("Segoe UI", 10),
-                             text_color=C_TEXT_DIM).pack(anchor="w", padx=10)
-                ctk.CTkLabel(row, text=f"Sentiment: {sentiment} | Status: {status}", font=("Segoe UI", 10),
-                             text_color=C_TEXT_DIM).pack(anchor="w", padx=10, pady=(0, 8))
+                self._render_reply_card(reply)
 
         except Exception as e:
-            ctk.CTkLabel(self.replies_frame, text=f"Error: {e}", text_color=C_DANGER).pack(pady=20)
+            ctk.CTkLabel(self.replies_scroll, text=f"Error: {e}",
+                         text_color=C_DANGER).pack(pady=20)
+
+    def _render_reply_card(self, reply):
+        card = ctk.CTkFrame(self.replies_scroll, fg_color=C_PANEL,
+                            corner_radius=10, cursor="hand2")
+        card.pack(fill="x", pady=5, padx=5)
+        card.bind("<Button-1>", lambda e, r=reply: self._open_reply_popup(r))
+
+        from_addr = reply.get("from_addr") or "Unknown"
+        name = reply.get("name") or "Unknown"
+        email = reply.get("email") or from_addr
+        subject = reply.get("subject") or "No subject"
+        body = reply.get("body") or ""
+        snippet = body[:100] + ("..." if len(body) > 100 else "")
+        sentiment = (reply.get("sentiment") or "neutral").lower()
+        status = reply.get("status") or "pending"
+        received_at = reply.get("received_at") or ""
+
+        if sentiment == "positive":
+            sentiment_color, sentiment_bg = "#2ecc71", "#0a3a2a"
+        elif sentiment in ("hostile", "unsubscribe"):
+            sentiment_color, sentiment_bg = "#ff4d4d", "#3a1a1a"
+        else:
+            sentiment_color, sentiment_bg = "#febe32", "#3a2a0d"
+
+        # Top row: name/email, sentiment badge, date, status
+        top = ctk.CTkFrame(card, fg_color="transparent")
+        top.pack(fill="x", padx=12, pady=(10, 2))
+        ctk.CTkLabel(top, text=f"{name}  ({email})", font=("Segoe UI", 12, "bold"),
+                     text_color="white").pack(side="left")
+        ctk.CTkLabel(top, text=f"  {sentiment.upper()}  ", font=("Segoe UI", 9, "bold"),
+                     text_color=sentiment_color, fg_color=sentiment_bg,
+                     corner_radius=10).pack(side="left", padx=(10, 0))
+
+        if received_at:
+            try:
+                dt = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
+                date_text = dt.strftime("%d %b %Y")
+            except Exception:
+                date_text = str(received_at)[:10]
+            ctk.CTkLabel(top, text=date_text, font=("Segoe UI", 9),
+                         text_color=C_TEXT_DIM).pack(side="right", padx=(10, 0))
+        ctk.CTkLabel(top, text=status, font=("Segoe UI", 9),
+                     text_color=C_TEXT_DIM).pack(side="right")
+
+        ctk.CTkLabel(card, text=f"Subject: {subject}", font=("Segoe UI", 10),
+                     text_color=C_TEXT_DIM).pack(anchor="w", padx=12, pady=(2, 0))
+        ctk.CTkLabel(card, text=snippet, font=("Segoe UI", 10),
+                     text_color=C_TEXT_DIM).pack(anchor="w", padx=12, pady=(2, 10))
+
+        # Make whole card clickable
+        for child in card.winfo_children():
+            child.bind("<Button-1>", lambda e, r=reply: self._open_reply_popup(r))
+            for grandchild in child.winfo_children():
+                grandchild.bind("<Button-1>", lambda e, r=reply: self._open_reply_popup(r))
+
+    def _open_reply_popup(self, reply):
+        popup = ctk.CTkToplevel(self)
+        popup.title("Reply")
+        popup.geometry("700x650")
+        popup.configure(fg_color=C_BG)
+        popup.transient(self)
+        popup.grab_set()
+
+        from_addr = reply.get("from_addr") or "Unknown"
+        name = reply.get("name") or "Unknown"
+        email = reply.get("email") or from_addr
+        subject = reply.get("subject") or "No subject"
+        body = reply.get("body") or ""
+
+        ctk.CTkLabel(popup, text=f"From: {name} <{email}>",
+                     font=("Segoe UI", 14, "bold"), text_color="white"
+                     ).pack(anchor="w", padx=15, pady=(15, 5))
+        ctk.CTkLabel(popup, text=f"Subject: {subject}", font=("Segoe UI", 12),
+                     text_color=C_TEXT_DIM).pack(anchor="w", padx=15)
+
+        ctk.CTkLabel(popup, text="Original reply", font=("Segoe UI", 11, "bold"),
+                     text_color=C_ACCENT).pack(anchor="w", padx=15, pady=(15, 5))
+        body_box = ctk.CTkTextbox(popup, fg_color="#0f0f1a", text_color=C_TEXT,
+                                  font=("Segoe UI", 11), wrap="word", height=150)
+        body_box.pack(fill="x", padx=15, pady=(0, 10))
+        body_box.insert("0.0", body)
+        body_box.configure(state="disabled")
+
+        ctk.CTkLabel(popup, text="AI Draft", font=("Segoe UI", 11, "bold"),
+                     text_color=C_ACCENT).pack(anchor="w", padx=15, pady=(5, 5))
+        draft_box = ctk.CTkTextbox(popup, fg_color="#0f0f1a", text_color=C_TEXT,
+                                   font=("Segoe UI", 11), wrap="word")
+        draft_box.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+
+        if reply.get("draft_html"):
+            draft_box.insert("0.0", reply["draft_html"])
+        else:
+            draft_box.insert("0.0", "Generating draft...")
+            draft_box.configure(state="disabled")
+            self._run_bg(
+                lambda: self.engine.generate_reply_draft(reply["id"]),
+                lambda result, db=draft_box, r=reply: self._on_draft_generated(result, db, r),
+                lambda err, db=draft_box: self._on_draft_error(err, db)
+            )
+
+        # Buttons
+        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=15, pady=(0, 15))
+        ctk.CTkButton(btn_frame, text="Send Draft", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+                      command=lambda r=reply, db=draft_box, p=popup: self._send_reply_draft(r, db, p)
+                      ).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Edit Draft", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_ACCENT, hover_color="#1e5a8a",
+                      command=lambda db=draft_box: db.configure(state="normal")
+                      ).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Mark Handled", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_PANEL, hover_color="#3a3a5e",
+                      command=lambda r=reply, p=popup: self._mark_reply_handled(r, p)
+                      ).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Blacklist", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_DANGER, hover_color="#8a1c1c",
+                      command=lambda r=reply, p=popup: self._blacklist_reply(r, p)
+                      ).pack(side="left", padx=5)
+
+    def _on_draft_generated(self, result, draft_box, reply):
+        draft_box.configure(state="normal")
+        draft_box.delete("0.0", "end")
+        if result.get("success"):
+            draft_box.insert("0.0", result.get("draft_html", ""))
+            reply["draft_html"] = result.get("draft_html", "")
+            reply["sentiment"] = result.get("sentiment", reply.get("sentiment", "neutral"))
+            reply["summary"] = result.get("summary", reply.get("summary", ""))
+        else:
+            draft_box.insert("0.0", f"Draft generation failed: {result.get('error', 'Unknown error')}")
+
+    def _on_draft_error(self, error, draft_box):
+        draft_box.configure(state="normal")
+        draft_box.delete("0.0", "end")
+        draft_box.insert("0.0", f"Draft generation failed: {error}")
+
+    def _send_reply_draft(self, reply, draft_box, popup):
+        edited_html = draft_box.get("0.0", "end-1c").strip()
+        self._run_bg(
+            lambda: self.engine.send_reply_draft(reply["id"], edited_html if edited_html else None),
+            lambda result, p=popup: self._on_reply_action_done(result, p, "Reply sent"),
+            lambda err, p=popup: self._on_reply_action_done({"success": False, "error": err}, p, None)
+        )
+
+    def _mark_reply_handled(self, reply, popup):
+        self.engine.db.mark_reply_handled(reply["id"])
+        popup.destroy()
+        self._refresh_replies()
+
+    def _blacklist_reply(self, reply, popup):
+        result = self.engine.blacklist_from_reply(reply["id"])
+        if result.get("success"):
+            popup.destroy()
+            self._refresh_replies()
+        else:
+            messagebox.showerror("Error", result.get("error", "Blacklist failed"))
+
+    def _on_reply_action_done(self, result, popup, success_msg):
+        if result.get("success"):
+            if success_msg:
+                self._log_activity(success_msg)
+            popup.destroy()
+            self._refresh_replies()
+        else:
+            messagebox.showerror("Error", result.get("error", "Action failed"))
 
     # ═══════════════════════════════════════════════════════════
     # BLACKLIST VIEW
@@ -2673,6 +3094,35 @@ class RajChatApp(ctk.CTk):
                      text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
         ctk.CTkButton(export_frame, text="Export Campaign State", font=("Segoe UI", 12),
                       fg_color=C_SUCCESS, command=self._export_state).pack(anchor="w", padx=15, pady=(0, 10))
+
+        # Notifications
+        notif_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
+        notif_frame.pack(fill="x", pady=(0, 10))
+        ctk.CTkLabel(notif_frame, text="Notifications:", font=("Segoe UI", 12),
+                     text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
+        self.notifications_enabled = ctk.CTkCheckBox(
+            notif_frame, text="Desktop notifications",
+            font=("Segoe UI", 11), text_color=C_TEXT
+        )
+        self.notifications_enabled.pack(anchor="w", padx=15, pady=(0, 10))
+        # Load saved preference (default ON)
+        notif_val = self.engine.db.get_meta("desktop_notifications")
+        if notif_val is None or notif_val.lower() in ("true", "1", "on"):
+            self.notifications_enabled.select()
+        else:
+            self.notifications_enabled.deselect()
+        self.notifications_enabled.configure(command=self._save_notification_setting)
+
+    def _save_notification_setting(self):
+        enabled = bool(self.notifications_enabled.get())
+        self.engine.db.set_meta("desktop_notifications", "true" if enabled else "false")
+        self._log_activity(f"Desktop notifications {'enabled' if enabled else 'disabled'}")
+
+    def _should_notify(self):
+        """Return True if desktop notifications are enabled."""
+        val = self.engine.db.get_meta("desktop_notifications")
+        # Default ON when missing
+        return val is None or str(val).lower() in ("true", "1", "on")
 
     def _save_brief_email(self):
         email = self.brief_email_entry.get().strip()

@@ -68,12 +68,18 @@ class GmailClient:
                 raise
         raise last_err
 
-    def send_email(self, to, subject, body_html):
+    def send_email(self, to, subject, body_html, thread_id=None):
         message = MIMEText(body_html, 'html', 'utf-8')
         message['to'] = to
         message['subject'] = subject
+        if thread_id:
+            message['In-Reply-To'] = thread_id
+            message['References'] = thread_id
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
-        return self.service.users().messages().send(userId='me', body={'raw': raw}).execute()
+        body = {'raw': raw}
+        if thread_id:
+            body['threadId'] = thread_id
+        return self.service.users().messages().send(userId='me', body=body).execute()
 
     def draft_email(self, to, subject, body_html):
         message = MIMEText(body_html, 'html', 'utf-8')

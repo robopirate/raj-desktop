@@ -10,6 +10,11 @@ from datetime import datetime
 
 DB_PATH = Path(__file__).parent / "campaign_data.db"
 
+# Valid batch_recipient statuses
+BATCH_RECIPIENT_STATUSES = [
+    'pending', 'sent', 'failed', 'skipped', 'drafted', 'bounced', 'replied', 'stopped'
+]
+
 class Database:
     def __init__(self, db_path=None):
         self.db_path = db_path or str(DB_PATH)
@@ -86,9 +91,12 @@ class Database:
                 sequence_id TEXT,
                 day INTEGER,
                 subject TEXT,
+                subject_b TEXT,
                 html_body TEXT,
                 source TEXT DEFAULT 'unknown',
                 locked INTEGER DEFAULT 0,
+                ab_test INTEGER DEFAULT 0,
+                ab_split REAL DEFAULT 0.5,
                 cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (sequence_id, day)
             );
@@ -102,6 +110,7 @@ class Database:
                 subject TEXT,
                 draft_id TEXT,
                 status TEXT DEFAULT 'drafted',
+                ab_variant TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 sent_at TEXT,
                 opened_at TEXT,
@@ -128,6 +137,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS replies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 send_id INTEGER,
+                recipient_id INTEGER,
                 thread_id TEXT NOT NULL,
                 message_id TEXT NOT NULL UNIQUE,
                 from_addr TEXT,
@@ -136,9 +146,12 @@ class Database:
                 sentiment TEXT,
                 summary TEXT,
                 draft_reply_id TEXT,
+                draft_html TEXT,
                 status TEXT DEFAULT 'pending',
                 received_at TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (recipient_id) REFERENCES recipients(id),
+                FOREIGN KEY (send_id) REFERENCES sends(id)
             );
             CREATE INDEX IF NOT EXISTS idx_replies_status ON replies(status);
 
@@ -338,6 +351,51 @@ class Database:
             """)
             self.conn.commit()
             print("[DB] Migration complete: outreach_campaigns table created")
+
+        # Add recipient_id to replies if missing
+        try:
+            self.conn.execute("SELECT recipient_id FROM replies LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding recipient_id to replies...")
+            self.conn.execute("ALTER TABLE replies ADD COLUMN recipient_id INTEGER")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_replies_recipient ON replies(recipient_id)")
+            self.conn.commit()
+            # Backfill recipient_id from sends
+            self.conn.execute("""
+                UPDATE replies SET recipient_id = (
+                    SELECT recipient_id FROM sends WHERE sends.id = replies.send_id
+                ) WHERE recipient_id IS NULL
+            """)
+            self.conn.commit()
+            print("[DB] Migration complete: recipient_id added to replies")
+
+        # Add draft_html to replies if missing
+        try:
+            self.conn.execute("SELECT draft_html FROM replies LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding draft_html to replies...")
+            self.conn.execute("ALTER TABLE replies ADD COLUMN draft_html TEXT")
+            self.conn.commit()
+            print("[DB] Migration complete: draft_html added to replies")
+
+        # Add A/B test columns to templates if missing
+        for col, col_type in [("subject_b", "TEXT"), ("ab_test", "INTEGER DEFAULT 0"), ("ab_split", "REAL DEFAULT 0.5")]:
+            try:
+                self.conn.execute(f"SELECT {col} FROM templates LIMIT 1")
+            except sqlite3.OperationalError:
+                print(f"[DB] Migrating: Adding {col} to templates...")
+                self.conn.execute(f"ALTER TABLE templates ADD COLUMN {col} {col_type}")
+                self.conn.commit()
+                print(f"[DB] Migration complete: {col} added to templates")
+
+        # Add ab_variant to sends if missing
+        try:
+            self.conn.execute("SELECT ab_variant FROM sends LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding ab_variant to sends...")
+            self.conn.execute("ALTER TABLE sends ADD COLUMN ab_variant TEXT")
+            self.conn.commit()
+            print("[DB] Migration complete: ab_variant added to sends")
 
     def execute(self, sql, params=()):
         return self.conn.execute(sql, params)
@@ -575,20 +633,31 @@ class Database:
         return batch_id, None
 
     # -- TEMPLATES --
-    def template_put(self, sequence_id, day, subject, html_body, source="synced"):
+    def template_put(self, sequence_id, day, subject, html_body, source="synced",
+                      subject_b=None, ab_test=0, ab_split=0.5):
         self.execute("""
-            INSERT INTO templates (sequence_id, day, subject, html_body, source)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO templates (sequence_id, day, subject, subject_b, html_body, source, ab_test, ab_split)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(sequence_id, day) DO UPDATE SET
-                subject=excluded.subject, html_body=excluded.html_body, 
-                source=excluded.source, cached_at=CURRENT_TIMESTAMP
-        """, (sequence_id, day, subject, html_body, source))
+                subject=excluded.subject, subject_b=excluded.subject_b,
+                html_body=excluded.html_body, source=excluded.source,
+                ab_test=excluded.ab_test, ab_split=excluded.ab_split,
+                cached_at=CURRENT_TIMESTAMP
+        """, (sequence_id, day, subject, subject_b, html_body, source, ab_test, ab_split))
         self.commit()
 
     def template_get(self, sequence_id, day):
-        row = self.execute("SELECT subject, html_body, source, locked FROM templates WHERE sequence_id=? AND day=?", 
-                          (sequence_id, day)).fetchone()
-        return {"subject": row[0], "html_body": row[1], "source": row[2], "locked": bool(row[3])} if row else None
+        row = self.execute("""
+            SELECT subject, subject_b, html_body, source, locked, ab_test, ab_split
+            FROM templates WHERE sequence_id=? AND day=?
+        """, (sequence_id, day)).fetchone()
+        if not row:
+            return None
+        return {
+            "subject": row[0], "subject_b": row[1], "html_body": row[2],
+            "source": row[3], "locked": bool(row[4]),
+            "ab_test": bool(row[5]), "ab_split": row[6]
+        }
 
     def template_lock(self, sequence_id, day):
         self.execute("UPDATE templates SET locked=1 WHERE sequence_id=? AND day=?", (sequence_id, day))
@@ -603,11 +672,12 @@ class Database:
         return bool(row[0]) if row else False
 
     # -- SENDS / PIPELINE --
-    def campaign_queue_send(self, recipient_id, day, subject, draft_id, status="drafted", batch_id=None):
+    def campaign_queue_send(self, recipient_id, day, subject, draft_id, status="drafted",
+                            batch_id=None, ab_variant=None):
         cur = self.execute("""
-            INSERT INTO sends (recipient_id, day, subject, draft_id, status, batch_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (recipient_id, day, subject, draft_id, status, batch_id))
+            INSERT INTO sends (recipient_id, day, subject, draft_id, status, batch_id, ab_variant)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (recipient_id, day, subject, draft_id, status, batch_id, ab_variant))
         self.commit()
         return cur.lastrowid
 
@@ -948,6 +1018,36 @@ class Database:
         self.commit()
         return cur_batch.rowcount + cur_recipients.rowcount
 
+    # -- REPLIES --
+    def get_replies_with_drafts(self, filter_status=None, filter_sentiment=None, search=None):
+        """Get replies joined with recipient info, with optional filters."""
+        sql = """
+            SELECT r.*, rec.name, rec.email, rec.org
+            FROM replies r
+            JOIN recipients rec ON r.recipient_id = rec.id
+            WHERE 1=1
+        """
+        params = []
+        if filter_status:
+            sql += " AND r.status = ?"
+            params.append(filter_status)
+        if filter_sentiment:
+            sql += " AND r.sentiment = ?"
+            params.append(filter_sentiment)
+        if search:
+            sql += " AND (rec.email LIKE ? OR r.subject LIKE ?)"
+            like = f"%{search}%"
+            params.extend([like, like])
+        sql += " ORDER BY r.received_at DESC"
+        rows = self.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def mark_reply_handled(self, reply_id):
+        """Mark a reply as handled."""
+        self.execute("UPDATE replies SET status='handled' WHERE id=?", (reply_id,))
+        self.commit()
+        return True
+
     # -- DASHBOARD SUMMARY --
     def get_dashboard_summary(self):
         summary = {"sequences": {}, "global": {}}
@@ -989,6 +1089,26 @@ class Database:
         }
 
         return summary
+
+    def get_ab_test_results(self, sequence_id, day):
+        """Return A/B test open rates for a template."""
+        rows = self.execute("""
+            SELECT s.ab_variant, COUNT(*) as sent, COUNT(s.opened_at) as opened
+            FROM sends s
+            JOIN recipients r ON s.recipient_id = r.id
+            WHERE r.sequence_id = ? AND s.day = ? AND s.ab_variant IS NOT NULL AND s.status = 'sent'
+            GROUP BY s.ab_variant
+        """, (sequence_id, day)).fetchall()
+        results = {}
+        for variant, sent, opened in rows:
+            sent = sent or 0
+            opened = opened or 0
+            results[variant] = {
+                "sent": sent,
+                "opened": opened,
+                "open_rate": round(opened / sent * 100, 1) if sent else 0
+            }
+        return results
 
     def get_recent_activity(self, batch_id=None, limit=10):
         """Get recent activity log entries."""
