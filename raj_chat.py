@@ -1881,60 +1881,27 @@ class RajChatApp(ctk.CTk):
             messagebox.showerror("Error", str(e))
 
     def _toggle_history(self):
-        """Expand/collapse the deleted batches history section."""
-        self.history_expanded = not self.history_expanded
-        if self.history_expanded:
+        """Expand/collapse the history section."""
+        self._history_expanded = not self._history_expanded
+        if self._history_expanded:
             self.history_frame.configure(height=0)
-            self.history_toggle.configure(text="▲")
+            self.history_toggle.configure(text="▼")
             self.history_content.pack(fill="x", padx=15, pady=(0, 15), expand=True)
-            self._refresh_history()
         else:
             self.history_content.pack_forget()
             self.history_frame.configure(height=self._sf(42))
-            self.history_toggle.configure(text="▼")
+            self.history_toggle.configure(text="▶")
+        self._refresh_all_batches()
 
-    def _refresh_history(self):
-        """Refresh the deleted batches history list."""
-        for widget in self.history_content.winfo_children():
-            widget.destroy()
-
-        try:
-            deleted = self.engine.db.batch_get_deleted()
-            self.history_title.configure(text=f"📜 History ({len(deleted)})")
-
-            if not deleted:
-                ctk.CTkLabel(self.history_content, text="No deleted batches",
-                             font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(anchor="w", pady=(5, 0))
-                return
-
-            for batch in deleted[:20]:  # Show last 20
-                row = ctk.CTkFrame(self.history_content, fg_color="transparent")
-                row.pack(fill="x", pady=2)
-
-                name = batch.get("name", "Unknown")
-                seq = batch.get("sequence_id", "").upper()
-                deleted_at = batch.get("deleted_at", "") or "Unknown"
-                try:
-                    dt = datetime.fromisoformat(deleted_at.replace("Z", "+00:00"))
-                    deleted_at = dt.strftime("%d %b %Y")
-                except:
-                    pass
-
-                try:
-                    count = self.engine.db.batch_count_recipients(batch["id"])
-                except:
-                    count = 0
-
-                ctk.CTkLabel(row, text=f"• {name}", font=("Segoe UI", 11, "bold"),
-                             text_color=C_TEXT).pack(side="left")
-                ctk.CTkLabel(row, text=f"  {seq}  •  {count} leads  •  deleted {deleted_at}",
-                             font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(8, 0))
-        except Exception as e:
-            ctk.CTkLabel(self.history_content, text=f"Error loading history: {e}",
-                         font=("Segoe UI", 10), text_color=C_DANGER).pack(anchor="w", pady=(5, 0))
+    def _update_history_toggle(self, count):
+        """Update the history header label/toggle."""
+        self.history_title.configure(text=f"📜 History ({count}) {'▼' if self._history_expanded else '▶'}")
+        self.history_toggle.configure(text="▼" if self._history_expanded else "▶")
 
     def _refresh_all_batches(self):
-        for widget in self.all_batches_frame.winfo_children():
+        for widget in self.active_inner_frame.winfo_children():
+            widget.destroy()
+        for widget in self.history_content.winfo_children():
             widget.destroy()
         self._family_card_widgets.clear()
         self._family_days_cache.clear()
@@ -1942,7 +1909,7 @@ class RajChatApp(ctk.CTk):
         self._family_toggle_buttons.clear()
 
         # Show loading indicator so UI doesn't look frozen
-        loading = ctk.CTkLabel(self.all_batches_frame, text="Loading batches...",
+        loading = ctk.CTkLabel(self.active_inner_frame, text="Loading batches...",
                                font=self._font(12), text_color=C_TEXT_DIM)
         loading.pack(pady=self._sf(30))
 
@@ -2056,9 +2023,9 @@ class RajChatApp(ctk.CTk):
                 self._render_batch_family_card(family_name, days, history_mode=True)
 
     def _show_batches_error(self, msg):
-        for widget in self.all_batches_frame.winfo_children():
+        for widget in self.active_inner_frame.winfo_children():
             widget.destroy()
-        ctk.CTkLabel(self.all_batches_frame, text=f"Error: {msg}", text_color=C_DANGER).pack(pady=20)
+        ctk.CTkLabel(self.active_inner_frame, text=f"Error: {msg}", text_color=C_DANGER).pack(pady=20)
 
     def _render_batch_family_card(self, family_name, days, history_mode=False):
         """5-day pipeline card for Batches tab. Exactly 5 day pills per group.
@@ -2066,7 +2033,7 @@ class RajChatApp(ctk.CTk):
         scale = self._get_scale()
         is_expanded = self._expanded_families.get(family_name, False) if not history_mode else False
 
-        parent = self.history_content if history_mode else self.all_batches_frame
+        parent = self.history_content if history_mode else self.active_inner_frame
         card_bg = "#12122a" if history_mode else C_PANEL
         card = ctk.CTkFrame(parent, fg_color=card_bg, corner_radius=self._sf(10),
                             border_width=1, border_color="#1e3a5f")
