@@ -1757,11 +1757,18 @@ class RajChatApp(ctk.CTk):
                       fg_color=C_SUCCESS, hover_color="#2a8a4a", height=40,
                       command=self._create_batch).pack(fill="x", padx=15, pady=(5, 15))
 
-        # Batch list
+        # ── Active Campaigns ──
+        ctk.CTkLabel(view, text="🚀 ACTIVE CAMPAIGNS", font=("Segoe UI", 16, "bold"),
+                     text_color=C_ACCENT).pack(anchor="w", pady=(10, 5), padx=self._sf(6))
+
         self.all_batches_frame = ctk.CTkFrame(view, fg_color="transparent")
         self.all_batches_frame.pack(fill="both", expand=True)
 
-        # ── Deleted Batches History ──
+        self.active_inner_frame = ctk.CTkFrame(self.all_batches_frame, fg_color="transparent")
+        self.active_inner_frame.pack(fill="both", expand=True)
+
+        # ── History ──
+        self._history_expanded = False
         self.history_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         self.history_frame.pack(fill="x", pady=(15, 5), padx=self._sf(6))
         self.history_frame.pack_propagate(False)
@@ -1771,19 +1778,17 @@ class RajChatApp(ctk.CTk):
         self.history_header.pack(fill="x", padx=15, pady=8)
         self.history_header.bind("<Button-1>", lambda e: self._toggle_history())
 
-        self.history_title = ctk.CTkLabel(self.history_header, text="📜 History (0)", font=("Segoe UI", 12, "bold"),
+        self.history_title = ctk.CTkLabel(self.history_header, text="📜 History (0) ▶", font=("Segoe UI", 12, "bold"),
                                           text_color=C_TEXT_DIM)
         self.history_title.pack(side="left")
-        self.history_toggle = ctk.CTkLabel(self.history_header, text="▼", font=("Segoe UI", 12, "bold"),
+        self.history_toggle = ctk.CTkLabel(self.history_header, text="▶", font=("Segoe UI", 12, "bold"),
                                            text_color=C_TEXT_DIM)
         self.history_toggle.pack(side="right")
 
         self.history_content = ctk.CTkFrame(self.history_frame, fg_color="transparent")
-        self.history_expanded = False
 
         self._refresh_source_pools()
         self._refresh_all_batches()
-        self._refresh_history()
 
     def _create_batch(self):
         try:
@@ -1944,7 +1949,7 @@ class RajChatApp(ctk.CTk):
         def _fetch():
             batches = self.engine.db.batch_get_all()
             if not batches:
-                return []
+                return [], []
 
             from collections import defaultdict
             groups = defaultdict(list)
@@ -1956,7 +1961,30 @@ class RajChatApp(ctk.CTk):
             for gn, batch_list in groups.items():
                 families[gn] = self._deduplicate_batches_by_day(batch_list)
 
-            def _sort_key(item):
+            active_families = []
+            history_families = []
+            for name, days in families.items():
+                statuses = []
+                all_deleted = True
+                has_batch = False
+                for d in ["D1", "D3", "D5", "D7", "D10"]:
+                    b = days.get(d)
+                    if b and isinstance(b, dict):
+                        has_batch = True
+                        st = str(b.get("status", "")).strip().upper()
+                        statuses.append(st)
+                        if not b.get("deleted_at"):
+                            all_deleted = False
+                if not has_batch:
+                    continue
+                # Active if any non-deleted batch is running/scheduled/draft/paused
+                is_active = any(s in ("RUNNING", "SCHEDULED", "DRAFT", "PAUSED") for s in statuses)
+                if is_active:
+                    active_families.append((name, days))
+                else:
+                    history_families.append((name, days))
+
+            def _active_sort_key(item):
                 name, days = item
                 dates = []
                 for d in ["D1", "D3", "D5", "D7", "D10"]:
@@ -1981,24 +2009,51 @@ class RajChatApp(ctk.CTk):
                             priority = max(priority, 3)
                         elif st == "paused":
                             priority = max(priority, 2)
-                        elif st == "completed":
-                            priority = max(priority, 1)
                 return (due_key, -priority)
 
-            return sorted(families.items(), key=_sort_key)
+            active_families.sort(key=_active_sort_key)
+            # History: newest first by completed/deleted date
+            def _history_sort_key(item):
+                name, days = item
+                latest = ""
+                for d in ["D1", "D3", "D5", "D7", "D10"]:
+                    b = days.get(d)
+                    if isinstance(b, dict):
+                        dt = b.get("deleted_at") or b.get("completed_at") or ""
+                        if dt and dt > latest:
+                            latest = dt
+                return latest
+            history_families.sort(key=_history_sort_key, reverse=True)
+
+            return active_families, history_families
 
         self._run_bg(_fetch, self._build_all_batches_ui, self._show_batches_error)
 
-    def _build_all_batches_ui(self, sorted_families):
-        for widget in self.all_batches_frame.winfo_children():
+    def _build_all_batches_ui(self, families_tuple):
+        # Clear active area
+        for widget in self.active_inner_frame.winfo_children():
             widget.destroy()
-        if not sorted_families:
-            ctk.CTkLabel(self.all_batches_frame, text="No batches yet. Create one above.",
+        # Clear history area
+        for widget in self.history_content.winfo_children():
+            widget.destroy()
+
+        active_families, history_families = families_tuple or ([], [])
+
+        if not active_families and not history_families:
+            ctk.CTkLabel(self.active_inner_frame, text="No batches yet. Create one above.",
                          font=self._font(12), text_color=C_TEXT_DIM).pack(pady=self._sf(30))
+            self._update_history_toggle(0)
             return
-        for family_name, days in sorted_families:
+
+        for family_name, days in active_families:
             self._family_days_cache[family_name] = days
-            self._render_batch_family_card(family_name, days)
+            self._render_batch_family_card(family_name, days, history_mode=False)
+
+        self._update_history_toggle(len(history_families))
+        if self._history_expanded:
+            for family_name, days in history_families:
+                self._family_days_cache[family_name] = days
+                self._render_batch_family_card(family_name, days, history_mode=True)
 
     def _show_batches_error(self, msg):
         for widget in self.all_batches_frame.winfo_children():
