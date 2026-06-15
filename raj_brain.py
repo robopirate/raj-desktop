@@ -523,12 +523,12 @@ Respond as Raj naturally:"""
             return "sync_templates", {}
 
         # Smart import commands
-        m = re.search(r"smart\s+import\s+(.+?)\s+(?:to|into)\s+(school|csr)", text_lower)
+        m = re.search(r"smart\s+import\s+(.+?)\s+(?:to|into)\s+(school|csr|csr-wsl-5)", text_lower)
         if m:
             return "smart_import", {"path": m.group(1).strip(), "sequence": m.group(2)}
 
         # Pool-based import (NEW)
-        m = re.search(r"import\s+(.+?)\s+(?:to|into)\s+(school|csr)\s+pool", text_lower)
+        m = re.search(r"import\s+(.+?)\s+(?:to|into)\s+(school|csr|csr-wsl-5)\s+pool", text_lower)
         if m:
             return "import_to_pool", {"path": m.group(1).strip(), "sequence": m.group(2)}
 
@@ -536,11 +536,11 @@ Respond as Raj naturally:"""
             return "import_to_pool_dialog", {}
 
         # Create batch from pool (NEW)
-        m = re.search(r"(?:create|make)\s+batch\s+(?:from\s+)?pool\s+(school|csr)(?:\s+(\d+))?", text_lower)
+        m = re.search(r"(?:create|make)\s+batch\s+(?:from\s+)?pool\s+(school|csr|csr-wsl-5)(?:\s+(\d+))?", text_lower)
         if m:
             return "create_batch_from_pool", {"sequence": m.group(1), "size": int(m.group(2)) if m.group(2) else 50}
 
-        m = re.search(r"(?:create|make)\s+batch\s+(school|csr)(?:\s+(\d+))?\s+(?:from\s+)?pool", text_lower)
+        m = re.search(r"(?:create|make)\s+batch\s+(school|csr|csr-wsl-5)(?:\s+(\d+))?\s+(?:from\s+)?pool", text_lower)
         if m:
             return "create_batch_from_pool", {"sequence": m.group(1), "size": int(m.group(2)) if m.group(2) else 50}
 
@@ -556,17 +556,17 @@ Respond as Raj naturally:"""
         if m:
             return "preview_import", {"path": m.group(1).strip()}
 
-        m = re.search(r"import\s+(.+?)\s+(?:to|into)\s+(school|csr)", text_lower)
+        m = re.search(r"import\s+(.+?)\s+(?:to|into)\s+(school|csr|csr-wsl-5)", text_lower)
         if m:
             return "import_leads", {"path": m.group(1).strip(), "sequence": m.group(2)}
         if "import" in text_lower and "leads" in text_lower:
             return "import_dialog", {}
 
-        m = re.search(r"(?:send|queue|run)\s+(school|csr)\s+day\s*(\d+)", text_lower)
+        m = re.search(r"(?:send|queue|run)\s+(school|csr|csr-wsl-5)\s+day\s*(\d+)", text_lower)
         if m:
             return "send_batch", {"sequence": m.group(1), "day": int(m.group(2))}
 
-        m = re.search(r"test\s+(?:send|email).*?(school|csr).*?day\s*(\d+)", text_lower)
+        m = re.search(r"test\s+(?:send|email).*?(school|csr|csr-wsl-5).*?day\s*(\d+)", text_lower)
         if m:
             return "test_send", {"sequence": m.group(1), "day": int(m.group(2))}
 
@@ -588,7 +588,7 @@ Respond as Raj naturally:"""
         if any(w in text_lower for w in ["brief", "morning brief", "report", "summary email"]):
             return "morning_brief", {}
 
-        m = re.search(r"(?:generate|create|write)\s+(?:template|email).*?(school|csr).*?day\s*(\d+)", text_lower)
+        m = re.search(r"(?:generate|create|write)\s+(?:template|email).*?(school|csr|csr-wsl-5).*?day\s*(\d+)", text_lower)
         if m:
             return "generate_template", {"sequence": m.group(1), "day": int(m.group(2))}
 
@@ -610,11 +610,11 @@ Respond as Raj naturally:"""
         if any(w in text_lower for w in ["save state", "export state", "campaign state", "save progress"]):
             return "export_state", {}
 
-        m = re.search(r"resume\s+(?:batch\s+)?(school|csr)\s+day\s*(\d+)", text_lower)
+        m = re.search(r"resume\s+(?:batch\s+)?(school|csr|csr-wsl-5)\s+day\s*(\d+)", text_lower)
         if m:
             return "resume_batch", {"sequence": m.group(1), "day": int(m.group(2))}
 
-        m = re.search(r"backdate\s+(school|csr)\s+day\s*(\d+)\s+(\d+)\s*days?\s*ago", text_lower)
+        m = re.search(r"backdate\s+(school|csr|csr-wsl-5)\s+day\s*(\d+)\s+(\d+)\s*days?\s*ago", text_lower)
         if m:
             return "backdate", {"sequence": m.group(1), "day": int(m.group(2)), "days_ago": int(m.group(3))}
 
@@ -622,7 +622,7 @@ Respond as Raj naturally:"""
             return "help", {}
 
         # -- CAMPAIGN COMMANDS (NEW) --
-        m = re.search(r"(?:create|new)\s+campaign\s+(school|csr)(?:\s+(\d+))?", text_lower)
+        m = re.search(r"(?:create|new)\s+campaign\s+(school|csr|csr-wsl-5)(?:\s+(\d+))?", text_lower)
         if m or "create campaign" in text_lower:
             seq = m.group(1) if m else "school"
             size = int(m.group(2)) if m and m.group(2) else 50

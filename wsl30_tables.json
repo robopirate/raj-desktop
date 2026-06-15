@@ -1,0 +1,557 @@
+[
+  {
+    "index": 0,
+    "rows": [
+      [
+        "Year",
+        "Funding Party",
+        "Amount"
+      ],
+      [
+        "Year 1",
+        "____________________________ (CSR Partner)",
+        "Rs.12,00,000/-"
+      ],
+      [
+        "Year 2",
+        "Corporator",
+        "Rs.7,00,000/-"
+      ],
+      [
+        "Year 3",
+        "Corporator",
+        "Rs.7,00,000/-"
+      ],
+      [
+        "Year 4",
+        "Corporator",
+        "Rs.7,00,000/-"
+      ],
+      [
+        "Year 5",
+        "Corporator",
+        "Rs.7,00,000/-"
+      ],
+      [
+        "Total",
+        "",
+        "Rs.40,00,000/-"
+      ]
+    ]
+  },
+  {
+    "index": 1,
+    "rows": [
+      [
+        "NAME",
+        "THUMB IMPRESSION",
+        "SIGNATURE"
+      ],
+      [
+        "For Worship Earth Foundation\nThrough Mr. _______________\nAuthorized Signatory\n(Implementing Agency)",
+        "",
+        ""
+      ],
+      [
+        "MRS. ROHINI SUDHIR CHIMTE\n(Corporator)",
+        "",
+        ""
+      ],
+      [
+        "For ____________________________\nMr. _______________\nAuthorized Signatory\n(CSR Partner)",
+        "",
+        ""
+      ],
+      [
+        "For Robo Pirate\nMr. Omkar Singh\nManaging Director\n(Service Provider)",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "index": 2,
+    "rows": [
+      [
+        "S.No.",
+        "Item Description",
+        "Category",
+        "Qty",
+        "Condition / Serial No."
+      ],
+      [
+        "1",
+        "Masterboard Kit (Grade 1)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "2",
+        "Microbit Scratch Kit (Grade 2)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "3",
+        "Robotics Structure Kit — Mechanix (Grade 3)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "4",
+        "Basic Electronics Kit (Grade 4)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "5",
+        "Otto Bot Kit (Grade 5)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "6",
+        "Arduino Kit (Grade 6)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "7",
+        "Leo — AI Robot Car Kit (Grade 7)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "8",
+        "Robotic Arm SG90 Kit (Grade 8)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "9",
+        "Raspberry Pi Pico Kit (Grade 9)",
+        "Model / Exhibit",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "10",
+        "Soldering Kit",
+        "Workshop Model",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "11",
+        "Smart Home IoT Kit",
+        "Workshop Model",
+        "5",
+        "Good / ___"
+      ],
+      [
+        "12",
+        "Robotic Arm MG995 Kit",
+        "Workshop Model",
+        "5",
+        "Good / ___"
+      ],
+      [
+        "13",
+        "Drone Kit",
+        "Workshop Model",
+        "5",
+        "Good / ___"
+      ],
+      [
+        "14",
+        "Hardware Tools Workshop Kit",
+        "Workshop Model",
+        "1",
+        "Good / ___"
+      ],
+      [
+        "15",
+        "Telescope",
+        "Tech Equipment",
+        "1",
+        "Good / ___"
+      ],
+      [
+        "16",
+        "3D Printer",
+        "Tech Equipment",
+        "1",
+        "Good / ___"
+      ],
+      [
+        "17",
+        "Smartphone (4GB / 64GB)",
+        "Tech Equipment",
+        "1",
+        "Good / ___"
+      ],
+      [
+        "18",
+        "Laptop (i5, 16GB RAM)",
+        "Tech Equipment",
+        "1",
+        "Good / ___"
+      ],
+      [
+        "19",
+        "Projector",
+        "Tech Equipment",
+        "1",
+        "Good / ___"
+      ],
+      [
+        "20",
+        "Safety Kit",
+        "Accessories",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "21",
+        "3D Printer Filament Spools",
+        "Accessories",
+        "5",
+        "Good / ___"
+      ],
+      [
+        "22",
+        "A3 Posters (Set of 12)",
+        "Interior Upgrades",
+        "12",
+        "Good / ___"
+      ],
+      [
+        "23",
+        "Paint + Electrical + Interior Work",
+        "Interior Upgrades",
+        "6",
+        "Good / ___"
+      ],
+      [
+        "24",
+        "Wall Creatives",
+        "Interior Upgrades",
+        "12",
+        "Good / ___"
+      ],
+      [
+        "25",
+        "Foam Smart Lab Door Poster",
+        "Interior Upgrades",
+        "15",
+        "Good / ___"
+      ],
+      [
+        "26",
+        "WSL Poster",
+        "Interior Upgrades",
+        "6",
+        "Good / ___"
+      ]
+    ]
+  },
+  {
+    "index": 3,
+    "rows": [
+      [
+        "S.No.",
+        "Item Description",
+        "Category",
+        "Qty"
+      ],
+      [
+        "1",
+        "Chairs",
+        "Furniture",
+        "___"
+      ],
+      [
+        "2",
+        "Table (3x2)",
+        "Furniture",
+        "___"
+      ],
+      [
+        "3",
+        "Wall Shelves (Product Display)",
+        "Furniture",
+        "___"
+      ],
+      [
+        "4",
+        "Fan",
+        "Furniture",
+        "___"
+      ],
+      [
+        "5",
+        "Tubelight",
+        "Furniture",
+        "___"
+      ],
+      [
+        "6",
+        "Whiteboard (4x3)",
+        "Furniture",
+        "___"
+      ],
+      [
+        "7",
+        "Cupboard (4x2.5)",
+        "Furniture",
+        "___"
+      ],
+      [
+        "8",
+        "Sidetable (Trapezium)",
+        "Furniture",
+        "___"
+      ],
+      [
+        "9",
+        "Hexatable (with 3 Sockets)",
+        "Furniture",
+        "___"
+      ],
+      [
+        "10",
+        "2-pin Socket + Switchboard",
+        "Furniture",
+        "___"
+      ],
+      [
+        "11",
+        "Main Switch",
+        "Interior Upgrades",
+        "___"
+      ],
+      [
+        "12",
+        "WSL Poster",
+        "Interior Upgrades",
+        "___"
+      ],
+      [
+        "13",
+        "Electric Job (Wiring Underground)",
+        "Interior Upgrades",
+        "___"
+      ]
+    ]
+  },
+  {
+    "index": 4,
+    "rows": [
+      [
+        "Parameter",
+        "Value"
+      ],
+      [
+        "Plan Name",
+        "☒ WSL30 (Up to 600 Students)"
+      ],
+      [
+        "Student Capacity",
+        "Up to 600 students"
+      ],
+      [
+        "Dedicated Trainers",
+        "1 Full-time Offline Trainer"
+      ],
+      [
+        "Labs Setup",
+        "1 Complete Lab"
+      ],
+      [
+        "Rate per Student (Full 9-Month Cycle)",
+        "₹___________ per student"
+      ],
+      [
+        "Minimum Guaranteed Students",
+        "___________ students"
+      ],
+      [
+        "Monthly Invoice Value",
+        "₹___________"
+      ],
+      [
+        "Total Annual Fee (9 Months)",
+        "₹___________"
+      ],
+      [
+        "GST Rate",
+        "___________% (exclusive of above amounts)"
+      ],
+      [
+        "Annual Escalation",
+        "5% from Year 2 onwards"
+      ]
+    ]
+  },
+  {
+    "index": 5,
+    "rows": [
+      [
+        "Parameter",
+        "Details"
+      ],
+      [
+        "Room Number / Location",
+        "_________________________________________"
+      ],
+      [
+        "Approximate Area (sq. ft.)",
+        "_________________________________________"
+      ],
+      [
+        "Electrical Points",
+        "Minimum 15 amp capacity with adequate points"
+      ],
+      [
+        "Internet Connectivity",
+        "Minimum 10 Mbps broadband with Wi-Fi"
+      ],
+      [
+        "Ventilation / AC",
+        "_________________________________________"
+      ],
+      [
+        "Security / Locking Arrangement",
+        "Secure, lockable room with key control"
+      ],
+      [
+        "Access Hours for Trainers",
+        "_________________________________________"
+      ],
+      [
+        "Any Restrictions",
+        "_________________________________________"
+      ]
+    ]
+  },
+  {
+    "index": 6,
+    "rows": [
+      [
+        "Grade",
+        "Learning Kit / Module",
+        "Key Concepts",
+        "Assessment Method"
+      ],
+      [
+        "Grade 1",
+        "Masterboard Kit\n(Sensor Basics)",
+        "Basic sensors, input/output",
+        "Practical build + Quiz"
+      ],
+      [
+        "Grade 2",
+        "Microbit Scratch Kit\n(Visual Programming)",
+        "Block coding, logic",
+        "Code evaluation + Project"
+      ],
+      [
+        "Grade 3",
+        "Robotics Structure Kit\n(Mechanix)",
+        "Engineering design, structures",
+        "Build assessment + Log"
+      ],
+      [
+        "Grade 4",
+        "Basic Electronics Kit + 3D Printing",
+        "CAD basics, circuits",
+        "3D print + Electronics test"
+      ],
+      [
+        "Grade 5",
+        "Otto Bot Kit + Mobile App Dev",
+        "App design, robotics basics",
+        "App demo + Bot performance"
+      ],
+      [
+        "Grade 6",
+        "Arduino Kit\n(Automation & IoT)",
+        "C programming, IoT concepts",
+        "Arduino project + Code review"
+      ],
+      [
+        "Grade 7",
+        "Leo — AI Robot Car Kit",
+        "AI basics, autonomous systems",
+        "Car performance + AI quiz"
+      ],
+      [
+        "Grade 8",
+        "Robotic Arm SG90 Kit + Web Dev",
+        "Web dev, machine learning intro",
+        "Website + Arm task demo"
+      ],
+      [
+        "Grade 9",
+        "Raspberry Pi Pico Kit\n(Advanced Automation)",
+        "Python, advanced automation",
+        "Pi project + Final assessment"
+      ]
+    ]
+  },
+  {
+    "index": 7,
+    "rows": [
+      [
+        "Workshop Kit",
+        "Topic",
+        "Key Concepts",
+        "Assessment"
+      ],
+      [
+        "Soldering Kit",
+        "Electronics & Soldering Basics",
+        "Hands-on soldering workshop",
+        "Practical assessment"
+      ],
+      [
+        "Smart Home IoT Kit",
+        "IoT Systems & Home Automation",
+        "Sensor integration, automation",
+        "Project demo"
+      ],
+      [
+        "Robotic Arm MG995 Kit",
+        "Machine Learning & Robotics",
+        "ML concepts, arm control",
+        "Task completion test"
+      ],
+      [
+        "Drone Kit",
+        "Drone Technology & Aerodynamics",
+        "Flight basics, programming",
+        "Flight test + Quiz"
+      ],
+      [
+        "Hardware Tools Workshop Kit",
+        "Tools & Fabrication",
+        "Tool usage, safety",
+        "Practical assessment"
+      ],
+      [
+        "Telescope",
+        "Astronomy & Optics",
+        "Celestial observation",
+        "Observation log"
+      ]
+    ]
+  }
+]

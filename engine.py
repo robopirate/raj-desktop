@@ -340,6 +340,10 @@ class CampaignEngine:
                 batch = dict(batch_row)
                 batch_id = batch["id"]
                 seq_id = batch["sequence_id"]
+                if seq_id == "unassigned":
+                    self._log(f"[Batch {batch_id}] UNASSIGNED — pausing. Assign a sequence before running.")
+                    self.db.batch_update_status(batch_id, "paused")
+                    continue
                 stagger = batch.get("stagger_minutes", 0) or 1
                 day_offset = batch.get("day_offset", 1)
 
@@ -613,18 +617,18 @@ class CampaignEngine:
         self.db.set_meta("last_scheduled_send_date", today)
 
     # -- Import --
-    def smart_import(self, filepath: str, sequence_id: str) -> dict:
+    def smart_import(self, filepath: str, sequence_id: str = None) -> dict:
         """Smart import to POOL only (no batch creation). Leads go to DB first."""
         if not SMART_IMPORT_AVAILABLE:
             return {"success": False, "error": "smart_importer.py not available"}
         try:
             importer = SmartImporter(self.db, self)
-            return importer.import_to_pool(filepath, sequence_id)
+            return importer.import_to_pool(filepath, sequence_id or "leads")
         except Exception as e:
             self._log(f"Smart import error: {e}")
             return {"success": False, "error": str(e)}
 
-    def import_recipients(self, path: str, sequence_id: str, mapping: dict) -> Tuple[int, int]:
+    def import_recipients(self, path: str, sequence_id: str = None, mapping: dict = None) -> Tuple[int, int]:
         try:
             import openpyxl
         except ImportError:
@@ -652,7 +656,7 @@ class CampaignEngine:
             extra = {k: v for k, v in row_dict.items() if k not in mapping.values()}
             try:
                 self.db.execute("INSERT INTO recipients (sequence_id, email, name, org, extra_json) VALUES (?, ?, ?, ?, ?)",
-                    (sequence_id, email, name, org, json.dumps(extra)))
+                    (sequence_id or "leads", email, name, org, json.dumps(extra)))
                 imported += 1
             except:
                 skipped += 1
@@ -1094,6 +1098,42 @@ class CampaignEngine:
                 self._log(f"Failed: {rec.email} -- {e}")
         return BatchResult(queued=len(due), sent=sent)
 
+    # -- Trial Send --
+    def trial_send(self, email: str, seq_id: str, name="", org="") -> dict:
+        """Send all 5 days of a sequence to a single email with 2-minute gaps."""
+        if seq_id not in SEQUENCES:
+            return {"success": False, "error": f"Unknown sequence {seq_id}"}
+        
+        days = SEQUENCES[seq_id]["days"]
+        # Create a temporary recipient for rendering
+        rec = Recipient(id=0, sequence_id=seq_id, email=email, name=name or "CSR Head", org=org or "Company", extra_json="{}")
+        
+        results = []
+        for i, day in enumerate(days):
+            subj, body = self.render(seq_id, day, rec)
+            if not subj:
+                results.append({"day": day, "status": "skipped", "error": "No template"})
+                self._log(f"Trial Day {day}: No template, skipped")
+                continue
+            try:
+                # Add trial banner
+                body = f"<div style='background:#fff3cd;border:1px solid #ffc107;padding:10px;margin-bottom:15px;border-radius:4px;font-family:Arial,sans-serif'><strong style='color:#856404'>🧪 TRIAL EMAIL — Day {day} of {len(days)} — Sequence: {seq_id.upper()}</strong></div>" + body
+                self.gmail.send_email(email, f"[TRIAL] {subj}", body)
+                self._log(f"Trial sent: {seq_id.upper()} Day {day} to {email}")
+                results.append({"day": day, "status": "sent"})
+                
+                # Wait 2 minutes between sends (except after last one)
+                if i < len(days) - 1:
+                    self._log(f"Waiting 2 minutes before Day {days[i+1]}...")
+                    time.sleep(120)
+            except Exception as e:
+                self._log(f"Trial failed Day {day}: {e}")
+                results.append({"day": day, "status": "failed", "error": str(e)})
+                break
+        
+        sent_count = sum(1 for r in results if r["status"] == "sent")
+        return {"success": True, "sent": sent_count, "total": len(days), "results": results}
+
     # -- Test Send --
     def test_send(self, email: str, seq_id: str, day: int) -> bool:
         tmpl = self.db.template_get(seq_id, day)
@@ -1142,17 +1182,19 @@ class CampaignEngine:
     def get_pool_count(self, sequence_id: str) -> int:
         return self.db.get_pool_count(sequence_id)
 
-    def create_batch_from_pool(self, name: str, sequence_id: str, batch_size: int,
+    def create_batch_from_pool(self, name: str, sequence_id: str = None, batch_size: int = 10,
                                 day_offset: int = 1, scheduled_at: str = None,
                                 timezone: str = 'Asia/Kolkata', send_rate: int = 0,
                                 stagger_minutes: int = 2) -> dict:
-        pool_count = self.get_pool_count(sequence_id)
+        pool_seq = sequence_id or "leads"
+        pool_count = self.get_pool_count(pool_seq)
         if pool_count == 0:
-            return {"success": False, "error": f"No unbatched leads in {sequence_id.upper()} pool"}
+            return {"success": False, "error": f"No unbatched leads in generic pool"}
 
+        batch_seq = sequence_id if sequence_id else "unassigned"
         batch_id, error = self.db.batch_from_pool(
             name=name,
-            sequence_id=sequence_id,
+            sequence_id=batch_seq,
             batch_size=batch_size,
             day_offset=day_offset,
             scheduled_at=scheduled_at,
@@ -1166,7 +1208,7 @@ class CampaignEngine:
 
         batch = self.db.batch_get(batch_id)
         actual_size = self.db.batch_count_recipients(batch_id)
-        self._log(f"[POOL] Created batch '{name}' with {actual_size}/{batch_size} leads from {sequence_id.upper()} pool ({pool_count} available)")
+        self._log(f"[POOL] Created batch '{name}' with {actual_size}/{batch_size} leads from generic pool ({pool_count} available)")
         return {
             "success": True,
             "batch_id": batch_id,
@@ -1180,6 +1222,20 @@ class CampaignEngine:
         }
 
     # -- Blacklist --
+
+
+    def assign_sequence_to_batch(self, batch_id: int, sequence_id: str) -> dict:
+        """Assign a sequence to a batch and update its recipients."""
+        if sequence_id not in SEQUENCES:
+            return {"success": False, "error": f"Invalid sequence {sequence_id}"}
+        try:
+            rows = self.db.assign_sequence_to_batch(batch_id, sequence_id)
+            self._log(f"Assigned sequence {sequence_id.upper()} to batch {batch_id} ({rows} rows updated)")
+            return {"success": True, "rows_updated": rows}
+        except Exception as e:
+            self._log(f"Failed to assign sequence: {e}")
+            return {"success": False, "error": str(e)}
+
     def blacklist_add(self, email: str, reason: str = "manual"):
         self.db.blacklist_add(email, reason)
         self._log(f"Blacklisted: {email}")

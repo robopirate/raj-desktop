@@ -251,7 +251,7 @@ class RajChatApp(ctk.CTk):
 
         self.dashboard_cards = {}
         sequences = [("school", "SCHOOL", C_ACCENT), ("csr", "CSR", C_WARNING), ("csr-wsl-5", "CSR-WSL-5", C_WARNING),
-                     ("total", "TOTAL", C_SUCCESS), ("blacklist", "BLACKLIST", C_DANGER)]
+                     ("leads", "GENERIC LEADS", C_TEXT_DIM), ("total", "TOTAL", C_SUCCESS), ("blacklist", "BLACKLIST", C_DANGER)]
 
         for col, (seq_id, label, color) in enumerate(sequences):
             card = ctk.CTkFrame(cards_frame, fg_color=C_PANEL, corner_radius=self._sf(12))
@@ -353,7 +353,7 @@ class RajChatApp(ctk.CTk):
             # ─── Overview Cards ───
             totals = {"leads": 0, "sent": 0, "replied": 0, "bounced": 0, "pool": 0}
 
-            for seq_id in ["school", "csr", "csr-wsl-5"]:
+            for seq_id in ["school", "csr", "csr-wsl-5", "leads"]:
                 seq_data = summary.get("sequences", {}).get(seq_id, {})
                 pipeline = seq_data.get("pipeline", {})
                 pool_count = seq_data.get("pool_count", 0)
@@ -391,7 +391,7 @@ class RajChatApp(ctk.CTk):
                 total_blacklist = summary.get("global", {}).get("blacklist_count", 0)
                 self.dashboard_cards["blacklist"]["leads"].configure(text=f"Blocked: {total_blacklist}", text_color="white")
 
-            # ─── Day-wise Pipeline Table (COMBINED SCHOOL + CSR) ───
+            # ─── Day-wise Pipeline Table (COMBINED SCHOOL + CSR + CSR-WSL-5) ───
             combined_day_wise = {}
             for seq_id in ["school", "csr", "csr-wsl-5"]:
                 seq_data = summary.get("sequences", {}).get(seq_id, {})
@@ -898,6 +898,14 @@ class RajChatApp(ctk.CTk):
         """Handle click on active pill button — start batch or create if missing."""
         if batch_id:
             if status in ["DRAFT", "SCHEDULED", "PAUSED"]:
+                # Check if batch is unassigned
+                try:
+                    batch = self.engine.db.batch_get(batch_id)
+                    if batch and batch.get("sequence_id") == "unassigned":
+                        self._show_sequence_picker(batch_id, family_name)
+                        return
+                except:
+                    pass
                 self._start_batch(batch_id)
             elif status == "RUNNING":
                 self._pause_batch(batch_id)
@@ -905,6 +913,36 @@ class RajChatApp(ctk.CTk):
                 self._show_batch_details(batch_id)
         else:
             self._create_day_batch(family_name, day_num, seq_id)
+
+    def _show_sequence_picker(self, batch_id, batch_name):
+        """Show dialog to pick sequence for unassigned batch."""
+        popup = ctk.CTkToplevel(self)
+        popup.title(f"Assign Sequence — {batch_name}")
+        popup.geometry("400x250")
+        popup.configure(fg_color=C_BG)
+        popup.transient(self)
+        popup.grab_set()
+
+        ctk.CTkLabel(popup, text="🎯 Select Sequence", font=("Segoe UI", 18, "bold"),
+                     text_color=C_ACCENT).pack(pady=(20, 5))
+        ctk.CTkLabel(popup, text=f"Batch: {batch_name}", font=("Segoe UI", 12),
+                     text_color=C_TEXT_DIM).pack()
+        ctk.CTkLabel(popup, text="Choose which email sequence to use for this batch:",
+                     font=("Segoe UI", 11), text_color=C_TEXT).pack(pady=(10, 15))
+
+        seq_var = ctk.StringVar(value="csr-wsl-5")
+        ctk.CTkOptionMenu(popup, values=["school", "csr", "csr-wsl-5"],
+                          variable=seq_var, font=("Segoe UI", 12),
+                          width=200).pack(pady=10)
+
+        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
+        btn_frame.pack(pady=15)
+        ctk.CTkButton(btn_frame, text="🚀 Launch", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+                      command=lambda: [self._start_batch(batch_id, seq_var.get()), popup.destroy()]).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12, "bold"),
+                      fg_color=C_PANEL, hover_color="#3a3a5e",
+                      command=popup.destroy).pack(side="left", padx=5)
 
     def _show_pill_report(self, batch_id, family_name, day_num):
         """Show report popup for any pill."""
@@ -978,12 +1016,16 @@ class RajChatApp(ctk.CTk):
         except Exception as e:
             self._log_activity(f"Error creating day batch: {e}")
 
-    def _start_batch(self, batch_id):
-        """Start a batch."""
+    def _start_batch(self, batch_id, sequence_id=None):
+        """Start a batch. If sequence_id provided, assign it first."""
         try:
+            if sequence_id:
+                assign = self.engine.assign_sequence_to_batch(batch_id, sequence_id)
+                if not assign.get("success"):
+                    self._log_activity(f"Failed to assign sequence: {assign.get('error')}")
+                    return
             self.engine.db.batch_update_status(batch_id, "running")
             self._log_activity(f"Started batch {batch_id}")
-            # Only refresh dashboard; batches tab updates on next tab switch
             self._refresh_batch_list()
         except Exception as e:
             self._log_activity(f"Error starting batch: {e}")
@@ -1145,16 +1187,26 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(view, text="📥 Import Leads", font=("Segoe UI", 24, "bold"),
                      text_color="white").pack(anchor="w", pady=(0, 15))
 
+        # --- Import Section ---
+        import_card = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
+        import_card.pack(fill="x", pady=(0, 15))
+        import_inner = ctk.CTkFrame(import_card, fg_color="transparent")
+        import_inner.pack(fill="x", padx=15, pady=15)
+
+        ctk.CTkLabel(import_inner, text="📁 Import Leads", font=("Segoe UI", 16, "bold"),
+                     text_color=C_ACCENT).pack(anchor="w", pady=(0, 10))
+
         # Sequence selector
-        seq_frame = ctk.CTkFrame(view, fg_color="transparent")
+        seq_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
         seq_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(seq_frame, text="Sequence:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.import_seq_var = ctk.StringVar(value="school")
-        ctk.CTkOptionMenu(seq_frame, values=["school", "csr", "csr-wsl-5"], variable=self.import_seq_var,
+        ctk.CTkLabel(seq_frame, text="Import as:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.import_seq_var = ctk.StringVar(value="leads")
+        ctk.CTkOptionMenu(seq_frame, values=["leads (generic pool)", "school", "csr", "csr-wsl-5"], variable=self.import_seq_var,
                           font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
+        ctk.CTkLabel(seq_frame, text="→ Leads are generic, assign sequence at launch", font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(15, 0))
 
         # File selector
-        file_frame = ctk.CTkFrame(view, fg_color="transparent")
+        file_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
         file_frame.pack(fill="x", pady=(0, 10))
         self.import_file_label = ctk.CTkLabel(file_frame, text="No file selected",
                                                font=("Segoe UI", 11), text_color=C_TEXT_DIM)
@@ -1163,17 +1215,92 @@ class RajChatApp(ctk.CTk):
                       fg_color=C_ACCENT, command=self._browse_import_file).pack(side="left", padx=(10, 0))
 
         # Import button
-        ctk.CTkButton(view, text="Import to Pool", font=("Segoe UI", 14, "bold"),
+        ctk.CTkButton(import_inner, text="Import to Pool", font=("Segoe UI", 14, "bold"),
                       fg_color=C_SUCCESS, hover_color="#2a8a4a", height=40,
                       command=self._do_import).pack(fill="x", pady=(10, 0))
 
-        # Preview
+        # --- Trial Send Section ---
+        trial_card = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
+        trial_card.pack(fill="x", pady=(0, 15))
+        trial_inner = ctk.CTkFrame(trial_card, fg_color="transparent")
+        trial_inner.pack(fill="x", padx=15, pady=15)
+
+        ctk.CTkLabel(trial_inner, text="🧪 Trial Send", font=("Segoe UI", 16, "bold"),
+                     text_color=C_WARNING).pack(anchor="w", pady=(0, 10))
+
+        ctk.CTkLabel(trial_inner, text="Send all 5 emails to a test address with 2-minute gaps",
+                     font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(anchor="w", pady=(0, 10))
+
+        # Trial sequence selector
+        trial_seq_frame = ctk.CTkFrame(trial_inner, fg_color="transparent")
+        trial_seq_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(trial_seq_frame, text="Sequence:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.trial_seq_var = ctk.StringVar(value="csr-wsl-5")
+        ctk.CTkOptionMenu(trial_seq_frame, values=["school", "csr", "csr-wsl-5"], variable=self.trial_seq_var,
+                          font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
+
+        # Email input
+        email_frame = ctk.CTkFrame(trial_inner, fg_color="transparent")
+        email_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(email_frame, text="Email:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.trial_email_entry = ctk.CTkEntry(email_frame, font=("Segoe UI", 12), width=280,
+                                               placeholder_text="test@example.com")
+        self.trial_email_entry.pack(side="left", padx=(10, 0))
+
+        # Name + Org (optional)
+        name_frame = ctk.CTkFrame(trial_inner, fg_color="transparent")
+        name_frame.pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(name_frame, text="Name (opt):", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.trial_name_entry = ctk.CTkEntry(name_frame, font=("Segoe UI", 12), width=150,
+                                              placeholder_text="CSR Head")
+        self.trial_name_entry.pack(side="left", padx=(10, 0))
+        ctk.CTkLabel(name_frame, text="Org (opt):", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left", padx=(15, 0))
+        self.trial_org_entry = ctk.CTkEntry(name_frame, font=("Segoe UI", 12), width=150,
+                                             placeholder_text="Company")
+        self.trial_org_entry.pack(side="left", padx=(10, 0))
+
+        # Send trial button
+        ctk.CTkButton(trial_inner, text="🚀 Send Trial Sequence", font=("Segoe UI", 14, "bold"),
+                      fg_color=C_WARNING, hover_color="#c46a00", height=40,
+                      command=self._do_trial_send).pack(fill="x", pady=(10, 0))
+
+        # --- Preview ---
         self.import_preview = ctk.CTkTextbox(view, fg_color=C_PANEL, text_color=C_TEXT,
                                              font=("Segoe UI", 11), wrap="word", height=200)
         self.import_preview.pack(fill="both", expand=True, pady=(10, 0))
         self.import_preview.configure(state="disabled")
 
         self.import_filepath = None
+
+    def _do_trial_send(self):
+        email = self.trial_email_entry.get().strip()
+        if not email or "@" not in email:
+            messagebox.showwarning("Invalid Email", "Please enter a valid email address")
+            return
+        seq_id = self.trial_seq_var.get()
+        name = self.trial_name_entry.get().strip()
+        org = self.trial_org_entry.get().strip()
+        
+        self._append_import_preview(f"🧪 Starting trial send: {seq_id.upper()} to {email}")
+        self._append_import_preview("This will take ~10 minutes (5 emails × 2 min gaps)...")
+        
+        # Run in background thread so UI doesn't freeze
+        def run_trial():
+            try:
+                result = self.engine.trial_send(email, seq_id, name, org)
+                if result.get("success"):
+                    sent = result.get("sent", 0)
+                    total = result.get("total", 0)
+                    self._safe_after(0, lambda: self._append_import_preview(f"✅ Trial complete: {sent}/{total} emails sent"))
+                    for r in result.get("results", []):
+                        status = "✅" if r["status"] == "sent" else "❌"
+                        self._safe_after(0, lambda r=r, status=status: self._append_import_preview(f"  {status} Day {r['day']}: {r['status']}"))
+                else:
+                    self._safe_after(0, lambda: self._append_import_preview(f"❌ Trial failed: {result.get('error')}"))
+            except Exception as e:
+                self._safe_after(0, lambda: self._append_import_preview(f"❌ Trial error: {e}"))
+        
+        threading.Thread(target=run_trial, daemon=True).start()
 
     def _browse_import_file(self):
         path = filedialog.askopenfilename(filetypes=[("Excel/CSV", "*.xlsx *.csv *.xls")])
@@ -1186,12 +1313,17 @@ class RajChatApp(ctk.CTk):
             messagebox.showwarning("No File", "Please select a file first")
             return
         seq_id = self.import_seq_var.get()
+        # Map display text to actual sequence_id
+        if seq_id == "leads (generic pool)":
+            seq_id = "leads"
         try:
             result = self.engine.smart_import(self.import_filepath, seq_id)
             if result.get("success"):
                 msg = f"Imported {result.get('imported', 0)} leads to {seq_id.upper()} pool\nSkipped: {result.get('skipped', 0)}"
                 self._append_import_preview(msg)
                 self._refresh_dashboard()
+                if hasattr(self, '_refresh_pool_count'):
+                    self._refresh_pool_count()
             else:
                 self._append_import_preview(f"Error: {result.get('error', 'Unknown')}")
         except Exception as e:
@@ -1491,6 +1623,39 @@ class RajChatApp(ctk.CTk):
     # ═══════════════════════════════════════════════════════════
     # BATCHES VIEW
     # ═══════════════════════════════════════════════════════════
+    def _refresh_source_pools(self):
+        """Refresh the Pull From dropdown with available pools and their counts."""
+        try:
+            pools = []
+            for seq_id in ["leads", "school", "csr", "csr-wsl-5"]:
+                count = self.engine.get_pool_count(seq_id)
+                if count > 0:
+                    label = "Generic" if seq_id == "leads" else seq_id.upper()
+                    pools.append(f"{label} ({count})")
+            
+            if not pools:
+                pools = ["No pools available (0)"]
+            
+            self.batch_source_menu.configure(values=pools)
+            # Extract the sequence_id from the first option
+            if pools[0] != "No pools available (0)":
+                self.batch_source.set(pools[0])
+        except Exception as e:
+            self.batch_source_menu.configure(values=[f"Error: {e}"])
+
+    def _get_batch_source_seq(self):
+        """Extract sequence_id from the selected dropdown option."""
+        selected = self.batch_source.get()
+        if "Generic" in selected:
+            return "leads"
+        elif "SCHOOL" in selected or "school" in selected:
+            return "school"
+        elif "CSR-WSL-5" in selected or "csr-wsl-5" in selected:
+            return "csr-wsl-5"
+        elif "CSR" in selected:
+            return "csr"
+        return "leads"
+
     def _build_batches_view(self):
         view = ctk.CTkScrollableFrame(self.content, fg_color="transparent")
         self.views["batches"] = view
@@ -1509,13 +1674,16 @@ class RajChatApp(ctk.CTk):
         self.batch_name = ctk.CTkEntry(name_row, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
         self.batch_name.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
-        # Sequence
-        seq_row = ctk.CTkFrame(form, fg_color="transparent")
-        seq_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(seq_row, text="Sequence:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.batch_seq = ctk.StringVar(value="school")
-        ctk.CTkOptionMenu(seq_row, values=["school", "csr", "csr-wsl-5"], variable=self.batch_seq,
-                          font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
+        # Pull From (pool source)
+        source_row = ctk.CTkFrame(form, fg_color="transparent")
+        source_row.pack(fill="x", padx=15, pady=8)
+        ctk.CTkLabel(source_row, text="Pull From:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        self.batch_source = ctk.StringVar(value="leads")
+        self.batch_source_menu = ctk.CTkOptionMenu(source_row, values=["Loading..."], variable=self.batch_source,
+                                                    font=("Segoe UI", 12), width=200)
+        self.batch_source_menu.pack(side="left", padx=(10, 0))
+        ctk.CTkButton(source_row, text="🔄 Refresh", font=("Segoe UI", 10), fg_color=C_PANEL, width=60, height=24,
+                      command=lambda: self._refresh_source_pools()).pack(side="left", padx=(10, 0))
 
         # Size
         size_row = ctk.CTkFrame(form, fg_color="transparent")
@@ -1532,6 +1700,7 @@ class RajChatApp(ctk.CTk):
         self.batch_day = ctk.StringVar(value="1")
         ctk.CTkOptionMenu(day_row, values=["1", "3", "5", "7", "10"], variable=self.batch_day,
                           font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
+        ctk.CTkLabel(day_row, text="→ Sequence is assigned at launch", font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(10, 0))
 
         # Schedule
         sched_row = ctk.CTkFrame(form, fg_color="transparent")
@@ -1541,7 +1710,7 @@ class RajChatApp(ctk.CTk):
         self.batch_sched.insert(0, "2026-06-05 10:00:00")
         self.batch_sched.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
-        ctk.CTkButton(form, text="Create from Pool", font=("Segoe UI", 14, "bold"),
+        ctk.CTkButton(form, text="Create Batch from Pool", font=("Segoe UI", 14, "bold"),
                       fg_color=C_SUCCESS, hover_color="#2a8a4a", height=40,
                       command=self._create_batch).pack(fill="x", padx=15, pady=(5, 15))
 
@@ -1549,29 +1718,32 @@ class RajChatApp(ctk.CTk):
         self.all_batches_frame = ctk.CTkFrame(view, fg_color="transparent")
         self.all_batches_frame.pack(fill="both", expand=True)
 
+        self._refresh_source_pools()
         self._refresh_all_batches()
 
     def _create_batch(self):
         try:
             name = self.batch_name.get().strip()
-            seq_id = self.batch_seq.get()
             size = int(self.batch_size.get())
             day = int(self.batch_day.get())
             sched = self.batch_sched.get().strip()
+            source_seq = self._get_batch_source_seq()
 
             if not name:
                 messagebox.showwarning("Missing Name", "Please enter a batch name")
                 return
 
             result = self.engine.create_batch_from_pool(
-                name=name, sequence_id=seq_id, batch_size=size,
+                name=name, sequence_id=source_seq, batch_size=size,
                 day_offset=day, scheduled_at=sched
             )
 
             if result.get("success"):
-                self._log_activity(f"Created batch '{name}' with {result['size']} leads")
+                pool_name = "Generic" if source_seq == "leads" else source_seq.upper()
+                self._log_activity(f"Created batch '{name}' with {result['size']} leads from {pool_name}")
                 self._refresh_all_batches()
                 self._refresh_dashboard()
+                self._refresh_source_pools()
             else:
                 messagebox.showwarning("Error", result.get("error", "Unknown error"))
 
@@ -2457,10 +2629,15 @@ class RajChatApp(ctk.CTk):
                     skipped += 1
                     continue
 
+                # Get sequence_id from the batch
+                seq_id = self.engine.db.execute(
+                    "SELECT sequence_id FROM batches WHERE id=?", (batch_id,)
+                ).fetchone()[0]
+                
                 try:
                     self.engine.db.execute(
                         "INSERT INTO recipients (sequence_id, email, name, org, extra_json) VALUES (?, ?, ?, ?, ?)",
-                        ("school", email, name, org, "{}")
+                        (seq_id, email, name, org, "{}")
                     )
                     rec_id = self.engine.db.execute("SELECT last_insert_rowid()").fetchone()[0]
                     self.engine.db.batch_add_recipient(batch_id, rec_id)

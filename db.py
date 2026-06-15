@@ -357,13 +357,18 @@ class Database:
     # -- POOL METHODS (NEW) --
     def get_pool(self, sequence_id, limit=None):
         """Get unbatched leads from the pool. Excludes blacklisted emails."""
-        sql = """
+        if sequence_id is None or sequence_id == "leads":
+            where_clause = "r.sequence_id='leads' AND r.batched=0"
+            params = []
+        else:
+            where_clause = "r.sequence_id=? AND r.batched=0"
+            params = [sequence_id]
+        sql = f"""
             SELECT r.* FROM recipients r
-            WHERE r.sequence_id=? AND r.batched=0
+            WHERE {where_clause}
               AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
             ORDER BY r.id
         """
-        params = [sequence_id]
         if limit:
             sql += " LIMIT ?"
             params.append(limit)
@@ -372,11 +377,17 @@ class Database:
 
     def get_pool_count(self, sequence_id):
         """Count unbatched leads in pool. Excludes blacklisted emails."""
-        row = self.execute("""
+        if sequence_id is None or sequence_id == "leads":
+            where_clause = "r.sequence_id='leads' AND r.batched=0"
+            params = ()
+        else:
+            where_clause = "r.sequence_id=? AND r.batched=0"
+            params = (sequence_id,)
+        row = self.execute(f"""
             SELECT COUNT(*) FROM recipients r
-            WHERE r.sequence_id=? AND r.batched=0
+            WHERE {where_clause}
               AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
-        """, (sequence_id,)).fetchone()
+        """, params).fetchone()
         return row[0] if row else 0
 
     def mark_batched(self, recipient_ids):
@@ -476,7 +487,10 @@ class Database:
                         scheduled_at=None, timezone='Asia/Kolkata', send_rate=0, stagger_minutes=0, campaign_id=None):
         """Create a batch from unbatched leads in the pool.
         SAFETY: Only picks leads with batched=0. Double-checks before marking."""
-        pool = self.get_pool(sequence_id, limit=batch_size)
+        pool_seq_id = "leads" if sequence_id is None or sequence_id == "leads" else sequence_id
+        batch_seq_id = "unassigned" if sequence_id is None or sequence_id == "leads" else sequence_id
+        
+        pool = self.get_pool(pool_seq_id, limit=batch_size)
         if not pool:
             return None, "No unbatched leads in pool for this sequence"
 
@@ -494,7 +508,7 @@ class Database:
 
         batch_id = self.batch_create(
             name=name,
-            sequence_id=sequence_id,
+            sequence_id=batch_seq_id,
             scheduled_at=scheduled_at,
             timezone=timezone,
             send_rate=send_rate,
@@ -875,11 +889,21 @@ class Database:
         """).fetchall()
         return [dict(r) for r in rows]
 
+    def assign_sequence_to_batch(self, batch_id, sequence_id):
+        """Update a batch and its recipients to a new sequence_id."""
+        cur_batch = self.execute("UPDATE batches SET sequence_id=? WHERE id=?", (sequence_id, batch_id))
+        cur_recipients = self.execute("""
+            UPDATE recipients SET sequence_id=?
+            WHERE id IN (SELECT recipient_id FROM batch_recipients WHERE batch_id=?)
+        """, (sequence_id, batch_id))
+        self.commit()
+        return cur_batch.rowcount + cur_recipients.rowcount
+
     # -- DASHBOARD SUMMARY --
     def get_dashboard_summary(self):
         summary = {"sequences": {}, "global": {}}
 
-        for seq_id in ["school", "csr"]:
+        for seq_id in ["school", "csr", "csr-wsl-5", "leads"]:
             seq = {}
             seq["recipients"] = self.recipient_count(seq_id)
             seq["pool_count"] = self.get_pool_count(seq_id)
