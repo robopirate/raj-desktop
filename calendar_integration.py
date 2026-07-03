@@ -18,9 +18,29 @@ class CalendarManager:
         self.credentials_path = credentials_path
         self.token_path = token_path
         self.service = None
-        self._authenticate()
+        # Try silent auth on startup; fail quietly so app can open
+        try:
+            self._authenticate(silent=True)
+        except Exception:
+            pass
 
-    def _authenticate(self):
+    def is_connected(self):
+        return self.service is not None
+
+    def authenticate(self, callback=None):
+        """Run full interactive OAuth. Calls callback(success, error) on completion."""
+        try:
+            self._authenticate(silent=False)
+            print("[Calendar] Connected to Google Calendar")
+            if callback:
+                callback(True, None)
+        except Exception as e:
+            if callback:
+                callback(False, str(e))
+            else:
+                raise
+
+    def _authenticate(self, silent=False):
         creds = None
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
@@ -30,16 +50,16 @@ class CalendarManager:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
+                if silent:
+                    raise Exception("Silent auth failed: no valid token")
                 if not os.path.exists(self.credentials_path):
-                    print("[Calendar] credentials.json not found. Calendar integration disabled.")
-                    return
+                    raise FileNotFoundError(f"[Calendar] credentials.json not found at {self.credentials_path}")
                 flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, SCOPES)
                 creds = flow.run_local_server(port=0)
             with open(self.token_path, 'wb') as token:
                 pickle.dump(creds, token)
 
         self.service = build('calendar', 'v3', credentials=creds)
-        print("[Calendar] Connected to Google Calendar")
 
     def create_meeting(self, recipient_email, recipient_name, subject, duration_minutes=30, 
                       days_from_now=2, time_hour=10, time_minute=0, description=""):

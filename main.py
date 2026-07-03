@@ -41,10 +41,7 @@ def main():
     db = Database()
 
     print("\n[1/3] Connecting to Gmail...")
-    try:
-        gmail = GmailClient()
-        print("OK Gmail connected")
-    except FileNotFoundError:
+    if not os.path.exists("credentials.json"):
         print("\nERROR: credentials.json not found!")
         print("   1. Go to https://console.cloud.google.com")
         print("   2. Create project -> Enable Gmail API")
@@ -52,10 +49,12 @@ def main():
         print("   4. Download JSON and save as 'credentials.json' in this folder")
         input("\nPress Enter to exit...")
         return
-    except Exception as e:
-        print(f"ERROR Gmail: {e}")
-        input("\nPress Enter to exit...")
-        return
+
+    gmail = GmailClient()
+    if gmail.is_connected():
+        print("OK Gmail connected")
+    else:
+        print("[Warning] Gmail not connected. Go to Settings > Google Connections to sign in.")
 
     print("[2/3] Starting engine...")
     engine = CampaignEngine(db, gmail)

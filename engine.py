@@ -161,14 +161,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <style>
-body{font-family:Segoe UI,Arial,sans-serif;background:#0A1628;color:#E6EDF3;padding:20px;margin:0}
-.container{max-width:600px;margin:0 auto;background:#111D2E;border-radius:12px;padding:30px;border:1px solid #2a2a4e}
-.header{text-align:center;border-bottom:2px solid #59ced9;padding-bottom:15px;margin-bottom:20px}
-.logo{font-size:28px;font-weight:bold;color:#59ced9}
-.sub{color:#8B949E;font-size:12px}
-.content{line-height:1.6;font-size:14px}
-.footer{margin-top:30px;padding-top:15px;border-top:1px solid #2a2a4e;text-align:center;color:#8B949E;font-size:11px}
-.cta{display:inline-block;background:#59ced9;color:#0A1628;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin:15px 0}
+body{{font-family:Segoe UI,Arial,sans-serif;background:#0A1628;color:#E6EDF3;padding:20px;margin:0}}
+.container{{max-width:600px;margin:0 auto;background:#111D2E;border-radius:12px;padding:30px;border:1px solid #2a2a4e}}
+.header{{text-align:center;border-bottom:2px solid #59ced9;padding-bottom:15px;margin-bottom:20px}}
+.logo{{font-size:28px;font-weight:bold;color:#59ced9}}
+.sub{{color:#8B949E;font-size:12px}}
+.content{{line-height:1.6;font-size:14px}}
+.footer{{margin-top:30px;padding-top:15px;border-top:1px solid #2a2a4e;text-align:center;color:#8B949E;font-size:11px}}
+.cta{{display:inline-block;background:#59ced9;color:#0A1628;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin:15px 0}}
 </style>
 </head>
 <body>
@@ -226,6 +226,51 @@ class CampaignEngine:
     def add_log_callback(self, fn):
         self._log_callbacks.append(fn)
 
+    def connect_gmail(self, callback=None):
+        """Trigger interactive Gmail OAuth in a background thread."""
+        if not self.gmail:
+            if callback:
+                callback(False, "Gmail client not available")
+            return
+        def cb(success, error):
+            if success:
+                self._log("[Gmail] Connected")
+            else:
+                self._log(f"[Gmail] Connection failed: {error}")
+            if callback:
+                callback(success, error)
+        threading.Thread(target=self.gmail.authenticate, args=(cb,), daemon=True).start()
+
+    def connect_calendar(self, callback=None):
+        """Trigger interactive Calendar OAuth in a background thread."""
+        if not self.calendar:
+            if callback:
+                callback(False, "Calendar integration not available")
+            return
+        def cb(success, error):
+            if success:
+                self._log("[Calendar] Connected")
+            else:
+                self._log(f"[Calendar] Connection failed: {error}")
+            if callback:
+                callback(success, error)
+        threading.Thread(target=self.calendar.authenticate, args=(cb,), daemon=True).start()
+
+    def connect_drive(self, callback=None):
+        """Trigger interactive Drive OAuth in a background thread."""
+        if not self.drive:
+            if callback:
+                callback(False, "Drive integration not available")
+            return
+        def cb(success, error):
+            if success:
+                self._log("[Drive] Connected")
+            else:
+                self._log(f"[Drive] Connection failed: {error}")
+            if callback:
+                callback(success, error)
+        threading.Thread(target=self.drive.authenticate, args=(cb,), daemon=True).start()
+
     def _log(self, msg: str):
         ts = datetime.now().strftime("%H:%M:%S")
         line = f"[{ts}] {msg}"
@@ -259,6 +304,18 @@ class CampaignEngine:
             self._log(f"[Tracking] Engagement tracking active at {self.tracker.base_url}")
         except Exception as e:
             self._log(f"[Tracking] Failed to start: {e}")
+
+        # TEMPLATE HEALTH: ensure built-in sequences have valid templates
+        try:
+            health = self.validate_templates(auto_repair=True)
+            if health["repaired"]:
+                self._log(f"[TemplateHealth] Auto-repaired: {', '.join(health['repaired'])}")
+            if health["failed"]:
+                self._log(f"[TemplateHealth] Still broken: {', '.join(health['failed'])}")
+            if health["ok"]:
+                self._log("[TemplateHealth] All templates valid")
+        except Exception as e:
+            self._log(f"[TemplateHealth] Check failed: {e}")
 
         # RESUME-ON-BOOT: Check for batches stuck in "running" status
         try:
@@ -501,7 +558,7 @@ class CampaignEngine:
                             except Exception as del_err:
                                 self._log(f"[Batch {batch['name']}] Draft delete skipped: {del_err}")
 
-                        msg = self.gmail.send_email(rec.email, subj, body)
+                        msg = self._send_with_retry(rec.email, subj, body)
                         self.db.execute("""
                             UPDATE batch_recipients SET status='sent', sent_at=?
                             WHERE batch_id=? AND recipient_id=?
@@ -788,20 +845,28 @@ class CampaignEngine:
                 continue
 
             full = self.gmail.get_draft_full(draft_id)
-            if full and full.get("html_body"):
-                # Preserve existing A/B test settings when syncing
-                existing = self.db.template_get(seq, day)
-                self.db.template_put(
-                    seq, day, full["subject"], full["html_body"],
-                    subject_b=existing.get("subject_b") if existing else None,
-                    ab_test=existing.get("ab_test", 0) if existing else 0,
-                    ab_split=existing.get("ab_split", 0.5) if existing else 0.5
-                )
-                loaded += 1
-                self._log(f"Loaded: {subject} -> {seq.upper()} Day {day}")
-            else:
+            if not full:
                 skipped.append(f"Failed to fetch body: {subject} (draft_id={draft_id})")
                 self._log(f"WARNING: Found matching draft but could not fetch body: {subject}")
+                continue
+
+            draft_subject = (full.get("subject") or "").strip()
+            draft_body = (full.get("html_body") or "").strip()
+            if not draft_subject or not draft_body:
+                skipped.append(f"Empty draft: {subject}")
+                self._log(f"WARNING: Skipping empty Gmail draft: {subject}")
+                continue
+
+            # Preserve existing A/B test settings when syncing
+            existing = self.db.template_get(seq, day)
+            self.db.template_put(
+                seq, day, draft_subject, draft_body,
+                subject_b=existing.get("subject_b") if existing else None,
+                ab_test=existing.get("ab_test", 0) if existing else 0,
+                ab_split=existing.get("ab_split", 0.5) if existing else 0.5
+            )
+            loaded += 1
+            self._log(f"Loaded: {subject} -> {seq.upper()} Day {day}")
 
         missing = []
         for seq_id, cfg in SEQUENCES.items():
@@ -867,12 +932,15 @@ class CampaignEngine:
                 tmpl = self.db.template_get(seq_id, day)
                 locked = self.is_template_locked(seq_id, day)
                 if tmpl:
-                    source = self.db.get_meta(f"source_{seq_id}_{day}") or "unknown"
+                    source = tmpl.get("source") or "unknown"
+                    subject = (tmpl.get("subject") or "").strip()
+                    body = (tmpl.get("html_body") or "").strip()
                     status[seq_id][day] = {
                         "exists": True,
+                        "empty": not subject or not body,
                         "locked": locked,
                         "source": source,
-                        "subject": tmpl["subject"][:60],
+                        "subject": tmpl["subject"][:60] if subject else "(empty subject)",
                         "subject_b": tmpl.get("subject_b", ""),
                         "ab_test": bool(tmpl.get("ab_test", 0)),
                         "ab_split": tmpl.get("ab_split", 0.5)
@@ -880,6 +948,7 @@ class CampaignEngine:
                 else:
                     status[seq_id][day] = {
                         "exists": False,
+                        "empty": True,
                         "locked": False,
                         "source": None,
                         "subject": None,
@@ -1067,13 +1136,17 @@ class CampaignEngine:
         }
         return contents.get(day, f"<p>Template content for Day {day}</p>")
 
-    def save_generated_template(self, seq_id: str, day: int) -> bool:
+    def save_generated_template(self, seq_id: str, day: int, create_draft: bool = True) -> bool:
         template = self.generate_template(seq_id, day)
         if "error" in template:
             self._log(f"Failed to generate {seq_id.upper()} Day {day}: {template['error']}")
             return False
 
         self.db.template_put(seq_id, day, template["subject"], template["html_body"], "generated")
+
+        if not create_draft:
+            self._log(f"Generated {seq_id.upper()} Day {day} template (DB only)")
+            return True
 
         try:
             draft = self.gmail.draft_email(
@@ -1086,6 +1159,54 @@ class CampaignEngine:
         except Exception as e:
             self._log(f"Saved to DB but Gmail draft failed: {e}")
             return True
+
+    def validate_templates(self, seq_id: str = None, auto_repair: bool = True) -> dict:
+        """Check that every configured sequence/day has a non-empty template.
+        Optionally regenerate missing/empty templates from built-in content.
+        Returns {"ok": bool, "repaired": [...], "failed": [...], "details": [...]}
+        """
+        targets = [(seq_id, SEQUENCES[seq_id])] if seq_id and seq_id in SEQUENCES else SEQUENCES.items()
+        repaired = []
+        failed = []
+        details = []
+        ok = True
+
+        for sid, cfg in targets:
+            for day in cfg["days"]:
+                tmpl = self.db.template_get(sid, day)
+                subject = (tmpl.get("subject") or "").strip() if tmpl else ""
+                body = (tmpl.get("html_body") or "").strip() if tmpl else ""
+                if tmpl and subject and body:
+                    details.append({"seq_id": sid, "day": day, "status": "ok"})
+                    continue
+
+                status = "missing" if not tmpl else ("empty_subject" if not subject else "empty_body")
+                details.append({"seq_id": sid, "day": day, "status": status})
+                if auto_repair:
+                    self._log(f"[TemplateHealth] Repairing {sid.upper()} Day {day} ({status})")
+                    if self.save_generated_template(sid, day, create_draft=False):
+                        repaired.append(f"{sid.upper()} Day {day}")
+                        # Re-verify after repair
+                        tmpl = self.db.template_get(sid, day)
+                        subject = (tmpl.get("subject") or "").strip() if tmpl else ""
+                        body = (tmpl.get("html_body") or "").strip() if tmpl else ""
+                        if tmpl and subject and body:
+                            details[-1]["status"] = "repaired"
+                            continue
+                        status = "repair_failed"
+                    else:
+                        failed.append(f"{sid.upper()} Day {day}")
+                else:
+                    failed.append(f"{sid.upper()} Day {day}")
+
+                details[-1]["status"] = status
+                ok = False
+
+        return {"ok": ok, "repaired": repaired, "failed": failed, "details": details}
+
+    def get_template_health(self) -> list:
+        """Return a flat list of template health details for UI badges."""
+        return self.validate_templates(auto_repair=False)["details"]
 
     # -- Due Recipients --
     def due_recipients(self, sequence_id: str, day: int, limit=None) -> List[Recipient]:
@@ -1145,6 +1266,26 @@ class CampaignEngine:
             body = body.replace(ph, str(val))
         return subj, body, variant
 
+    def _send_with_retry(self, to: str, subject: str, body_html: str, thread_id=None, max_retries: int = 3):
+        """Send via Gmail with exponential backoff for transient SSL/network errors."""
+        if not self.gmail or not self.gmail.is_connected():
+            raise Exception("Gmail not connected. Go to Settings > Google Connections.")
+        last_err = None
+        for attempt in range(max_retries):
+            try:
+                return self.gmail.send_email(to, subject, body_html, thread_id)
+            except Exception as e:
+                last_err = e
+                err_text = str(e).lower()
+                # Only retry on transient network/TLS errors
+                if any(k in err_text for k in ["ssl", "wrong_version", "connection", "timeout", "temporary"]):
+                    wait = 2 ** attempt
+                    self._log(f"[GmailRetry] Attempt {attempt + 1}/{max_retries} failed ({e}); retrying in {wait}s...")
+                    time.sleep(wait)
+                    continue
+                raise
+        raise last_err
+
     # -- Send Batch (AUTO-SEND for sequences) --
     def send_batch(self, seq_id: str, day: int, limit=None, dry_run=False) -> BatchResult:
         due = self.due_recipients(seq_id, day, limit)
@@ -1191,45 +1332,72 @@ class CampaignEngine:
         """Send all 5 days of a sequence to a single email with 2-minute gaps."""
         if seq_id not in SEQUENCES:
             return {"success": False, "error": f"Unknown sequence {seq_id}"}
-        
+
+        # Ensure templates are valid before starting
+        health = self.validate_templates(seq_id, auto_repair=True)
+        if not health["ok"]:
+            return {
+                "success": False,
+                "error": f"Templates missing/empty for {seq_id.upper()} and could not be auto-repaired: {', '.join(health['failed'])}"
+            }
+
         days = SEQUENCES[seq_id]["days"]
         # Create a temporary recipient for rendering
         rec = Recipient(id=0, sequence_id=seq_id, email=email, name=name or "CSR Head", org=org or "Company", extra_json="{}")
-        
+
         results = []
         for i, day in enumerate(days):
             subj, body, _ = self.render(seq_id, day, rec)
             if not subj:
-                results.append({"day": day, "status": "skipped", "error": "No template"})
+                results.append({"day": day, "status": "skipped", "error": "missing_template"})
                 self._log(f"Trial Day {day}: No template, skipped")
+                continue
+            if not body or not body.strip():
+                results.append({"day": day, "status": "skipped", "error": "empty_body"})
+                self._log(f"Trial Day {day}: Template body is empty, skipped")
                 continue
             try:
                 # Add trial banner
                 body = f"<div style='background:#fff3cd;border:1px solid #ffc107;padding:10px;margin-bottom:15px;border-radius:4px;font-family:Arial,sans-serif'><strong style='color:#856404'>🧪 TRIAL EMAIL — Day {day} of {len(days)} — Sequence: {seq_id.upper()}</strong></div>" + body
-                self.gmail.send_email(email, f"[TRIAL] {subj}", body)
+                self._send_with_retry(email, f"[TRIAL] {subj}", body)
                 self._log(f"Trial sent: {seq_id.upper()} Day {day} to {email}")
                 results.append({"day": day, "status": "sent"})
-                
+
                 # Wait 2 minutes between sends (except after last one)
                 if i < len(days) - 1:
                     self._log(f"Waiting 2 minutes before Day {days[i+1]}...")
                     time.sleep(120)
             except Exception as e:
+                err_text = str(e)
                 self._log(f"Trial failed Day {day}: {e}")
-                results.append({"day": day, "status": "failed", "error": str(e)})
+                results.append({"day": day, "status": "failed", "error": err_text})
                 break
-        
+
         sent_count = sum(1 for r in results if r["status"] == "sent")
-        return {"success": True, "sent": sent_count, "total": len(days), "results": results}
+        failed = [r for r in results if r["status"] != "sent"]
+        return {
+            "success": sent_count > 0 or not failed,
+            "sent": sent_count,
+            "total": len(days),
+            "results": results,
+            "error": failed[0]["error"] if failed and sent_count == 0 else None
+        }
 
     # -- Test Send --
     def test_send(self, email: str, seq_id: str, day: int) -> bool:
+        if seq_id not in SEQUENCES or day not in SEQUENCES[seq_id]["days"]:
+            self._log("Invalid sequence or day")
+            return False
+        health = self.validate_templates(seq_id, auto_repair=True)
+        if not health["ok"]:
+            self._log(f"Template health check failed: {', '.join(health['failed'])}")
+            return False
         tmpl = self.db.template_get(seq_id, day)
-        if not tmpl:
-            self._log("No template found")
+        if not tmpl or not (tmpl.get("subject") or "").strip() or not (tmpl.get("html_body") or "").strip():
+            self._log("No valid template found")
             return False
         try:
-            self.gmail.send_email(email, f"[TEST] {tmpl['subject']}", tmpl["html_body"])
+            self._send_with_retry(email, f"[TEST] {tmpl['subject']}", tmpl["html_body"])
             self._log(f"Test sent to {email}")
             return True
         except Exception as e:

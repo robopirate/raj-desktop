@@ -28,9 +28,29 @@ CREDS_PATH = Path(__file__).parent / "credentials.json"
 class GmailClient:
     def __init__(self):
         self.service = None
-        self._authenticate()
+        # Try silent auth on startup; fail quietly so the app can open
+        # and let the user reconnect from Settings if the token is revoked.
+        try:
+            self._authenticate(silent=True)
+        except Exception:
+            pass
 
-    def _authenticate(self):
+    def is_connected(self):
+        return self.service is not None
+
+    def authenticate(self, callback=None):
+        """Run full interactive OAuth. Calls callback(success, error) on completion."""
+        try:
+            self._authenticate(silent=False)
+            if callback:
+                callback(True, None)
+        except Exception as e:
+            if callback:
+                callback(False, str(e))
+            else:
+                raise
+
+    def _authenticate(self, silent=False):
         creds = None
         if TOKEN_PATH.exists():
             with open(TOKEN_PATH, 'rb') as token:
@@ -40,6 +60,8 @@ class GmailClient:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
+                if silent:
+                    raise Exception("Silent auth failed: no valid token")
                 if not CREDS_PATH.exists():
                     raise FileNotFoundError(f"credentials.json not found. Download it from Google Cloud Console and place it here: {CREDS_PATH}")
                 flow = InstalledAppFlow.from_client_secrets_file(str(CREDS_PATH), SCOPES)

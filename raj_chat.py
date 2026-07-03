@@ -37,17 +37,56 @@ except ImportError:
 import os
 from datetime import datetime, timedelta
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("dark-blue")
+# Light theme matching robopirate.in
+# Neutral base with intentional, sparing color use.
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
 
-C_BG = "#0f0f1a"
-C_PANEL = "#1a1a2e"
-C_ACCENT = "#00d4ff"
-C_WARNING = "#ff9500"
-C_DANGER = "#ff3b30"
-C_SUCCESS = "#34c759"
-C_TEXT = "#e0e0e0"
-C_TEXT_DIM = "#888888"
+# Brand font — Plus Jakarta Sans is robopirate.in's font.
+# Tkinter will substitute Segoe UI / system font if it's not installed.
+APP_FONT = ("Plus Jakarta Sans", 13)
+
+# Surfaces
+C_BG        = "#F1F5F5"   # page background
+C_CARD      = "#FFFFFF"   # cards / panels
+C_CARD_ALT  = "#F8FAFA"   # muted card sections / alternating rows
+C_BORDER    = "#E5EBEB"   # borders / dividers
+
+# Text
+C_TEXT      = "#0F3D3D"   # primary text — dark teal
+C_TEXT_DIM  = "#5E6E6E"   # secondary / muted text
+
+# Intent colors (use sparingly)
+C_PRIMARY       = "#006B6B"   # teal — primary buttons, active nav, key metrics
+C_PRIMARY_HOVER = "#005959"
+C_ACCENT        = "#FACC15"   # gold — warnings, scheduled, highlights
+C_ACCENT_HOVER  = "#E5B80C"
+C_ACCENT_TEXT   = "#713F12"   # dark brown text on gold
+C_SUCCESS       = "#10B981"   # green — sent / completed
+C_SUCCESS_HOVER = "#059669"
+C_DANGER        = "#EF4444"   # red — delete / error
+C_DANGER_HOVER  = "#DC2626"
+
+# Subtle badge tints (small pills only)
+C_BADGE_READY    = "#F1F5F5"
+C_BADGE_SCHEDULED = "#FEF9C3"
+C_BADGE_QUEUE    = "#F1F5F5"
+C_BADGE_DANGER   = "#FEE2E2"
+
+# Backwards-compatible aliases (so existing references keep working)
+C_PANEL = C_CARD
+C_PANEL_MUTED = C_CARD_ALT
+C_WARNING = C_ACCENT
+C_WARNING_HOVER = C_ACCENT_HOVER
+C_WARNING_TEXT = C_ACCENT_TEXT
+C_SCHOOL_BG = "#E6F7F7"
+C_CSR_BG = "#FEF9C3"
+C_LEADS_BG = "#F1F5F5"
+C_COMPLETED_BG = "#D1FAE5"
+C_SCHEDULED_BG = "#FEF9C3"
+C_RUNNING_BG = "#CCFBF1"
+C_PAUSED_BG = "#FEF3C7"
+C_DANGER_BG = "#FEE2E2"
 
 class RajChatApp(ctk.CTk):
     def __init__(self, engine, brain):
@@ -132,9 +171,9 @@ class RajChatApp(ctk.CTk):
         return int(round(px * self._get_scale()))
 
     def _font(self, size, bold=False):
-        """Build a scaled Segoe UI font tuple."""
+        """Build a scaled brand font tuple."""
         s = max(7, int(round(size * self._get_scale())))
-        return ("Segoe UI", s, "bold") if bold else ("Segoe UI", s)
+        return (APP_FONT[0], s, "bold") if bold else (APP_FONT[0], s)
 
     def _build_ui(self):
         # Sidebar
@@ -148,13 +187,13 @@ class RajChatApp(ctk.CTk):
         logo_frame.pack_propagate(False)
 
         # Robot face logo
-        robot_label = ctk.CTkLabel(logo_frame, text="🤖", font=("Segoe UI", 32), text_color=C_ACCENT)
+        robot_label = ctk.CTkLabel(logo_frame, text="🤖", font=self._font(32), text_color=C_ACCENT)
         robot_label.pack(side="left")
 
         name_frame = ctk.CTkFrame(logo_frame, fg_color="transparent")
         name_frame.pack(side="left", padx=(8, 0))
-        ctk.CTkLabel(name_frame, text="RAJ", font=("Segoe UI", 24, "bold"), text_color=C_ACCENT).pack(anchor="w")
-        ctk.CTkLabel(name_frame, text="by RoboPirate", font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(anchor="w")
+        ctk.CTkLabel(name_frame, text="RAJ", font=self._font(24, bold=True), text_color=C_ACCENT).pack(anchor="w")
+        ctk.CTkLabel(name_frame, text="by RoboPirate", font=self._font(10), text_color=C_TEXT_DIM).pack(anchor="w")
 
         # Navigation
         nav_items = [
@@ -169,7 +208,7 @@ class RajChatApp(ctk.CTk):
             ("⚙️ Settings", "settings"),
         ]
         for text, key in nav_items:
-            btn = ctk.CTkButton(self.sidebar, text=text, font=("Segoe UI", 12),
+            btn = ctk.CTkButton(self.sidebar, text=text, font=self._font(12),
                                 fg_color="transparent", anchor="w",
                                 command=lambda k=key: self._show_view(k))
             btn.pack(fill="x", padx=10, pady=3)
@@ -177,36 +216,36 @@ class RajChatApp(ctk.CTk):
 
         # ─── Status Bar ───
         status_panel = ctk.CTkFrame(self.sidebar, fg_color=C_PANEL, corner_radius=8,
-                                    border_width=1, border_color="#2a2a4e")
+                                    border_width=1, border_color=C_BORDER)
         status_panel.pack(side="bottom", fill="x", padx=10, pady=10)
 
         # Top divider line
-        ctk.CTkFrame(status_panel, fg_color="#2a2a4e", height=1).pack(fill="x", padx=0, pady=0)
+        ctk.CTkFrame(status_panel, fg_color=C_BORDER, height=1).pack(fill="x", padx=0, pady=0)
 
         inner = ctk.CTkFrame(status_panel, fg_color="transparent")
         inner.pack(fill="x", padx=8, pady=8)
 
         # Left: status indicator
-        self.status_dot = ctk.CTkLabel(inner, text="●", font=("Segoe UI", 16),
+        self.status_dot = ctk.CTkLabel(inner, text="●", font=self._font(16),
                                        text_color=C_SUCCESS)
         self.status_dot.pack(side="left")
         self.status_text = ctk.CTkLabel(inner, text="Running",
-                                          font=("Segoe UI", 10, "bold"), text_color=C_SUCCESS)
+                                          font=self._font(10, bold=True), text_color=C_SUCCESS)
         self.status_text.pack(side="left", padx=(4, 0))
 
         # Right: compact action icons
         btn_row = ctk.CTkFrame(inner, fg_color="transparent")
         btn_row.pack(side="right")
 
-        self.btn_pause = ctk.CTkButton(btn_row, text="⏸", font=("Segoe UI", 10),
+        self.btn_pause = ctk.CTkButton(btn_row, text="⏸", font=self._font(10),
                                        width=28, height=28, corner_radius=6,
-                                       fg_color=C_WARNING, hover_color="#cc7a00",
+                                       fg_color=C_WARNING, hover_color=C_WARNING_HOVER,
                                        command=self._pause_engine)
         self.btn_pause.pack(side="left", padx=(0, 4))
 
-        self.btn_scan = ctk.CTkButton(btn_row, text="🔍", font=("Segoe UI", 10),
+        self.btn_scan = ctk.CTkButton(btn_row, text="🔍", font=self._font(10),
                                       width=28, height=28, corner_radius=6,
-                                      fg_color=C_ACCENT, hover_color="#4ab8c4",
+                                      fg_color=C_PRIMARY, hover_color=C_PRIMARY_HOVER,
                                       command=self._scan_bounces_now)
         self.btn_scan.pack(side="left")
 
@@ -242,7 +281,7 @@ class RajChatApp(ctk.CTk):
 
         # Header
         ctk.CTkLabel(view, text="📊 Dashboard", font=self._font(28, bold=True),
-                     text_color="white").pack(anchor="w", pady=(0, self._sf(20)))
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, self._sf(20)))
 
         # Pipeline Overview Cards
         cards_frame = ctk.CTkFrame(view, fg_color="transparent")
@@ -250,7 +289,7 @@ class RajChatApp(ctk.CTk):
         cards_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
         self.dashboard_cards = {}
-        sequences = [("school", "SCHOOL", C_ACCENT), ("csr", "CSR", C_WARNING), ("csr-wsl-5", "CSR-WSL-5", C_WARNING),
+        sequences = [("school", "SCHOOL", C_PRIMARY), ("csr", "CSR", C_ACCENT), ("csr-wsl-5", "CSR-WSL-5", C_ACCENT),
                      ("leads", "GENERIC LEADS", C_TEXT_DIM), ("total", "TOTAL", C_SUCCESS), ("blacklist", "BLACKLIST", C_DANGER)]
 
         for col, (seq_id, label, color) in enumerate(sequences):
@@ -272,7 +311,7 @@ class RajChatApp(ctk.CTk):
 
         # Day-wise Pipeline
         ctk.CTkLabel(view, text="📅 Day-wise Pipeline", font=self._font(20, bold=True),
-                     text_color="white").pack(anchor="w", pady=(self._sf(20), self._sf(10)))
+                     text_color=C_TEXT).pack(anchor="w", pady=(self._sf(20), self._sf(10)))
 
         self.pipeline_table = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=self._sf(8))
         self.pipeline_table.pack(fill="x", pady=(0, self._sf(20)))
@@ -281,7 +320,7 @@ class RajChatApp(ctk.CTk):
         headers = ["Day", "Total", "Sent", "Bounced", "Replied", "Status"]
         for col, h in enumerate(headers):
             ctk.CTkLabel(self.pipeline_table, text=h, font=self._font(11, bold=True),
-                         text_color=C_ACCENT).grid(row=0, column=col, padx=self._sf(15), pady=self._sf(8))
+                         text_color=C_TEXT_DIM).grid(row=0, column=col, padx=self._sf(15), pady=self._sf(8))
 
         self.pipeline_rows = {}
         for row, day in enumerate([1, 3, 5, 7, 10], start=1):
@@ -294,7 +333,7 @@ class RajChatApp(ctk.CTk):
 
         # Active Batches
         ctk.CTkLabel(view, text="🚀 Active Batches", font=self._font(20, bold=True),
-                     text_color="white").pack(anchor="w", pady=(self._sf(20), self._sf(10)))
+                     text_color=C_TEXT).pack(anchor="w", pady=(self._sf(20), self._sf(10)))
 
         self.batches_frame = ctk.CTkFrame(view, fg_color="transparent")
         self.batches_frame.pack(fill="x", pady=(0, self._sf(20)))
@@ -366,30 +405,30 @@ class RajChatApp(ctk.CTk):
 
                 if seq_id in self.dashboard_cards:
                     self.dashboard_cards[seq_id]["leads"].configure(
-                        text=f"Leads: {pipeline.get('total', 0)}", text_color="white")
+                        text=f"Leads: {pipeline.get('total', 0)}", text_color=C_TEXT)
                     self.dashboard_cards[seq_id]["sent"].configure(
-                        text=f"Sent: {pipeline.get('sent', 0)}", text_color="white")
+                        text=f"Sent: {pipeline.get('sent', 0)}", text_color=C_TEXT)
                     self.dashboard_cards[seq_id]["replied"].configure(
-                        text=f"Replied: {pipeline.get('replied', 0)}", text_color="white")
+                        text=f"Replied: {pipeline.get('replied', 0)}", text_color=C_TEXT)
                     self.dashboard_cards[seq_id]["bounced"].configure(
-                        text=f"Bounced: {pipeline.get('bounced', 0)}", text_color="white")
+                        text=f"Bounced: {pipeline.get('bounced', 0)}", text_color=C_TEXT)
                     if "pool" in self.dashboard_cards[seq_id]:
                         self.dashboard_cards[seq_id]["pool"].configure(
-                            text=f"Pool: {pool_count}", text_color="white")
+                            text=f"Pool: {pool_count}", text_color=C_TEXT)
 
             # TOTAL card
             if "total" in self.dashboard_cards:
-                self.dashboard_cards["total"]["leads"].configure(text=f"Leads: {totals['leads']}", text_color="white")
-                self.dashboard_cards["total"]["sent"].configure(text=f"Sent: {totals['sent']}", text_color="white")
-                self.dashboard_cards["total"]["replied"].configure(text=f"Replied: {totals['replied']}", text_color="white")
-                self.dashboard_cards["total"]["bounced"].configure(text=f"Bounced: {totals['bounced']}", text_color="white")
+                self.dashboard_cards["total"]["leads"].configure(text=f"Leads: {totals['leads']}", text_color=C_TEXT)
+                self.dashboard_cards["total"]["sent"].configure(text=f"Sent: {totals['sent']}", text_color=C_TEXT)
+                self.dashboard_cards["total"]["replied"].configure(text=f"Replied: {totals['replied']}", text_color=C_TEXT)
+                self.dashboard_cards["total"]["bounced"].configure(text=f"Bounced: {totals['bounced']}", text_color=C_TEXT)
                 if "pool" in self.dashboard_cards["total"]:
-                    self.dashboard_cards["total"]["pool"].configure(text=f"Pool: {totals['pool']}", text_color="white")
+                    self.dashboard_cards["total"]["pool"].configure(text=f"Pool: {totals['pool']}", text_color=C_TEXT)
 
             # BLACKLIST card
             if "blacklist" in self.dashboard_cards:
                 total_blacklist = summary.get("global", {}).get("blacklist_count", 0)
-                self.dashboard_cards["blacklist"]["leads"].configure(text=f"Blocked: {total_blacklist}", text_color="white")
+                self.dashboard_cards["blacklist"]["leads"].configure(text=f"Blocked: {total_blacklist}", text_color=C_TEXT)
 
             # ─── Day-wise Pipeline Table (COMBINED SCHOOL + CSR + CSR-WSL-5) ───
             combined_day_wise = {}
@@ -409,7 +448,7 @@ class RajChatApp(ctk.CTk):
                 if day in self.pipeline_rows:
                     metrics = combined_day_wise.get(day, {"total": 0, "sent": 0, "bounced": 0, "replied": 0})
                     self.pipeline_rows[day]["total"].configure(
-                        text=str(metrics["total"]), text_color="white")
+                        text=str(metrics["total"]), text_color=C_TEXT)
                     self.pipeline_rows[day]["sent"].configure(
                         text=str(metrics["sent"]), text_color=C_SUCCESS if metrics["sent"] > 0 else C_TEXT_DIM)
                     self.pipeline_rows[day]["bounced"].configure(
@@ -504,11 +543,11 @@ class RajChatApp(ctk.CTk):
             widget.destroy()
         if sorted_families is None:
             ctk.CTkLabel(self.batches_frame, text="No batches yet. Create one in Batches tab.",
-                         font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
+                         font=self._font(12), text_color=C_TEXT_DIM).pack(pady=30)
             return
         if not sorted_families:
             ctk.CTkLabel(self.batches_frame, text="No batches currently sending",
-                         font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
+                         font=self._font(12), text_color=C_TEXT_DIM).pack(pady=30)
             return
         for family_name, days in sorted_families:
             self._render_pipeline_card(family_name, days)
@@ -680,7 +719,7 @@ class RajChatApp(ctk.CTk):
         scale = self._get_scale()
 
         card = ctk.CTkFrame(self.batches_frame, fg_color=C_PANEL, corner_radius=self._sf(10),
-                            border_width=1, border_color="#1e3a5f")
+                            border_width=1, border_color=C_BORDER)
         card.pack(fill="x", pady=self._sf(6), padx=self._sf(6))
 
         # Header — same style as Batches tab, no expand button
@@ -713,7 +752,7 @@ class RajChatApp(ctk.CTk):
                 except:
                     pass
 
-        name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id in ("CSR", "CSR-WSL-5") else "white"
+        name_color = C_PRIMARY if seq_id == "SCHOOL" else C_ACCENT if seq_id in ("CSR", "CSR-WSL-5") else C_TEXT
 
         left_hdr = ctk.CTkFrame(header, fg_color="transparent")
         left_hdr.pack(side="left", fill="y")
@@ -721,7 +760,7 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(left_hdr, text=family_name, font=self._font(15, bold=True),
                      text_color=name_color).pack(side="left")
 
-        seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id in ("CSR", "CSR-WSL-5") else "#2a2a4e"
+        seq_badge_bg = C_SCHOOL_BG if seq_id == "SCHOOL" else C_CSR_BG if seq_id in ("CSR", "CSR-WSL-5") else C_LEADS_BG
         ctk.CTkLabel(left_hdr, text=f"  {seq_id}  ", font=self._font(8, bold=True),
                      text_color=name_color, fg_color=seq_badge_bg,
                      corner_radius=self._sf(10)).pack(side="left", padx=(self._sf(8), 0))
@@ -732,7 +771,7 @@ class RajChatApp(ctk.CTk):
         # Overall progress: truly completed days out of 5
         if filled_days > 0:
             prog_pct = min(100, int(filled_days / 5 * 100))
-            prog_frame = ctk.CTkFrame(header, fg_color="#1a1a2e", height=self._sf(6),
+            prog_frame = ctk.CTkFrame(header, fg_color=C_PANEL_MUTED, height=self._sf(6),
                                        corner_radius=self._sf(3), width=self._sf(120))
             prog_frame.pack(side="left", padx=(self._sf(14), 0))
             prog_frame.pack_propagate(False)
@@ -744,8 +783,8 @@ class RajChatApp(ctk.CTk):
                          text_color=C_SUCCESS if prog_pct == 100 else C_TEXT_DIM).pack(side="left")
 
         # Family delete button
-        ctk.CTkButton(header, text="🗑️", font=("Segoe UI", 10),
-                      fg_color="#3a1a1a", hover_color="#5a2a2a",
+        ctk.CTkButton(header, text="🗑️", font=self._font(10),
+                      fg_color=C_DANGER_BG, hover_color=C_DANGER_HOVER,
                       text_color=C_DANGER, width=28, height=28,
                       command=lambda fn=family_name, d=days, total=family_total: self._confirm_delete_family(fn, d, total)
                       ).pack(side="right", padx=(self._sf(8), 0))
@@ -788,17 +827,19 @@ class RajChatApp(ctk.CTk):
             elif scheduled and actual_status not in ["COMPLETED", "RUNNING"]:
                 actual_status = "SCHEDULED"
 
-            # Colors — SCHEDULED = yellow, COMPLETED = green, RUNNING/DRAFT = teal
+            # Colors — white card with colored left accent and subtle status badge
             if actual_status == "COMPLETED":
-                bg, border, accent = "#0a3a2a", "#2ecc71", "#2ecc71"
+                accent, badge_bg, badge_text = C_SUCCESS, C_COMPLETED_BG, C_SUCCESS
             elif actual_status == "SCHEDULED":
-                bg, border, accent = "#3a2a0d", "#febe32", "#febe32"
+                accent, badge_bg, badge_text = C_ACCENT, C_SCHEDULED_BG, C_ACCENT_TEXT
             elif actual_status in ["RUNNING", "DRAFT"]:
-                bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
+                accent, badge_bg, badge_text = C_PRIMARY, C_RUNNING_BG, C_PRIMARY
             elif actual_status == "PAUSED":
-                bg, border, accent = "#2a2a1a", "#d29922", "#d29922"
+                accent, badge_bg, badge_text = C_WARNING_HOVER, C_PAUSED_BG, C_ACCENT_TEXT
             else:
-                bg, border, accent = "#151528", "#2a2a4e", "#555577"
+                accent, badge_bg, badge_text = C_TEXT_DIM, C_BADGE_QUEUE, C_TEXT_DIM
+            bg = C_CARD
+            border = C_BORDER
 
             # RESPONSIVE pill
             pill_h = self._sf(155)
@@ -807,10 +848,15 @@ class RajChatApp(ctk.CTk):
             pill.grid(row=0, column=col, padx=self._sf(3), pady=self._sf(2), sticky="nsew")
             pill.grid_propagate(False)
 
+            # Colored left accent bar
+            accent_bar = ctk.CTkFrame(pill, fg_color=accent, width=self._sf(4),
+                                      corner_radius=self._sf(3))
+            accent_bar.place(relx=0, rely=0, relheight=1)
+
             # Day label + date on SAME LINE
             day_frame_h = self._sf(16)
             day_frame = ctk.CTkFrame(pill, fg_color="transparent", height=day_frame_h)
-            day_frame.pack(fill="x", padx=self._sf(6), pady=(self._sf(4), 0))
+            day_frame.pack(fill="x", padx=self._sf(10), pady=(self._sf(4), 0))
             day_frame.pack_propagate(False)
 
             ctk.CTkLabel(day_frame, text=day_label, font=self._font(8, bold=True),
@@ -838,37 +884,34 @@ class RajChatApp(ctk.CTk):
                 # Existing batch without scheduled_at — don't project from today
                 date_text = ""
             if date_text:
-                color = "#484f58" if status == "NOT_CREATED" else "#4a5a6a"
+                color = C_TEXT_DIM if status == "NOT_CREATED" else C_TEXT_DIM
                 ctk.CTkLabel(day_frame, text=f" {date_text}", font=self._font(7),
                              text_color=color).pack(side="left")
 
             ctk.CTkLabel(pill, text=f"{sent}/{total}", font=self._font(13, bold=True),
-                         text_color="white").pack(anchor="w", padx=self._sf(6), pady=(0, 0))
+                         text_color=C_TEXT).pack(anchor="w", padx=self._sf(10), pady=(0, 0))
 
-            # Status line (due count)
-            if actual_status == "COMPLETED":
-                st_text, st_color = "All sent", "#0d9b8a"
-            elif due > 0 and actual_status not in ["NONE"]:
-                st_text, st_color = f"{due} due", "#febe32"
-            elif actual_status == "NONE" and family_total > 0:
-                st_text, st_color = f"{family_total} to send", "#febe32"
-            else:
-                st_text, st_color = "", C_TEXT_DIM
-            if st_text:
-                ctk.CTkLabel(pill, text=st_text, font=self._font(8),
-                             text_color=st_color).pack(anchor="w", padx=self._sf(6), pady=(0, 0))
-
-            # State label
+            # Status badge
             states = {"COMPLETED": "Done", "RUNNING": "Sending", "SCHEDULED": "Scheduled",
                       "DRAFT": "Ready", "PAUSED": "Paused", "NONE": "Queue"}
-            state_color = C_SUCCESS if actual_status == "COMPLETED" else "#5a6a7a"
-            ctk.CTkLabel(pill, text=states.get(actual_status, ""), font=self._font(7),
-                         text_color=state_color).pack(anchor="w", padx=self._sf(6), pady=(0, 0))
+            state_label = states.get(actual_status, "")
+            if due > 0 and actual_status not in ["NONE", "COMPLETED"]:
+                state_label = f"{state_label}  •  {due} due"
+            elif actual_status == "NONE" and family_total > 0:
+                state_label = f"Queue  •  {family_total} to send"
+            elif actual_status == "COMPLETED":
+                state_label = f"Done  •  All sent"
+
+            if state_label:
+                badge = ctk.CTkFrame(pill, fg_color=badge_bg, corner_radius=self._sf(10))
+                badge.pack(anchor="w", padx=self._sf(10), pady=(self._sf(2), 0))
+                ctk.CTkLabel(badge, text=state_label, font=self._font(7),
+                             text_color=badge_text).pack(side="left", padx=self._sf(5), pady=self._sf(1))
 
             # Buttons - fixed at bottom
             btn_h = self._sf(20)
             btn_frame = ctk.CTkFrame(pill, fg_color="transparent", height=btn_h)
-            btn_frame.pack(fill="x", padx=self._sf(3), pady=(self._sf(2), self._sf(4)))
+            btn_frame.pack(fill="x", padx=self._sf(10), pady=(self._sf(2), self._sf(4)))
             btn_frame.grid_columnconfigure(0, weight=1)
             btn_frame.grid_columnconfigure(1, weight=1)
             btn_frame.pack_propagate(False)
@@ -877,24 +920,24 @@ class RajChatApp(ctk.CTk):
             if actual_status in ["COMPLETED", "NOT_CREATED"]:
                 action_text = None
             elif actual_status in ["DRAFT", "SCHEDULED", "PAUSED"]:
-                action_text, action_color = "▶", "#0d9b8a"
+                action_text, action_color, action_text_color = "▶", C_PRIMARY, "white"
             elif actual_status == "RUNNING":
-                action_text, action_color = "⏸", "#d29922"
+                action_text, action_color, action_text_color = "⏸", C_ACCENT, C_ACCENT_TEXT
             else:
-                action_text, action_color = "▶", "#3a3a5e"
+                action_text, action_color, action_text_color = "▶", C_PRIMARY, "white"
 
             if action_text:
                 ctk.CTkButton(btn_frame, text=action_text, font=self._font(8, bold=True),
                               fg_color=action_color, hover_color=action_color,
-                              text_color="white", corner_radius=self._sf(3), height=btn_h,
+                              text_color=action_text_color, corner_radius=self._sf(3), height=btn_h,
                               command=lambda b=batch_id, s=actual_status, d=day_num, f=family_name, sq=seq_id: self._on_pill_click(b, s, d, f, sq)
                               ).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
             else:
                 ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
 
             ctk.CTkButton(btn_frame, text="📊", font=self._font(7),
-                          fg_color="#1a1a3e", hover_color="#2a2a5e",
-                          text_color="white", corner_radius=self._sf(3), height=btn_h,
+                          fg_color=C_PANEL_MUTED, hover_color=C_ACCENT_HOVER,
+                          text_color=C_TEXT, corner_radius=self._sf(3), height=btn_h,
                           command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
                           ).grid(row=0, column=1, padx=(1, 0), sticky="nsew")
 
@@ -930,25 +973,25 @@ class RajChatApp(ctk.CTk):
         popup.transient(self)
         popup.grab_set()
 
-        ctk.CTkLabel(popup, text="🎯 Select Sequence", font=("Segoe UI", 18, "bold"),
+        ctk.CTkLabel(popup, text="🎯 Select Sequence", font=self._font(18, bold=True),
                      text_color=C_ACCENT).pack(pady=(20, 5))
-        ctk.CTkLabel(popup, text=f"Batch: {batch_name}", font=("Segoe UI", 12),
+        ctk.CTkLabel(popup, text=f"Batch: {batch_name}", font=self._font(12),
                      text_color=C_TEXT_DIM).pack()
         ctk.CTkLabel(popup, text="Choose which email sequence to use for this batch:",
-                     font=("Segoe UI", 11), text_color=C_TEXT).pack(pady=(10, 15))
+                     font=self._font(11), text_color=C_TEXT).pack(pady=(10, 15))
 
         seq_var = ctk.StringVar(value="csr-wsl-5")
         ctk.CTkOptionMenu(popup, values=["school", "csr", "csr-wsl-5"],
-                          variable=seq_var, font=("Segoe UI", 12),
+                          variable=seq_var, font=self._font(12),
                           width=200).pack(pady=10)
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=15)
-        ctk.CTkButton(btn_frame, text="🚀 Launch", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+        ctk.CTkButton(btn_frame, text="🚀 Launch", font=self._font(12, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER,
                       command=lambda: [self._start_batch(batch_id, seq_var.get()), popup.destroy()]).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_PANEL, hover_color="#3a3a5e",
+        ctk.CTkButton(btn_frame, text="Cancel", font=self._font(12, bold=True),
+                      fg_color=C_PANEL, hover_color=C_ACCENT_HOVER,
                       command=popup.destroy).pack(side="left", padx=5)
 
     def _show_pill_report(self, batch_id, family_name, day_num):
@@ -957,8 +1000,8 @@ class RajChatApp(ctk.CTk):
         popup.title(f"Report: {family_name} - Day {day_num}")
         popup.geometry("500x400")
         popup.configure(fg_color=C_BG)
-        ctk.CTkLabel(popup, text=f"📊 {family_name}", font=("Segoe UI", 18, "bold"), text_color=C_ACCENT).pack(pady=(20, 5))
-        ctk.CTkLabel(popup, text=f"Day {day_num} Report", font=("Segoe UI", 14), text_color=C_TEXT_DIM).pack()
+        ctk.CTkLabel(popup, text=f"📊 {family_name}", font=self._font(18, bold=True), text_color=C_ACCENT).pack(pady=(20, 5))
+        ctk.CTkLabel(popup, text=f"Day {day_num} Report", font=self._font(14), text_color=C_TEXT_DIM).pack()
         if batch_id:
             try:
                 batch = self.engine.db.get_batch(batch_id)
@@ -970,19 +1013,19 @@ class RajChatApp(ctk.CTk):
                                       ("Replied", counts.get("replied", 0))]:
                     row = ctk.CTkFrame(stats_frame, fg_color="transparent")
                     row.pack(fill="x", padx=15, pady=4)
-                    ctk.CTkLabel(row, text=label, font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-                    ctk.CTkLabel(row, text=str(value), font=("Segoe UI", 12, "bold"), text_color="white").pack(side="right")
+                    ctk.CTkLabel(row, text=label, font=self._font(12), text_color=C_TEXT).pack(side="left")
+                    ctk.CTkLabel(row, text=str(value), font=self._font(12, bold=True), text_color=C_TEXT).pack(side="right")
                 status = batch.get("status", "Unknown") if batch else "Not created"
-                ctk.CTkLabel(popup, text=f"Status: {status}", font=("Segoe UI", 12), text_color=C_ACCENT).pack(pady=10)
+                ctk.CTkLabel(popup, text=f"Status: {status}", font=self._font(12), text_color=C_ACCENT).pack(pady=10)
                 scheduled = batch.get("scheduled_at", "") if batch else ""
                 if scheduled:
-                    ctk.CTkLabel(popup, text=f"Scheduled: {scheduled}", font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack()
+                    ctk.CTkLabel(popup, text=f"Scheduled: {scheduled}", font=self._font(11), text_color=C_TEXT_DIM).pack()
             except Exception as e:
                 ctk.CTkLabel(popup, text=f"Error: {e}", text_color=C_DANGER).pack(pady=20)
         else:
-            ctk.CTkLabel(popup, text="No batch created for this day yet.", font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
-        ctk.CTkButton(popup, text="Close", font=("Segoe UI", 12, "bold"), fg_color=C_ACCENT,
-                      hover_color="#0a8a7a", corner_radius=8, command=popup.destroy).pack(pady=20)
+            ctk.CTkLabel(popup, text="No batch created for this day yet.", font=self._font(12), text_color=C_TEXT_DIM).pack(pady=30)
+        ctk.CTkButton(popup, text="Close", font=self._font(12, bold=True), fg_color=C_ACCENT,
+                      hover_color=C_ACCENT_HOVER, corner_radius=8, command=popup.destroy).pack(pady=20)
 
     def _create_day_batch(self, family_name, day_num, seq_id):
         """Create a new batch for a specific day in the family."""
@@ -1061,9 +1104,9 @@ class RajChatApp(ctk.CTk):
                 return
 
             ctk.CTkLabel(popup, text=f"📦 {batch.get('name', 'Unknown')}",
-                         font=("Segoe UI", 18, "bold"), text_color=C_ACCENT).pack(pady=(20, 5))
+                         font=self._font(18, bold=True), text_color=C_ACCENT).pack(pady=(20, 5))
             ctk.CTkLabel(popup, text=f"Status: {batch.get('status', 'Unknown')}",
-                         font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack()
+                         font=self._font(12), text_color=C_TEXT_DIM).pack()
 
             counts = self.engine.db.batch_count_by_status(batch_id)
             stats_frame = ctk.CTkFrame(popup, fg_color=C_PANEL, corner_radius=12)
@@ -1074,11 +1117,11 @@ class RajChatApp(ctk.CTk):
                                   ("Bounced", counts.get("bounced", 0)), ("Replied", counts.get("replied", 0))]:
                 row = ctk.CTkFrame(stats_frame, fg_color="transparent")
                 row.pack(fill="x", padx=15, pady=4)
-                ctk.CTkLabel(row, text=label, font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-                ctk.CTkLabel(row, text=str(value), font=("Segoe UI", 12, "bold"), text_color="white").pack(side="right")
+                ctk.CTkLabel(row, text=label, font=self._font(12), text_color=C_TEXT).pack(side="left")
+                ctk.CTkLabel(row, text=str(value), font=self._font(12, bold=True), text_color=C_TEXT).pack(side="right")
 
             # Recipient list with status colors
-            ctk.CTkLabel(popup, text="Recipients", font=("Segoe UI", 14, "bold"), text_color="white").pack(pady=(10, 5))
+            ctk.CTkLabel(popup, text="Recipients", font=self._font(14, bold=True), text_color=C_TEXT).pack(pady=(10, 5))
             rec_frame = ctk.CTkScrollableFrame(popup, fg_color="transparent", height=200)
             rec_frame.pack(fill="both", expand=True, padx=20, pady=5)
 
@@ -1089,14 +1132,14 @@ class RajChatApp(ctk.CTk):
                 row = ctk.CTkFrame(rec_frame, fg_color="transparent")
                 row.pack(fill="x", pady=1)
                 ctk.CTkLabel(row, text=f"● {r.get('name', 'Unknown')} ({r.get('email', 'N/A')})",
-                             font=("Segoe UI", 10), text_color=color).pack(side="left")
-                ctk.CTkLabel(row, text=status.upper(), font=("Segoe UI", 9), text_color=color).pack(side="right")
+                             font=self._font(10), text_color=color).pack(side="left")
+                ctk.CTkLabel(row, text=status.upper(), font=self._font(9), text_color=color).pack(side="right")
 
         except Exception as e:
             ctk.CTkLabel(popup, text=f"Error: {e}", text_color=C_DANGER).pack(pady=20)
 
-        ctk.CTkButton(popup, text="Close", font=("Segoe UI", 12, "bold"), fg_color=C_ACCENT,
-                      hover_color="#0a8a7a", corner_radius=8, command=popup.destroy).pack(pady=15)
+        ctk.CTkButton(popup, text="Close", font=self._font(12, bold=True), fg_color=C_ACCENT,
+                      hover_color=C_ACCENT_HOVER, corner_radius=8, command=popup.destroy).pack(pady=15)
 
     # ═══════════════════════════════════════════════════════════
     # THREAD-SAFE REFRESH LOOP (FIXED v4.2.1)
@@ -1144,11 +1187,11 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkFrame(self.content, fg_color="transparent")
         self.views["chat"] = view
 
-        ctk.CTkLabel(view, text="💬 Chat with Raj", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+        ctk.CTkLabel(view, text="💬 Chat with Raj", font=self._font(24, bold=True),
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
 
         self.chat_output = ctk.CTkTextbox(view, fg_color=C_PANEL, text_color=C_TEXT,
-                                          font=("Segoe UI", 12), wrap="word", height=350)
+                                          font=self._font(12), wrap="word", height=350)
         self.chat_output.pack(fill="both", expand=True, pady=(0, 10))
         self.chat_output.configure(state="disabled")
 
@@ -1157,11 +1200,11 @@ class RajChatApp(ctk.CTk):
         input_frame.grid_columnconfigure(0, weight=1)
 
         self.chat_input = ctk.CTkEntry(input_frame, fg_color=C_PANEL, text_color=C_TEXT,
-                                       font=("Segoe UI", 12), placeholder_text="Type a command...")
+                                       font=self._font(12), placeholder_text="Type a command...")
         self.chat_input.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
-        ctk.CTkButton(input_frame, text="Send", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_ACCENT, hover_color="#0a8a7a", width=80,
+        ctk.CTkButton(input_frame, text="Send", font=self._font(12, bold=True),
+                      fg_color=C_ACCENT, hover_color=C_ACCENT_HOVER, width=80,
                       command=self._send_chat).grid(row=0, column=1)
 
         self.chat_input.bind("<Return>", lambda e: self._send_chat())
@@ -1191,8 +1234,8 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkFrame(self.content, fg_color="transparent")
         self.views["import"] = view
 
-        ctk.CTkLabel(view, text="📥 Import Leads", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+        ctk.CTkLabel(view, text="📥 Import Leads", font=self._font(24, bold=True),
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
 
         # --- Import Section ---
         import_card = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
@@ -1200,37 +1243,37 @@ class RajChatApp(ctk.CTk):
         import_inner = ctk.CTkFrame(import_card, fg_color="transparent")
         import_inner.pack(fill="x", padx=15, pady=15)
 
-        ctk.CTkLabel(import_inner, text="📁 Import Leads", font=("Segoe UI", 16, "bold"),
+        ctk.CTkLabel(import_inner, text="📁 Import Leads", font=self._font(16, bold=True),
                      text_color=C_ACCENT).pack(anchor="w", pady=(0, 10))
 
         # Sequence selector
         seq_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
         seq_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(seq_frame, text="Import as:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(seq_frame, text="Import as:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.import_seq_var = ctk.StringVar(value="leads")
         ctk.CTkOptionMenu(seq_frame, values=["leads (generic pool)", "school", "csr", "csr-wsl-5"], variable=self.import_seq_var,
-                          font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
-        ctk.CTkLabel(seq_frame, text="→ Leads are generic, assign sequence at launch", font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(15, 0))
+                          font=self._font(12)).pack(side="left", padx=(10, 0))
+        ctk.CTkLabel(seq_frame, text="→ Leads are generic, assign sequence at launch", font=self._font(10), text_color=C_TEXT_DIM).pack(side="left", padx=(15, 0))
 
         # Sub-Pool selector
         subpool_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
         subpool_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(subpool_frame, text="Sub-Pool Name:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.import_subpool_entry = ctk.CTkEntry(subpool_frame, font=("Segoe UI", 12), width=250, placeholder_text="e.g. Mumbai-Schools, Tier1-CSR (optional)")
+        ctk.CTkLabel(subpool_frame, text="Sub-Pool Name:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.import_subpool_entry = ctk.CTkEntry(subpool_frame, font=self._font(12), width=250, placeholder_text="e.g. Mumbai-Schools, Tier1-CSR (optional)")
         self.import_subpool_entry.pack(side="left", padx=(10, 0))
 
         # File selector
         file_frame = ctk.CTkFrame(import_inner, fg_color="transparent")
         file_frame.pack(fill="x", pady=(0, 10))
         self.import_file_label = ctk.CTkLabel(file_frame, text="No file selected",
-                                               font=("Segoe UI", 11), text_color=C_TEXT_DIM)
+                                               font=self._font(11), text_color=C_TEXT_DIM)
         self.import_file_label.pack(side="left")
-        ctk.CTkButton(file_frame, text="Browse", font=("Segoe UI", 11),
+        ctk.CTkButton(file_frame, text="Browse", font=self._font(11),
                       fg_color=C_ACCENT, command=self._browse_import_file).pack(side="left", padx=(10, 0))
 
         # Import button
-        ctk.CTkButton(import_inner, text="Import to Pool", font=("Segoe UI", 14, "bold"),
-                      fg_color=C_SUCCESS, hover_color="#2a8a4a", height=40,
+        ctk.CTkButton(import_inner, text="Import to Pool", font=self._font(14, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER, height=40,
                       command=self._do_import).pack(fill="x", pady=(10, 0))
 
         # --- Trial Send Section ---
@@ -1239,48 +1282,48 @@ class RajChatApp(ctk.CTk):
         trial_inner = ctk.CTkFrame(trial_card, fg_color="transparent")
         trial_inner.pack(fill="x", padx=15, pady=15)
 
-        ctk.CTkLabel(trial_inner, text="🧪 Trial Send", font=("Segoe UI", 16, "bold"),
+        ctk.CTkLabel(trial_inner, text="🧪 Trial Send", font=self._font(16, bold=True),
                      text_color=C_WARNING).pack(anchor="w", pady=(0, 10))
 
         ctk.CTkLabel(trial_inner, text="Send all 5 emails to a test address with 2-minute gaps",
-                     font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(anchor="w", pady=(0, 10))
+                     font=self._font(11), text_color=C_TEXT_DIM).pack(anchor="w", pady=(0, 10))
 
         # Trial sequence selector
         trial_seq_frame = ctk.CTkFrame(trial_inner, fg_color="transparent")
         trial_seq_frame.pack(fill="x", pady=(0, 8))
-        ctk.CTkLabel(trial_seq_frame, text="Sequence:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(trial_seq_frame, text="Sequence:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.trial_seq_var = ctk.StringVar(value="csr-wsl-5")
         ctk.CTkOptionMenu(trial_seq_frame, values=["school", "csr", "csr-wsl-5"], variable=self.trial_seq_var,
-                          font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
+                          font=self._font(12)).pack(side="left", padx=(10, 0))
 
         # Email input
         email_frame = ctk.CTkFrame(trial_inner, fg_color="transparent")
         email_frame.pack(fill="x", pady=(0, 8))
-        ctk.CTkLabel(email_frame, text="Email:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.trial_email_entry = ctk.CTkEntry(email_frame, font=("Segoe UI", 12), width=280,
+        ctk.CTkLabel(email_frame, text="Email:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.trial_email_entry = ctk.CTkEntry(email_frame, font=self._font(12), width=280,
                                                placeholder_text="test@example.com")
         self.trial_email_entry.pack(side="left", padx=(10, 0))
 
         # Name + Org (optional)
         name_frame = ctk.CTkFrame(trial_inner, fg_color="transparent")
         name_frame.pack(fill="x", pady=(0, 8))
-        ctk.CTkLabel(name_frame, text="Name (opt):", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.trial_name_entry = ctk.CTkEntry(name_frame, font=("Segoe UI", 12), width=150,
+        ctk.CTkLabel(name_frame, text="Name (opt):", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.trial_name_entry = ctk.CTkEntry(name_frame, font=self._font(12), width=150,
                                               placeholder_text="CSR Head")
         self.trial_name_entry.pack(side="left", padx=(10, 0))
-        ctk.CTkLabel(name_frame, text="Org (opt):", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left", padx=(15, 0))
-        self.trial_org_entry = ctk.CTkEntry(name_frame, font=("Segoe UI", 12), width=150,
+        ctk.CTkLabel(name_frame, text="Org (opt):", font=self._font(12), text_color=C_TEXT).pack(side="left", padx=(15, 0))
+        self.trial_org_entry = ctk.CTkEntry(name_frame, font=self._font(12), width=150,
                                              placeholder_text="Company")
         self.trial_org_entry.pack(side="left", padx=(10, 0))
 
         # Send trial button
-        ctk.CTkButton(trial_inner, text="🚀 Send Trial Sequence", font=("Segoe UI", 14, "bold"),
-                      fg_color=C_WARNING, hover_color="#c46a00", height=40,
+        ctk.CTkButton(trial_inner, text="🚀 Send Trial Sequence", font=self._font(14, bold=True),
+                      fg_color=C_WARNING, hover_color=C_WARNING_HOVER, height=40,
                       command=self._do_trial_send).pack(fill="x", pady=(10, 0))
 
         # --- Preview ---
         self.import_preview = ctk.CTkTextbox(view, fg_color=C_PANEL, text_color=C_TEXT,
-                                             font=("Segoe UI", 11), wrap="word", height=200)
+                                             font=self._font(11), wrap="word", height=200)
         self.import_preview.pack(fill="both", expand=True, pady=(10, 0))
         self.import_preview.configure(state="disabled")
 
@@ -1308,9 +1351,12 @@ class RajChatApp(ctk.CTk):
                     self._safe_after(0, lambda: self._append_import_preview(f"✅ Trial complete: {sent}/{total} emails sent"))
                     for r in result.get("results", []):
                         status = "✅" if r["status"] == "sent" else "❌"
-                        self._safe_after(0, lambda r=r, status=status: self._append_import_preview(f"  {status} Day {r['day']}: {r['status']}"))
+                        err = r.get("error")
+                        detail = f" ({err})" if err and r["status"] != "sent" else ""
+                        self._safe_after(0, lambda r=r, status=status, detail=detail: self._append_import_preview(f"  {status} Day {r['day']}: {r['status']}{detail}"))
                 else:
-                    self._safe_after(0, lambda: self._append_import_preview(f"❌ Trial failed: {result.get('error')}"))
+                    err = result.get("error") or "unknown error"
+                    self._safe_after(0, lambda: self._append_import_preview(f"❌ Trial failed: {err}"))
             except Exception as e:
                 self._safe_after(0, lambda: self._append_import_preview(f"❌ Trial error: {e}"))
         
@@ -1362,7 +1408,7 @@ class RajChatApp(ctk.CTk):
 
         # Title
         ctk.CTkLabel(view, text="📝 Templates", font=self._font(24, bold=True),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
 
         # Bulk action buttons
         btn_frame = ctk.CTkFrame(view, fg_color="transparent")
@@ -1397,11 +1443,11 @@ class RajChatApp(ctk.CTk):
         all_templates = self.engine.get_templates()
 
         for seq_id, days in status.items():
-            seq_color = C_ACCENT if seq_id == "school" else C_WARNING
+            seq_color = C_PRIMARY if seq_id == "school" else C_ACCENT
             border_color = seq_color
 
             seq_frame = ctk.CTkFrame(self.template_grid, fg_color=C_PANEL, corner_radius=10,
-                                     border_width=1, border_color="#2a2a4e")
+                                     border_width=1, border_color=C_BORDER)
             seq_frame.pack(fill="x", pady=self._sf(8), padx=self._sf(4))
 
             ctk.CTkLabel(seq_frame, text=seq_id.upper(), font=self._font(16, bold=True),
@@ -1424,6 +1470,7 @@ class RajChatApp(ctk.CTk):
     def _build_template_day_card(self, parent, seq_id, day, info, full_tmpl,
                                  seq_color, border_color, col):
         exists = info["exists"]
+        empty = info.get("empty", not exists)
         locked = info["locked"]
         subject = info.get("subject") or "No subject"
         source = info.get("source") or ""
@@ -1432,25 +1479,39 @@ class RajChatApp(ctk.CTk):
 
         key = (seq_id, day)
 
-        # Card frame — grid cell, no fixed width so it fills the column
-        card = ctk.CTkFrame(parent, fg_color=C_BG, corner_radius=10,
-                            border_width=1,
-                            border_color=seq_color if exists else C_DANGER)
+        # Card frame — white card with colored left accent
+        accent_color = C_WARNING if empty else (seq_color if exists else C_DANGER)
+        card = ctk.CTkFrame(parent, fg_color=C_CARD, corner_radius=10,
+                            border_width=1, border_color=C_BORDER)
         card.grid(row=0, column=col, sticky="nsew", padx=self._sf(4), pady=self._sf(4))
+
+        accent_bar = ctk.CTkFrame(card, fg_color=accent_color, width=self._sf(4),
+                                  corner_radius=self._sf(3))
+        accent_bar.place(relx=0, rely=0, relheight=1)
 
         # Top: Day badge + A/B badge + lock icon
         top = ctk.CTkFrame(card, fg_color="transparent")
         top.pack(fill="x", padx=self._sf(8), pady=(self._sf(6), 0))
 
-        badge_bg = seq_color if exists else C_DANGER
-        badge = ctk.CTkLabel(top, text=f"Day {day}", font=self._font(10, bold=True),
-                             text_color=C_BG if exists else "white",
-                             fg_color=badge_bg, corner_radius=999)
+        if empty:
+            badge_bg, badge_fg = C_SCHEDULED_BG, C_ACCENT_TEXT
+        elif exists:
+            badge_bg, badge_fg = (C_SCHOOL_BG if seq_id == "school" else C_CSR_BG), seq_color
+        else:
+            badge_bg, badge_fg = C_DANGER_BG, C_DANGER
+        badge_text = f"Day {day}" if not empty else f"⚠ Day {day}"
+        badge = ctk.CTkLabel(top, text=badge_text, font=self._font(10, bold=True),
+                             text_color=badge_fg, fg_color=badge_bg, corner_radius=999)
         badge.pack(side="left")
+
+        if empty:
+            ctk.CTkLabel(top, text=" EMPTY ", font=self._font(8, bold=True),
+                         text_color=C_TEXT, fg_color=C_WARNING,
+                         corner_radius=999).pack(side="left", padx=(self._sf(6), 0))
 
         if ab_test:
             ctk.CTkLabel(top, text=" A/B ", font=self._font(8, bold=True),
-                         text_color=C_BG, fg_color="#febe32",
+                         text_color=C_TEXT, fg_color=C_WARNING,
                          corner_radius=999).pack(side="left", padx=(self._sf(6), 0))
 
         if locked:
@@ -1461,7 +1522,7 @@ class RajChatApp(ctk.CTk):
         subj_color = C_TEXT if exists else C_TEXT_DIM
         subj_lbl = ctk.CTkLabel(card, text=display_subj, font=self._font(9),
                                 text_color=subj_color)
-        subj_lbl.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(2)))
+        subj_lbl.pack(anchor="w", padx=self._sf(12), pady=(self._sf(4), self._sf(2)))
 
         # A/B results
         results_lbl = None
@@ -1474,13 +1535,13 @@ class RajChatApp(ctk.CTk):
             results_text = f"A:{a_rate}% ({a_sent}) B:{b_rate}% ({b_sent})"
             results_lbl = ctk.CTkLabel(card, text=results_text, font=self._font(8),
                                        text_color=C_TEXT_DIM)
-            results_lbl.pack(anchor="w", padx=self._sf(8), pady=(0, self._sf(2)))
+            results_lbl.pack(anchor="w", padx=self._sf(12), pady=(0, self._sf(2)))
 
         # Source hint
         if source and source != "unknown":
             src_lbl = ctk.CTkLabel(card, text=f"src: {source}", font=self._font(8),
                                    text_color=C_TEXT_DIM)
-            src_lbl.pack(anchor="w", padx=self._sf(8))
+            src_lbl.pack(anchor="w", padx=self._sf(12))
 
         # Action buttons
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
@@ -1496,7 +1557,7 @@ class RajChatApp(ctk.CTk):
         edit_btn = None
         if exists:
             edit_btn = ctk.CTkButton(btn_row, text="✏️", font=self._font(10),
-                                     fg_color=C_ACCENT, width=self._sf(30), height=self._sf(24),
+                                     fg_color=C_PRIMARY, width=self._sf(30), height=self._sf(24),
                                      command=lambda s=seq_id, d=day: self._edit_template(s, d))
             edit_btn.pack(side="left", padx=(0, self._sf(3)))
 
@@ -1511,9 +1572,9 @@ class RajChatApp(ctk.CTk):
                                      command=lambda s=seq_id, d=day: self._lock_single_template(s, d))
         lock_btn.pack(side="left", padx=(0, self._sf(3)))
 
-        # Generate button (only if missing)
+        # Generate button (only if missing or empty)
         gen_btn = None
-        if not exists:
+        if not exists or empty:
             gen_btn = ctk.CTkButton(btn_row, text="⚡", font=self._font(10),
                                     fg_color=C_ACCENT, width=self._sf(30), height=self._sf(24),
                                     command=lambda s=seq_id, d=day: self._generate_single_template(s, d))
@@ -1522,6 +1583,7 @@ class RajChatApp(ctk.CTk):
         # Store refs for in-place updates
         self._template_card_refs[key] = {
             "card": card,
+            "accent_bar": accent_bar,
             "badge": badge,
             "subject": subj_lbl,
             "results": results_lbl,
@@ -1529,6 +1591,7 @@ class RajChatApp(ctk.CTk):
             "lock_btn": lock_btn,
             "gen_btn": gen_btn,
             "exists": exists,
+            "empty": empty,
             "locked": locked,
             "ab_test": ab_test,
             "ab_split": ab_split,
@@ -1569,31 +1632,31 @@ class RajChatApp(ctk.CTk):
         popup.transient(self)
         popup.grab_set()
 
-        ctk.CTkLabel(popup, text="Subject A", font=("Segoe UI", 12),
+        ctk.CTkLabel(popup, text="Subject A", font=self._font(12),
                      text_color=C_TEXT).pack(anchor="w", padx=15, pady=(15, 0))
-        subj_a_entry = ctk.CTkEntry(popup, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        subj_a_entry = ctk.CTkEntry(popup, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         subj_a_entry.pack(fill="x", padx=15, pady=(0, 10))
         subj_a_entry.insert(0, tmpl.get("subject", ""))
 
         ab_var = ctk.BooleanVar(value=bool(tmpl.get("ab_test", 0)))
         ab_checkbox = ctk.CTkCheckBox(popup, text="Enable A/B test", variable=ab_var,
-                                      text_color=C_TEXT, font=("Segoe UI", 12))
+                                      text_color=C_TEXT, font=self._font(12))
         ab_checkbox.pack(anchor="w", padx=15, pady=(5, 5))
 
-        ctk.CTkLabel(popup, text="Subject B", font=("Segoe UI", 12),
+        ctk.CTkLabel(popup, text="Subject B", font=self._font(12),
                      text_color=C_TEXT).pack(anchor="w", padx=15)
-        subj_b_entry = ctk.CTkEntry(popup, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        subj_b_entry = ctk.CTkEntry(popup, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         subj_b_entry.pack(fill="x", padx=15, pady=(0, 10))
         subj_b_entry.insert(0, tmpl.get("subject_b", ""))
 
         split_var = ctk.DoubleVar(value=float(tmpl.get("ab_split", 0.5)))
         ctk.CTkLabel(popup, text=f"Split: A gets {int(split_var.get() * 100)}%",
-                     font=("Segoe UI", 11), text_color=C_TEXT_DIM).pack(anchor="w", padx=15)
+                     font=self._font(11), text_color=C_TEXT_DIM).pack(anchor="w", padx=15)
         split_slider = ctk.CTkSlider(popup, from_=0, to=1, number_of_steps=100,
                                      variable=split_var, button_color=C_ACCENT)
         split_slider.pack(fill="x", padx=15, pady=(0, 5))
         split_lbl = ctk.CTkLabel(popup, text=f"A: {int(split_var.get() * 100)}% | B: {100 - int(split_var.get() * 100)}%",
-                                 font=("Segoe UI", 11), text_color=C_TEXT)
+                                 font=self._font(11), text_color=C_TEXT)
         split_lbl.pack(anchor="w", padx=15)
 
         def update_split_label(val):
@@ -1618,11 +1681,11 @@ class RajChatApp(ctk.CTk):
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(fill="x", padx=15, pady=20)
-        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12),
-                      fg_color=C_PANEL, hover_color="#3a3a5e",
+        ctk.CTkButton(btn_frame, text="Cancel", font=self._font(12),
+                      fg_color=C_PANEL, hover_color=C_ACCENT_HOVER,
                       command=popup.destroy).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Save", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+        ctk.CTkButton(btn_frame, text="Save", font=self._font(12, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER,
                       command=save).pack(side="left", padx=5)
 
     def _lock_single_template(self, seq_id, day):
@@ -1693,19 +1756,28 @@ class RajChatApp(ctk.CTk):
 
         info = self.engine.get_template_status().get(seq_id, {}).get(day, {})
         exists = info.get("exists", False)
+        empty = info.get("empty", not exists)
         locked = info.get("locked", False)
         subject = info.get("subject") or "No subject"
         source = info.get("source") or ""
 
-        seq_color = C_ACCENT if seq_id == "school" else C_WARNING
-        badge_bg = seq_color if exists else C_DANGER
+        seq_color = C_PRIMARY if seq_id == "school" else C_ACCENT
+        accent_color = C_WARNING if empty else (seq_color if exists else C_DANGER)
+        if empty:
+            badge_bg, badge_fg = C_SCHEDULED_BG, C_ACCENT_TEXT
+        elif exists:
+            badge_bg, badge_fg = (C_SCHOOL_BG if seq_id == "school" else C_CSR_BG), seq_color
+        else:
+            badge_bg, badge_fg = C_DANGER_BG, C_DANGER
 
-        # Update badge
-        refs["badge"].configure(text=f"Day {day}", fg_color=badge_bg,
-                                text_color=C_BG if exists else "white")
+        # Update accent bar and badge
+        refs["accent_bar"].configure(fg_color=accent_color)
+        refs["badge"].configure(text=f"Day {day}" if not empty else f"⚠ Day {day}",
+                                fg_color=badge_bg,
+                                text_color=badge_fg)
 
         # Update border
-        refs["card"].configure(border_color=seq_color if exists else C_DANGER)
+        refs["card"].configure(border_color=C_BORDER, border_width=1)
 
         # Update subject
         display_subj = subject[:32] + "…" if len(subject) > 34 else subject
@@ -1727,18 +1799,19 @@ class RajChatApp(ctk.CTk):
         refs["lock_btn"] = new_lock
 
         # Update generate button
-        if not exists and refs.get("gen_btn") is None:
+        if (not exists or empty) and refs.get("gen_btn") is None:
             gen_btn = ctk.CTkButton(btn_parent, text="⚡", font=self._font(10),
-                                    fg_color=C_ACCENT, width=self._sf(36), height=self._sf(26),
+                                    fg_color=C_PRIMARY, width=self._sf(36), height=self._sf(26),
                                     command=lambda s=seq_id, d=day: self._generate_single_template(s, d))
             gen_btn.pack(side="left")
             refs["gen_btn"] = gen_btn
-        elif exists and refs.get("gen_btn"):
+        elif (exists and not empty) and refs.get("gen_btn"):
             refs["gen_btn"].destroy()
             refs["gen_btn"] = None
 
         refs["exists"] = exists
         refs["locked"] = locked
+        refs["empty"] = empty
 
     def _sync_templates(self):
         result = self.engine.sync_templates()
@@ -1810,8 +1883,8 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkScrollableFrame(self.content, fg_color="transparent")
         self.views["batches"] = view
 
-        ctk.CTkLabel(view, text="🚀 Batches", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+        ctk.CTkLabel(view, text="🚀 Batches", font=self._font(24, bold=True),
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
 
         # Create batch form
         form = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
@@ -1820,62 +1893,62 @@ class RajChatApp(ctk.CTk):
         # Name
         name_row = ctk.CTkFrame(form, fg_color="transparent")
         name_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(name_row, text="Name:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.batch_name = ctk.CTkEntry(name_row, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        ctk.CTkLabel(name_row, text="Name:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.batch_name = ctk.CTkEntry(name_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         self.batch_name.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
         # Pull From (pool source)
         source_row = ctk.CTkFrame(form, fg_color="transparent")
         source_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(source_row, text="Pull From:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(source_row, text="Pull From:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.batch_source = ctk.StringVar(value="leads")
         self.batch_source_menu = ctk.CTkOptionMenu(source_row, values=["Loading..."], variable=self.batch_source,
-                                                    font=("Segoe UI", 12), width=200,
+                                                    font=self._font(12), width=200,
                                                     command=lambda _: self._refresh_sub_pools())
         self.batch_source_menu.pack(side="left", padx=(10, 0))
-        ctk.CTkButton(source_row, text="🔄 Refresh", font=("Segoe UI", 10), fg_color=C_PANEL, width=60, height=24,
+        ctk.CTkButton(source_row, text="🔄 Refresh", font=self._font(10), fg_color=C_PANEL, width=60, height=24,
                       command=lambda: self._refresh_source_pools()).pack(side="left", padx=(10, 0))
 
         # Sub-Pool
         subpool_row = ctk.CTkFrame(form, fg_color="transparent")
         subpool_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(subpool_row, text="Sub-Pool:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(subpool_row, text="Sub-Pool:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.batch_sub_pool = ctk.StringVar(value="(All)")
         self.batch_sub_pool_menu = ctk.CTkOptionMenu(subpool_row, values=["(All)"], variable=self.batch_sub_pool,
-                                                      font=("Segoe UI", 12), width=200)
+                                                      font=self._font(12), width=200)
         self.batch_sub_pool_menu.pack(side="left", padx=(10, 0))
 
         # Size
         size_row = ctk.CTkFrame(form, fg_color="transparent")
         size_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(size_row, text="Size:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.batch_size = ctk.CTkEntry(size_row, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12), width=80)
+        ctk.CTkLabel(size_row, text="Size:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.batch_size = ctk.CTkEntry(size_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12), width=80)
         self.batch_size.insert(0, "50")
         self.batch_size.pack(side="left", padx=(10, 0))
 
         # Day offset
         day_row = ctk.CTkFrame(form, fg_color="transparent")
         day_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(day_row, text="Day:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(day_row, text="Day:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.batch_day = ctk.StringVar(value="1")
         ctk.CTkOptionMenu(day_row, values=["1", "3", "5", "7", "10"], variable=self.batch_day,
-                          font=("Segoe UI", 12)).pack(side="left", padx=(10, 0))
-        ctk.CTkLabel(day_row, text="→ Sequence is assigned at launch", font=("Segoe UI", 10), text_color=C_TEXT_DIM).pack(side="left", padx=(10, 0))
+                          font=self._font(12)).pack(side="left", padx=(10, 0))
+        ctk.CTkLabel(day_row, text="→ Sequence is assigned at launch", font=self._font(10), text_color=C_TEXT_DIM).pack(side="left", padx=(10, 0))
 
         # Schedule
         sched_row = ctk.CTkFrame(form, fg_color="transparent")
         sched_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(sched_row, text="Schedule:", font=("Segoe UI", 12), text_color=C_TEXT).pack(side="left")
-        self.batch_sched = ctk.CTkEntry(sched_row, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        ctk.CTkLabel(sched_row, text="Schedule:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.batch_sched = ctk.CTkEntry(sched_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         self.batch_sched.insert(0, "2026-06-05 10:00:00")
         self.batch_sched.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
-        ctk.CTkButton(form, text="Create Batch from Pool", font=("Segoe UI", 14, "bold"),
-                      fg_color=C_SUCCESS, hover_color="#2a8a4a", height=40,
+        ctk.CTkButton(form, text="Create Batch from Pool", font=self._font(14, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER, height=40,
                       command=self._create_batch).pack(fill="x", padx=15, pady=(5, 15))
 
         # ── Active Campaigns ──
-        ctk.CTkLabel(view, text="🚀 ACTIVE CAMPAIGNS", font=("Segoe UI", 16, "bold"),
+        ctk.CTkLabel(view, text="🚀 ACTIVE CAMPAIGNS", font=self._font(16, bold=True),
                      text_color=C_ACCENT).pack(anchor="w", pady=(10, 5), padx=self._sf(6))
 
         self.all_batches_frame = ctk.CTkFrame(view, fg_color="transparent")
@@ -1895,10 +1968,10 @@ class RajChatApp(ctk.CTk):
         self.history_header.pack(fill="x", padx=15, pady=8)
         self.history_header.bind("<Button-1>", lambda e: self._toggle_history())
 
-        self.history_title = ctk.CTkLabel(self.history_header, text="📜 History (0) ▶", font=("Segoe UI", 12, "bold"),
+        self.history_title = ctk.CTkLabel(self.history_header, text="📜 History (0) ▶", font=self._font(12, bold=True),
                                           text_color=C_TEXT_DIM)
         self.history_title.pack(side="left")
-        self.history_toggle = ctk.CTkLabel(self.history_header, text="▶", font=("Segoe UI", 12, "bold"),
+        self.history_toggle = ctk.CTkLabel(self.history_header, text="▶", font=self._font(12, bold=True),
                                            text_color=C_TEXT_DIM)
         self.history_toggle.pack(side="right")
 
@@ -1951,21 +2024,21 @@ class RajChatApp(ctk.CTk):
         popup.grab_set()
 
         ctk.CTkLabel(popup, text=f"Delete '{family_name}'?\nAll leads return to pool.",
-                     font=("Segoe UI", 14, "bold"), text_color=C_DANGER).pack(pady=(25, 20))
+                     font=self._font(14, bold=True), text_color=C_DANGER).pack(pady=(25, 20))
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=10)
 
-        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_PANEL, hover_color="#3a3a5e",
+        ctk.CTkButton(btn_frame, text="Cancel", font=self._font(12, bold=True),
+                      fg_color=C_PANEL, hover_color=C_ACCENT_HOVER,
                       command=popup.destroy).pack(side="left", padx=5)
 
         def do_delete():
             popup.destroy()
             self._delete_family(family_name, days)
 
-        ctk.CTkButton(btn_frame, text="Yes, Delete", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_DANGER, hover_color="#8a1c1c",
+        ctk.CTkButton(btn_frame, text="Yes, Delete", font=self._font(12, bold=True),
+                      fg_color=C_DANGER, hover_color=C_DANGER_HOVER,
                       command=do_delete).pack(side="left", padx=5)
 
     def _delete_family(self, family_name, days):
@@ -2002,17 +2075,17 @@ class RajChatApp(ctk.CTk):
         popup.transient(self)
         popup.grab_set()
 
-        ctk.CTkLabel(popup, text="📋 Clone Family", font=("Segoe UI", 18, "bold"),
+        ctk.CTkLabel(popup, text="📋 Clone Family", font=self._font(18, bold=True),
                      text_color=C_ACCENT).pack(pady=(20, 5))
-        ctk.CTkLabel(popup, text=f"'{family_name}'", font=("Segoe UI", 13, "bold"),
+        ctk.CTkLabel(popup, text=f"'{family_name}'", font=self._font(13, bold=True),
                      text_color=C_TEXT).pack()
 
         # New name
         name_frame = ctk.CTkFrame(popup, fg_color="transparent")
         name_frame.pack(fill="x", padx=20, pady=(15, 5))
-        ctk.CTkLabel(name_frame, text="New name:", font=("Segoe UI", 12),
+        ctk.CTkLabel(name_frame, text="New name:", font=self._font(12),
                      text_color=C_TEXT).pack(side="left")
-        name_entry = ctk.CTkEntry(name_frame, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        name_entry = ctk.CTkEntry(name_frame, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         name_entry.insert(0, f"{family_name}-Clone")
         name_entry.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
@@ -2051,7 +2124,7 @@ class RajChatApp(ctk.CTk):
 
         pool_frame = ctk.CTkFrame(popup, fg_color="transparent")
         pool_frame.pack(fill="x", padx=20, pady=5)
-        ctk.CTkLabel(pool_frame, text="Sub-pool:", font=("Segoe UI", 12),
+        ctk.CTkLabel(pool_frame, text="Sub-pool:", font=self._font(12),
                      text_color=C_TEXT).pack(side="left")
         pool_var = ctk.StringVar(value=default)
         pool_menu = ctk.CTkOptionMenu(pool_frame, values=options, variable=pool_var,
@@ -2061,8 +2134,8 @@ class RajChatApp(ctk.CTk):
         # Buttons
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=20)
-        ctk.CTkButton(btn_frame, text="Cancel", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_PANEL, hover_color="#3a3a5e",
+        ctk.CTkButton(btn_frame, text="Cancel", font=self._font(12, bold=True),
+                      fg_color=C_PANEL, hover_color=C_ACCENT_HOVER,
                       command=popup.destroy).pack(side="left", padx=5)
 
         def do_clone():
@@ -2073,8 +2146,8 @@ class RajChatApp(ctk.CTk):
             popup.destroy()
             self._do_clone_family(family_name, new_name, sub_pool)
 
-        ctk.CTkButton(btn_frame, text="Clone", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+        ctk.CTkButton(btn_frame, text="Clone", font=self._font(12, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER,
                       command=do_clone).pack(side="left", padx=5)
 
     def _do_clone_family(self, source_family_name, new_family_name, sub_pool):
@@ -2245,9 +2318,9 @@ class RajChatApp(ctk.CTk):
         is_expanded = self._expanded_families.get(family_name, False)
 
         parent = self.history_content if history_mode else self.active_inner_frame
-        card_bg = "#12122a" if history_mode else C_PANEL
+        card_bg = C_PANEL_MUTED if history_mode else C_PANEL
         card = ctk.CTkFrame(parent, fg_color=card_bg, corner_radius=self._sf(10),
-                            border_width=1, border_color="#1e3a5f")
+                            border_width=1, border_color=C_BORDER)
         card.pack(fill="x", pady=self._sf(4) if history_mode else self._sf(8), padx=self._sf(6))
         self._family_card_widgets[family_name] = card
 
@@ -2287,7 +2360,7 @@ class RajChatApp(ctk.CTk):
                 if b.get("completed_at"):
                     completed_date = b.get("completed_at")
 
-        name_color = C_ACCENT if seq_id == "SCHOOL" else C_WARNING if seq_id in ("CSR", "CSR-WSL-5") else "white"
+        name_color = C_PRIMARY if seq_id == "SCHOOL" else C_ACCENT if seq_id in ("CSR", "CSR-WSL-5") else C_TEXT
 
         left_hdr = ctk.CTkFrame(header, fg_color="transparent")
         left_hdr.pack(side="left", fill="y")
@@ -2295,7 +2368,7 @@ class RajChatApp(ctk.CTk):
         ctk.CTkLabel(left_hdr, text=family_name, font=self._font(15, bold=True) if not history_mode else self._font(13, bold=True),
                      text_color=name_color).pack(side="left")
 
-        seq_badge_bg = "#0d3a4a" if seq_id == "SCHOOL" else "#4a3a0d" if seq_id in ("CSR", "CSR-WSL-5") else "#2a2a4e"
+        seq_badge_bg = C_SCHOOL_BG if seq_id == "SCHOOL" else C_CSR_BG if seq_id in ("CSR", "CSR-WSL-5") else C_LEADS_BG
         ctk.CTkLabel(left_hdr, text=f"  {seq_id}  ", font=self._font(8, bold=True),
                      text_color=name_color, fg_color=seq_badge_bg,
                      corner_radius=self._sf(10)).pack(side="left", padx=(self._sf(8), 0))
@@ -2326,7 +2399,7 @@ class RajChatApp(ctk.CTk):
             # Overall progress: truly completed days out of 5
             if filled_days > 0:
                 prog_pct = min(100, int(filled_days / 5 * 100))
-                prog_frame = ctk.CTkFrame(header, fg_color="#1a1a2e", height=self._sf(6),
+                prog_frame = ctk.CTkFrame(header, fg_color=C_PANEL_MUTED, height=self._sf(6),
                                            corner_radius=self._sf(3), width=self._sf(120))
                 prog_frame.pack(side="left", padx=(self._sf(14), 0))
                 prog_frame.pack_propagate(False)
@@ -2340,22 +2413,22 @@ class RajChatApp(ctk.CTk):
             # Expand / collapse toggle
             toggle_text = "▲ Collapse" if is_expanded else "▼ Expand"
             toggle_btn = ctk.CTkButton(header, text=toggle_text, font=self._font(9),
-                                       fg_color="transparent", hover_color="#1e3a5f",
+                                       fg_color="transparent", hover_color=C_BORDER,
                                        text_color=C_ACCENT, width=self._sf(80), height=self._sf(24),
                                        command=lambda fn=family_name: self._toggle_family_expand(fn))
             toggle_btn.pack(side="right")
             self._family_toggle_buttons[family_name] = toggle_btn
 
         # Clone button (shown for all families)
-        ctk.CTkButton(header, text="📋 Clone", font=("Segoe UI", 10),
-                      fg_color="#1a1a3e", hover_color="#2a2a5e",
-                      text_color="white", width=70, height=28,
+        ctk.CTkButton(header, text="📋 Clone", font=self._font(10),
+                      fg_color=C_PANEL_MUTED, hover_color=C_ACCENT_HOVER,
+                      text_color=C_TEXT, width=70, height=28,
                       command=lambda fn=family_name, d=days: self._confirm_clone_family(fn, d)
                       ).pack(side="right", padx=(self._sf(6), 0))
 
         # Family delete button (shown for all families)
-        ctk.CTkButton(header, text="🗑️", font=("Segoe UI", 10),
-                      fg_color="#3a1a1a", hover_color="#5a2a2a",
+        ctk.CTkButton(header, text="🗑️", font=self._font(10),
+                      fg_color=C_DANGER_BG, hover_color=C_DANGER_HOVER,
                       text_color=C_DANGER, width=28, height=28,
                       command=lambda fn=family_name, d=days, total=family_total: self._confirm_delete_family(fn, d, total)
                       ).pack(side="right", padx=(self._sf(6), 0))
@@ -2410,17 +2483,19 @@ class RajChatApp(ctk.CTk):
                 elif scheduled and actual_status not in ["COMPLETED", "RUNNING"]:
                     actual_status = "SCHEDULED"
     
-                # Colors — SCHEDULED = yellow, COMPLETED = green, RUNNING/DRAFT = teal
+                # Colors — white card with colored left accent
                 if actual_status == "COMPLETED":
-                    bg, border, accent = "#0a3a2a", "#2ecc71", "#2ecc71"
+                    accent, badge_bg, badge_fg = C_SUCCESS, C_COMPLETED_BG, C_SUCCESS
                 elif actual_status == "SCHEDULED":
-                    bg, border, accent = "#3a2a0d", "#febe32", "#febe32"
+                    accent, badge_bg, badge_fg = C_ACCENT, C_SCHEDULED_BG, C_ACCENT_TEXT
                 elif actual_status in ["RUNNING", "DRAFT"]:
-                    bg, border, accent = "#0d2b2b", "#0d9b8a", "#0d9b8a"
+                    accent, badge_bg, badge_fg = C_PRIMARY, C_RUNNING_BG, C_PRIMARY
                 elif actual_status == "PAUSED":
-                    bg, border, accent = "#2a2a1a", "#d29922", "#d29922"
+                    accent, badge_bg, badge_fg = C_WARNING_HOVER, C_PAUSED_BG, C_ACCENT_TEXT
                 else:
-                    bg, border, accent = "#151528", "#2a2a4e", "#555577"
+                    accent, badge_bg, badge_fg = C_TEXT_DIM, C_BADGE_QUEUE, C_TEXT_DIM
+                bg = C_CARD
+                border = C_BORDER
     
                 # Elongated pill
                 pill_h = self._sf(200)
@@ -2428,10 +2503,15 @@ class RajChatApp(ctk.CTk):
                                     border_width=1, border_color=border, height=pill_h)
                 pill.grid(row=0, column=col, padx=self._sf(4), pady=self._sf(3), sticky="nsew")
                 pill.grid_propagate(False)
+
+                # Colored left accent bar
+                accent_bar = ctk.CTkFrame(pill, fg_color=accent, width=self._sf(4),
+                                          corner_radius=self._sf(3))
+                accent_bar.place(relx=0, rely=0, relheight=1)
     
                 # Day label + date
                 day_frame = ctk.CTkFrame(pill, fg_color="transparent", height=self._sf(20))
-                day_frame.pack(fill="x", padx=self._sf(8), pady=(self._sf(6), 0))
+                day_frame.pack(fill="x", padx=self._sf(12), pady=(self._sf(6), 0))
                 day_frame.pack_propagate(False)
     
                 ctk.CTkLabel(day_frame, text=day_label, font=self._font(10, bold=True),
@@ -2456,21 +2536,21 @@ class RajChatApp(ctk.CTk):
                 else:
                     date_text = ""
                 if date_text:
-                    color = "#484f58" if status == "NOT_CREATED" else "#4a5a6a"
+                    color = C_TEXT_DIM if status == "NOT_CREATED" else C_TEXT_DIM
                     ctk.CTkLabel(day_frame, text=f"  {date_text}", font=self._font(8),
                                  text_color=color).pack(side="left")
     
                 # Sent / Total big
                 ctk.CTkLabel(pill, text=f"{sent}/{total}", font=self._font(18, bold=True),
-                             text_color="white").pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+                             text_color=C_TEXT).pack(anchor="w", padx=self._sf(12), pady=(self._sf(2), 0))
     
                 # Mini progress bar inside pill
                 if total > 0:
                     prog_pct = int(sent / total * 100)
                     bar_w = self._sf(100)
-                    bar_bg = ctk.CTkFrame(pill, fg_color="#1a1a2e", height=self._sf(4),
+                    bar_bg = ctk.CTkFrame(pill, fg_color=C_PANEL_MUTED, height=self._sf(4),
                                            corner_radius=self._sf(2), width=bar_w)
-                    bar_bg.pack(anchor="w", padx=self._sf(8), pady=(self._sf(4), self._sf(4)))
+                    bar_bg.pack(anchor="w", padx=self._sf(12), pady=(self._sf(4), self._sf(4)))
                     bar_bg.pack_propagate(False)
                     if prog_pct > 0:
                         fill_w = max(2, int(bar_w * prog_pct / 100))
@@ -2482,31 +2562,29 @@ class RajChatApp(ctk.CTk):
                 states = {"COMPLETED": "Done", "RUNNING": "Sending", "SCHEDULED": "Scheduled",
                           "DRAFT": "Ready", "PAUSED": "Paused", "NONE": "Queue"}
                 badge_text = states.get(actual_status, "")
-                badge_color = C_SUCCESS if actual_status == "COMPLETED" else "#febe32" if actual_status == "SCHEDULED" else "#0d9b8a" if actual_status == "RUNNING" else "#d29922" if actual_status == "PAUSED" else "#5a6a7a"
-                badge_bg = "#0d3a2a" if actual_status == "COMPLETED" else "#3a2a0d" if actual_status == "SCHEDULED" else "#0d2b2b" if actual_status == "RUNNING" else "#2a2a1a" if actual_status == "PAUSED" else "#1a1a2e"
                 if badge_text:
                     badge = ctk.CTkLabel(pill, text=f"  {badge_text}  ", font=self._font(8, bold=True),
-                                         text_color=badge_color, fg_color=badge_bg,
+                                         text_color=badge_fg, fg_color=badge_bg,
                                          corner_radius=self._sf(10))
-                    badge.pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+                    badge.pack(anchor="w", padx=self._sf(12), pady=(self._sf(2), 0))
     
                 # Due / to-send line
                 if actual_status == "COMPLETED":
-                    st_text, st_color = "All sent", "#0d9b8a"
+                    st_text = "All sent"
                 elif due > 0 and actual_status not in ["NONE"]:
-                    st_text, st_color = f"{due} due", "#febe32"
+                    st_text = f"{due} due"
                 elif actual_status == "NONE" and family_total > 0:
-                    st_text, st_color = f"{family_total} to send", "#febe32"
+                    st_text = f"{family_total} to send"
                 else:
-                    st_text, st_color = "", C_TEXT_DIM
+                    st_text = ""
                 if st_text:
                     ctk.CTkLabel(pill, text=st_text, font=self._font(9),
-                                 text_color=st_color).pack(anchor="w", padx=self._sf(8), pady=(self._sf(2), 0))
+                                 text_color=C_TEXT_DIM).pack(anchor="w", padx=self._sf(12), pady=(self._sf(2), 0))
     
                 # Buttons row
                 btn_h = self._sf(26)
                 btn_frame = ctk.CTkFrame(pill, fg_color="transparent", height=btn_h)
-                btn_frame.pack(fill="x", padx=self._sf(4), pady=(self._sf(4), self._sf(6)))
+                btn_frame.pack(fill="x", padx=self._sf(12), pady=(self._sf(4), self._sf(6)))
                 btn_frame.grid_columnconfigure(0, weight=1)
                 btn_frame.grid_columnconfigure(1, weight=1)
                 btn_frame.grid_columnconfigure(2, weight=1)
@@ -2516,24 +2594,24 @@ class RajChatApp(ctk.CTk):
                     if actual_status in ["COMPLETED", "NOT_CREATED"]:
                         action_text = None
                     elif actual_status in ["DRAFT", "SCHEDULED", "PAUSED"]:
-                        action_text, action_color = "▶ Start", "#0d9b8a"
+                        action_text, action_color, action_text_color = "▶ Start", C_PRIMARY, "white"
                     elif actual_status == "RUNNING":
-                        action_text, action_color = "⏸ Pause", "#d29922"
+                        action_text, action_color, action_text_color = "⏸ Pause", C_ACCENT, C_ACCENT_TEXT
                     else:
-                        action_text, action_color = "+ Create", "#3a3a5e"
+                        action_text, action_color, action_text_color = "+ Create", C_PRIMARY, "white"
 
                     if action_text:
                         ctk.CTkButton(btn_frame, text=action_text, font=self._font(9, bold=True),
                                       fg_color=action_color, hover_color=action_color,
-                                      text_color="white", corner_radius=self._sf(4), height=btn_h,
+                                      text_color=action_text_color, corner_radius=self._sf(4), height=btn_h,
                                       command=lambda b=batch_id, s=actual_status, d=day_num, f=family_name, sq=seq_id: self._on_pill_click(b, s, d, f, sq)
                                       ).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
                     else:
                         ctk.CTkFrame(btn_frame, fg_color="transparent", height=btn_h).grid(row=0, column=0, padx=(0, 1), sticky="nsew")
 
                     ctk.CTkButton(btn_frame, text="📊", font=self._font(9),
-                                  fg_color="#1a1a3e", hover_color="#2a2a5e",
-                                  text_color="white", corner_radius=self._sf(4), height=btn_h,
+                                  fg_color=C_PANEL_MUTED, hover_color=C_ACCENT_HOVER,
+                                  text_color=C_TEXT, corner_radius=self._sf(4), height=btn_h,
                                   command=lambda b=batch_id, f=family_name, d=day_num: self._show_pill_report(b, f, d)
                                   ).grid(row=0, column=1, padx=(1, 0), sticky="nsew")
     
@@ -2607,7 +2685,7 @@ class RajChatApp(ctk.CTk):
         """Render the expanded recipient list + stats below the day pills."""
         scale = self._get_scale()
 
-        exp_frame = ctk.CTkFrame(parent_card, fg_color="#0f0f1a", corner_radius=self._sf(8))
+        exp_frame = ctk.CTkFrame(parent_card, fg_color=C_BG, corner_radius=self._sf(8))
         exp_frame.pack(fill="x", padx=self._sf(10), pady=(0, self._sf(10)))
         self._family_expanded_frames[family_name] = exp_frame
 
@@ -2647,7 +2725,7 @@ class RajChatApp(ctk.CTk):
                      font=self._font(11, bold=True), text_color=C_ACCENT).pack(side="left")
 
         stat_items = [
-            ("Total", total, "white"), ("Sent", sent, C_SUCCESS),
+            ("Total", total, C_TEXT), ("Sent", sent, C_SUCCESS),
             ("Pending", pending, C_WARNING), ("Bounced", bounced, C_DANGER),
             ("Replied", replied, C_ACCENT)
         ]
@@ -2689,11 +2767,11 @@ class RajChatApp(ctk.CTk):
         # Header
         header = ctk.CTkFrame(view, fg_color="transparent")
         header.pack(fill="x", pady=(0, 15))
-        ctk.CTkLabel(header, text="💬 Reply Inbox", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(side="left")
+        ctk.CTkLabel(header, text="💬 Reply Inbox", font=self._font(24, bold=True),
+                     text_color=C_TEXT).pack(side="left")
         self.replies_unread_badge = ctk.CTkLabel(
-            header, text="  0  ", font=("Segoe UI", 12, "bold"),
-            text_color="white", fg_color=C_DANGER, corner_radius=self._sf(10)
+            header, text="  0  ", font=self._font(12, bold=True),
+            text_color=C_TEXT, fg_color=C_DANGER, corner_radius=self._sf(10)
         )
         self.replies_unread_badge.pack(side="left", padx=(10, 0))
 
@@ -2710,7 +2788,7 @@ class RajChatApp(ctk.CTk):
 
         self.reply_search = ctk.CTkEntry(
             filter_bar, placeholder_text="Search email or subject...",
-            fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12)
+            fg_color=C_BG, text_color=C_TEXT, font=self._font(12)
         )
         self.reply_search.pack(side="left", fill="x", expand=True, padx=(10, 0))
         self.reply_search.bind("<Return>", lambda e: self._refresh_replies())
@@ -2752,7 +2830,7 @@ class RajChatApp(ctk.CTk):
 
             if not replies:
                 ctk.CTkLabel(self.replies_scroll, text="No replies match your filters",
-                             font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
+                             font=self._font(12), text_color=C_TEXT_DIM).pack(pady=30)
                 return
 
             for reply in replies:
@@ -2779,18 +2857,18 @@ class RajChatApp(ctk.CTk):
         received_at = reply.get("received_at") or ""
 
         if sentiment == "positive":
-            sentiment_color, sentiment_bg = "#2ecc71", "#0a3a2a"
+            sentiment_color, sentiment_bg = C_SUCCESS, C_COMPLETED_BG
         elif sentiment in ("hostile", "unsubscribe"):
-            sentiment_color, sentiment_bg = "#ff4d4d", "#3a1a1a"
+            sentiment_color, sentiment_bg = C_DANGER, C_DANGER_BG
         else:
-            sentiment_color, sentiment_bg = "#febe32", "#3a2a0d"
+            sentiment_color, sentiment_bg = C_WARNING, C_SCHEDULED_BG
 
         # Top row: name/email, sentiment badge, date, status
         top = ctk.CTkFrame(card, fg_color="transparent")
         top.pack(fill="x", padx=12, pady=(10, 2))
-        ctk.CTkLabel(top, text=f"{name}  ({email})", font=("Segoe UI", 12, "bold"),
-                     text_color="white").pack(side="left")
-        ctk.CTkLabel(top, text=f"  {sentiment.upper()}  ", font=("Segoe UI", 9, "bold"),
+        ctk.CTkLabel(top, text=f"{name}  ({email})", font=self._font(12, bold=True),
+                     text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(top, text=f"  {sentiment.upper()}  ", font=self._font(9, bold=True),
                      text_color=sentiment_color, fg_color=sentiment_bg,
                      corner_radius=10).pack(side="left", padx=(10, 0))
 
@@ -2800,14 +2878,14 @@ class RajChatApp(ctk.CTk):
                 date_text = dt.strftime("%d %b %Y")
             except Exception:
                 date_text = str(received_at)[:10]
-            ctk.CTkLabel(top, text=date_text, font=("Segoe UI", 9),
+            ctk.CTkLabel(top, text=date_text, font=self._font(9),
                          text_color=C_TEXT_DIM).pack(side="right", padx=(10, 0))
-        ctk.CTkLabel(top, text=status, font=("Segoe UI", 9),
+        ctk.CTkLabel(top, text=status, font=self._font(9),
                      text_color=C_TEXT_DIM).pack(side="right")
 
-        ctk.CTkLabel(card, text=f"Subject: {subject}", font=("Segoe UI", 10),
+        ctk.CTkLabel(card, text=f"Subject: {subject}", font=self._font(10),
                      text_color=C_TEXT_DIM).pack(anchor="w", padx=12, pady=(2, 0))
-        ctk.CTkLabel(card, text=snippet, font=("Segoe UI", 10),
+        ctk.CTkLabel(card, text=snippet, font=self._font(10),
                      text_color=C_TEXT_DIM).pack(anchor="w", padx=12, pady=(2, 10))
 
         # Make whole card clickable
@@ -2831,23 +2909,23 @@ class RajChatApp(ctk.CTk):
         body = reply.get("body") or ""
 
         ctk.CTkLabel(popup, text=f"From: {name} <{email}>",
-                     font=("Segoe UI", 14, "bold"), text_color="white"
+                     font=self._font(14, bold=True), text_color=C_TEXT
                      ).pack(anchor="w", padx=15, pady=(15, 5))
-        ctk.CTkLabel(popup, text=f"Subject: {subject}", font=("Segoe UI", 12),
+        ctk.CTkLabel(popup, text=f"Subject: {subject}", font=self._font(12),
                      text_color=C_TEXT_DIM).pack(anchor="w", padx=15)
 
-        ctk.CTkLabel(popup, text="Original reply", font=("Segoe UI", 11, "bold"),
+        ctk.CTkLabel(popup, text="Original reply", font=self._font(11, bold=True),
                      text_color=C_ACCENT).pack(anchor="w", padx=15, pady=(15, 5))
-        body_box = ctk.CTkTextbox(popup, fg_color="#0f0f1a", text_color=C_TEXT,
-                                  font=("Segoe UI", 11), wrap="word", height=150)
+        body_box = ctk.CTkTextbox(popup, fg_color=C_BG, text_color=C_TEXT,
+                                  font=self._font(11), wrap="word", height=150)
         body_box.pack(fill="x", padx=15, pady=(0, 10))
         body_box.insert("0.0", body)
         body_box.configure(state="disabled")
 
-        ctk.CTkLabel(popup, text="AI Draft", font=("Segoe UI", 11, "bold"),
+        ctk.CTkLabel(popup, text="AI Draft", font=self._font(11, bold=True),
                      text_color=C_ACCENT).pack(anchor="w", padx=15, pady=(5, 5))
-        draft_box = ctk.CTkTextbox(popup, fg_color="#0f0f1a", text_color=C_TEXT,
-                                   font=("Segoe UI", 11), wrap="word")
+        draft_box = ctk.CTkTextbox(popup, fg_color=C_BG, text_color=C_TEXT,
+                                   font=self._font(11), wrap="word")
         draft_box.pack(fill="both", expand=True, padx=15, pady=(0, 10))
 
         if reply.get("draft_html"):
@@ -2864,20 +2942,20 @@ class RajChatApp(ctk.CTk):
         # Buttons
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(fill="x", padx=15, pady=(0, 15))
-        ctk.CTkButton(btn_frame, text="Send Draft", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_SUCCESS, hover_color="#2a8a4a",
+        ctk.CTkButton(btn_frame, text="Send Draft", font=self._font(12, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER,
                       command=lambda r=reply, db=draft_box, p=popup: self._send_reply_draft(r, db, p)
                       ).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Edit Draft", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_ACCENT, hover_color="#1e5a8a",
+        ctk.CTkButton(btn_frame, text="Edit Draft", font=self._font(12, bold=True),
+                      fg_color=C_ACCENT, hover_color=C_ACCENT_HOVER,
                       command=lambda db=draft_box: db.configure(state="normal")
                       ).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Mark Handled", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_PANEL, hover_color="#3a3a5e",
+        ctk.CTkButton(btn_frame, text="Mark Handled", font=self._font(12, bold=True),
+                      fg_color=C_PANEL, hover_color=C_ACCENT_HOVER,
                       command=lambda r=reply, p=popup: self._mark_reply_handled(r, p)
                       ).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Blacklist", font=("Segoe UI", 12, "bold"),
-                      fg_color=C_DANGER, hover_color="#8a1c1c",
+        ctk.CTkButton(btn_frame, text="Blacklist", font=self._font(12, bold=True),
+                      fg_color=C_DANGER, hover_color=C_DANGER_HOVER,
                       command=lambda r=reply, p=popup: self._blacklist_reply(r, p)
                       ).pack(side="left", padx=5)
 
@@ -2934,36 +3012,36 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkFrame(self.content, fg_color="transparent")
         self.views["blacklist"] = view
 
-        ctk.CTkLabel(view, text="🚫 Blacklist", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+        ctk.CTkLabel(view, text="🚫 Blacklist", font=self._font(24, bold=True),
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
 
         # Add email
         add_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         add_frame.pack(fill="x", pady=(0, 10))
 
-        self.blacklist_entry = ctk.CTkEntry(add_frame, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        self.blacklist_entry = ctk.CTkEntry(add_frame, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         self.blacklist_entry.pack(side="left", fill="x", expand=True, padx=15, pady=10)
-        ctk.CTkButton(add_frame, text="Add", font=("Segoe UI", 12), width=80,
+        ctk.CTkButton(add_frame, text="Add", font=self._font(12), width=80,
                       fg_color=C_DANGER, command=self._add_to_blacklist).pack(side="right", padx=15, pady=10)
 
         # Bounce Scanner
         scan_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         scan_frame.pack(fill="x", pady=(0, 15))
 
-        ctk.CTkLabel(scan_frame, text="📨 Bounce Scan", font=("Segoe UI", 12, "bold"),
+        ctk.CTkLabel(scan_frame, text="📨 Bounce Scan", font=self._font(12, bold=True),
                      text_color=C_ACCENT).pack(side="left", padx=15, pady=10)
 
         self.bounce_range = ctk.CTkOptionMenu(scan_frame,
             values=["Last 3 days", "Last 7 days", "Last 15 days", "Last 30 days"],
-            font=("Segoe UI", 11), width=140, fg_color=C_BG)
+            font=self._font(11), width=140, fg_color=C_BG)
         self.bounce_range.pack(side="left", padx=(0, 10), pady=10)
         self.bounce_range.set("Last 15 days")
 
-        ctk.CTkButton(scan_frame, text="▶ Scan", font=("Segoe UI", 11), width=80,
-                      fg_color=C_SUCCESS, hover_color="#0d7a6a",
+        ctk.CTkButton(scan_frame, text="▶ Scan", font=self._font(11), width=80,
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER,
                       command=self._run_bounce_scan).pack(side="left", padx=(0, 10), pady=10)
 
-        self.bounce_status = ctk.CTkLabel(scan_frame, text="", font=("Segoe UI", 10),
+        self.bounce_status = ctk.CTkLabel(scan_frame, text="", font=self._font(10),
                                           text_color=C_TEXT_DIM)
         self.bounce_status.pack(side="left", padx=10, pady=10)
 
@@ -2982,18 +3060,18 @@ class RajChatApp(ctk.CTk):
 
             if not emails:
                 ctk.CTkLabel(self.blacklist_frame, text="No blacklisted emails",
-                             font=("Segoe UI", 12), text_color=C_TEXT_DIM).pack(pady=30)
+                             font=self._font(12), text_color=C_TEXT_DIM).pack(pady=30)
                 return
 
             for email, reason, added_at in emails:
                 row = ctk.CTkFrame(self.blacklist_frame, fg_color=C_PANEL, corner_radius=6)
                 row.pack(fill="x", pady=2, padx=4)
 
-                ctk.CTkLabel(row, text=f"● {email}", font=("Segoe UI", 11),
+                ctk.CTkLabel(row, text=f"● {email}", font=self._font(11),
                              text_color=C_DANGER).pack(side="left", padx=10, pady=6)
-                ctk.CTkLabel(row, text=f"({reason})", font=("Segoe UI", 9),
+                ctk.CTkLabel(row, text=f"({reason})", font=self._font(9),
                              text_color=C_TEXT_DIM).pack(side="left")
-                ctk.CTkButton(row, text="✕", font=("Segoe UI", 10), width=30,
+                ctk.CTkButton(row, text="✕", font=self._font(10), width=30,
                               fg_color="transparent", text_color=C_DANGER,
                               command=lambda e=email: self._remove_from_blacklist(e)).pack(side="right", padx=5)
 
@@ -3052,57 +3130,97 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkFrame(self.content, fg_color="transparent")
         self.views["settings"] = view
 
-        ctk.CTkLabel(view, text="⚙️ Settings", font=("Segoe UI", 24, "bold"),
-                     text_color="white").pack(anchor="w", pady=(0, 15))
+        ctk.CTkLabel(view, text="⚙️ Settings", font=self._font(24, bold=True),
+                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
+
+        # Google Connections
+        google_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
+        google_frame.pack(fill="x", pady=(0, 10))
+        ctk.CTkLabel(google_frame, text="Google Connections:", font=self._font(12),
+                     text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
+
+        self.google_status = {}
+        services = [
+            ("Gmail", "gmail", self.engine.gmail),
+            ("Calendar", "calendar", self.engine.calendar),
+            ("Drive", "drive", self.engine.drive),
+        ]
+        for name, key, service in services:
+            row = ctk.CTkFrame(google_frame, fg_color="transparent")
+            row.pack(fill="x", padx=15, pady=5)
+
+            status_dot = ctk.CTkLabel(row, text="●", font=self._font(14), text_color=C_DANGER)
+            status_dot.pack(side="left")
+
+            ctk.CTkLabel(row, text=name, font=self._font(12),
+                         text_color=C_TEXT).pack(side="left", padx=(5, 10))
+
+            state_label = ctk.CTkLabel(row, text="Not connected", font=self._font(11),
+                                       text_color=C_TEXT)
+            state_label.pack(side="left")
+
+            btn = ctk.CTkButton(row, text="Connect", font=self._font(11), width=90,
+                                fg_color=C_ACCENT,
+                                command=lambda n=name, k=key: self._connect_google_service(n, k))
+            btn.pack(side="right")
+
+            self.google_status[key] = {
+                "dot": status_dot,
+                "state": state_label,
+                "btn": btn,
+                "service": service,
+            }
+
+        self._refresh_google_connection_status()
 
         # Brief email
         brief_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         brief_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(brief_frame, text="Morning Brief Email:", font=("Segoe UI", 12),
+        ctk.CTkLabel(brief_frame, text="Morning Brief Email:", font=self._font(12),
                      text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
-        self.brief_email_entry = ctk.CTkEntry(brief_frame, fg_color=C_BG, text_color=C_TEXT, font=("Segoe UI", 12))
+        self.brief_email_entry = ctk.CTkEntry(brief_frame, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
         self.brief_email_entry.pack(fill="x", padx=15, pady=(0, 10))
         self.brief_email_entry.insert(0, self.engine.brief_email or "")
-        ctk.CTkButton(brief_frame, text="Save", font=("Segoe UI", 12),
+        ctk.CTkButton(brief_frame, text="Save", font=self._font(12),
                       fg_color=C_ACCENT, command=self._save_brief_email).pack(anchor="e", padx=15, pady=(0, 10))
 
         # Pause sequences
         pause_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         pause_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(pause_frame, text="Pause Sequences:", font=("Segoe UI", 12),
+        ctk.CTkLabel(pause_frame, text="Pause Sequences:", font=self._font(12),
                      text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
 
         self.pause_school = ctk.CTkCheckBox(pause_frame, text="Pause SCHOOL",
-                                              font=("Segoe UI", 11), text_color=C_TEXT)
+                                              font=self._font(11), text_color=C_TEXT)
         self.pause_school.pack(anchor="w", padx=15, pady=5)
 
         self.pause_csr = ctk.CTkCheckBox(pause_frame, text="Pause CSR",
-                                         font=("Segoe UI", 11), text_color=C_TEXT)
+                                         font=self._font(11), text_color=C_TEXT)
         self.pause_csr.pack(anchor="w", padx=15, pady=5)
 
         self.pause_csr_wsl_5 = ctk.CTkCheckBox(pause_frame, text="Pause CSR-WSL-5",
-                                                font=("Segoe UI", 11), text_color=C_TEXT)
+                                                font=self._font(11), text_color=C_TEXT)
         self.pause_csr_wsl_5.pack(anchor="w", padx=15, pady=5)
 
-        ctk.CTkButton(pause_frame, text="Apply", font=("Segoe UI", 12),
+        ctk.CTkButton(pause_frame, text="Apply", font=self._font(12),
                       fg_color=C_ACCENT, command=self._apply_pauses).pack(anchor="e", padx=15, pady=(5, 10))
 
         # Export
         export_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         export_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(export_frame, text="Export:", font=("Segoe UI", 12),
+        ctk.CTkLabel(export_frame, text="Export:", font=self._font(12),
                      text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
-        ctk.CTkButton(export_frame, text="Export Campaign State", font=("Segoe UI", 12),
+        ctk.CTkButton(export_frame, text="Export Campaign State", font=self._font(12),
                       fg_color=C_SUCCESS, command=self._export_state).pack(anchor="w", padx=15, pady=(0, 10))
 
         # Notifications
         notif_frame = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
         notif_frame.pack(fill="x", pady=(0, 10))
-        ctk.CTkLabel(notif_frame, text="Notifications:", font=("Segoe UI", 12),
+        ctk.CTkLabel(notif_frame, text="Notifications:", font=self._font(12),
                      text_color=C_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
         self.notifications_enabled = ctk.CTkCheckBox(
             notif_frame, text="Desktop notifications",
-            font=("Segoe UI", 11), text_color=C_TEXT
+            font=self._font(11), text_color=C_TEXT
         )
         self.notifications_enabled.pack(anchor="w", padx=15, pady=(0, 10))
         # Load saved preference (default ON)
@@ -3145,6 +3263,55 @@ class RajChatApp(ctk.CTk):
             self.engine.db.set_meta("pause_csr_wsl_5", "false")
         self._log_activity("Pause settings updated")
 
+    def _refresh_google_connection_status(self):
+        """Update connection status dots/labels in Settings."""
+        if not hasattr(self, "google_status"):
+            return
+        states = {
+            "gmail": self.engine.gmail.is_connected() if self.engine.gmail else False,
+            "calendar": self.engine.calendar.is_connected() if self.engine.calendar else False,
+            "drive": self.engine.drive.is_connected() if self.engine.drive else False,
+        }
+        for key, connected in states.items():
+            widgets = self.google_status.get(key)
+            if not widgets or not widgets["service"]:
+                continue
+            color = C_SUCCESS if connected else C_DANGER
+            text = "Connected" if connected else "Not connected"
+            btn_text = "Reconnect" if connected else "Connect"
+            widgets["dot"].configure(text_color=color)
+            widgets["state"].configure(text=text)
+            widgets["btn"].configure(text=btn_text, state="normal")
+
+    def _connect_google_service(self, name, key):
+        """Start interactive OAuth for a Google service."""
+        widgets = self.google_status.get(key)
+        if not widgets:
+            return
+        widgets["btn"].configure(state="disabled", text="Opening browser…")
+
+        def on_done(success, error):
+            self._safe_after(0, lambda: self._on_google_connected(name, key, success, error))
+
+        if key == "gmail":
+            self.engine.connect_gmail(on_done)
+        elif key == "calendar":
+            self.engine.connect_calendar(on_done)
+        elif key == "drive":
+            self.engine.connect_drive(on_done)
+
+    def _on_google_connected(self, name, key, success, error):
+        """Handle OAuth result on the main thread."""
+        widgets = self.google_status.get(key)
+        if not widgets:
+            return
+        if success:
+            self._refresh_google_connection_status()
+            self._log_activity(f"{name} connected")
+        else:
+            widgets["btn"].configure(state="normal", text="Retry")
+            self._log_activity(f"{name} connection failed: {error}")
+
     def _export_state(self):
         try:
             md = self.engine.export_campaign_state()
@@ -3168,7 +3335,7 @@ class RajChatApp(ctk.CTk):
         # Update nav button colors
         for k, btn in self.nav_buttons.items():
             if k == key:
-                btn.configure(fg_color="#1a1a3e", text_color=C_ACCENT)
+                btn.configure(fg_color=C_PANEL_MUTED, text_color=C_PRIMARY)
             else:
                 btn.configure(fg_color="transparent", text_color=C_TEXT)
 
@@ -3194,6 +3361,8 @@ class RajChatApp(ctk.CTk):
             self._refresh_replies()
         elif key == "blacklist":
             self._refresh_blacklist()
+        elif key == "settings":
+            self._refresh_google_connection_status()
 
     def _scan_bounces_now(self):
         self._log_activity("Scanning bounces...")
