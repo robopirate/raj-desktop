@@ -9,30 +9,32 @@ echo.
 
 cd /d "%~dp0"
 
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python not found in PATH
-    echo Please install Python 3.10+ and check "Add to PATH"
-    pause
-    exit /b 1
+if not exist ".venv\Scripts\python.exe" (
+    echo [1/3] Creating virtual environment...
+    python -m venv .venv
+    if errorlevel 1 (
+        echo ERROR: Could not create virtual environment.
+        pause
+        exit /b 1
+    )
 )
 
 echo [1/3] Checking packages...
-python -c "import customtkinter, googleapiclient, openpyxl, requests" 2>nul
+.venv\Scripts\python -c "import flask, pywebview, pystray, plyer" 2>nul
 if errorlevel 1 (
-    echo Installing missing packages...
-    pip install -r requirements.txt
+    echo Installing / updating packages...
+    .venv\Scripts\pip install -r requirements.txt
 ) else (
     echo [1/3] Packages ready
 )
 
 echo.
 echo [2/3] Checking database...
-python -c "from db import Database; d=Database(); print('[2/3] Database OK')"
+.venv\Scripts\python -c "from db import Database; d=Database(); print('[2/3] Database OK')"
 
 echo.
-echo [3/3] Starting Raj...
-python main.py
+echo [3/3] Starting Raj Desktop...
+.venv\Scripts\python desktop.py
 
 echo.
 pause

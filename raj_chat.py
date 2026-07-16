@@ -39,12 +39,163 @@ from datetime import datetime, timedelta
 
 # Light theme matching robopirate.in
 # Neutral base with intentional, sparing color use.
-ctk.set_appearance_mode("light")
-ctk.set_default_color_theme("blue")
+"""
+raj_chat.py — Raj Command Center GUI v5.0
+Dashboard, Batch Manager, Pipeline View, Individual Blacklist Removal
+RESPONSIVE: Auto-adjusts to screen size, DPI aware, resize-friendly.
+FIXED: Thread-safe dashboard refresh (v4.2.1)
+ENHANCED: Modern glass sidebar, animated transitions, sequence selector, dark mode
+"""
 
-# Brand font — Plus Jakarta Sans is robopirate.in's font.
-# Tkinter will substitute Segoe UI / system font if it's not installed.
+# --- DPI Awareness for Windows (laptop ↔ monitor) ---
+try:
+    from ctypes import windll
+    windll.shcore.SetProcessDpiAwareness(1)  # Per-monitor DPI aware
+except Exception:
+    pass
+# --- End DPI Awareness ---
+
+import re
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+import threading
+import time
+import json
+import webbrowser
+import tempfile
+import queue
+from analytics import AnalyticsView
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+
+try:
+    from smart_importer import SmartImporter
+    SMART_IMPORT_AVAILABLE = True
+except ImportError:
+    SMART_IMPORT_AVAILABLE = False
+import os
+from datetime import datetime, timedelta
+
+# ═══════════════════════════════════════════════════════════
+# THEME SYSTEM — Light & Dark modes
+# ═══════════════════════════════════════════════════════════
+class Theme:
+    """Centralized theme manager for light/dark modes."""
+    
+    # LIGHT THEME (default)
+    LIGHT = {
+        "mode": "light",
+        "bg": "#F1F5F5",
+        "card": "#FFFFFF",
+        "card_alt": "#F8FAFA",
+        "border": "#E5EBEB",
+        "text": "#0F3D3D",
+        "text_dim": "#5E6E6E",
+        "primary": "#006B6B",
+        "primary_hover": "#005959",
+        "accent": "#FACC15",
+        "accent_hover": "#E5B80C",
+        "accent_text": "#713F12",
+        "success": "#10B981",
+        "success_hover": "#059669",
+        "danger": "#EF4444",
+        "danger_hover": "#DC2626",
+        "sidebar_bg": "#FFFFFF",
+        "sidebar_active": "#E6F7F7",
+        "sidebar_hover": "#F8FAFA",
+        "glass_overlay": "#FFFFFF",
+        "shadow": "#00000018",
+    }
+    
+    # DARK THEME
+    DARK = {
+        "mode": "dark",
+        "bg": "#0F172A",
+        "card": "#1E293B",
+        "card_alt": "#334155",
+        "border": "#334155",
+        "text": "#F1F5F9",
+        "text_dim": "#94A3B8",
+        "primary": "#2DD4BF",
+        "primary_hover": "#14B8A6",
+        "accent": "#FACC15",
+        "accent_hover": "#E5B80C",
+        "accent_text": "#713F12",
+        "success": "#34D399",
+        "success_hover": "#10B981",
+        "danger": "#F87171",
+        "danger_hover": "#EF4444",
+        "sidebar_bg": "#1E293B",
+        "sidebar_active": "#0F3D3D",
+        "sidebar_hover": "#334155",
+        "glass_overlay": "#1E293B",
+        "shadow": "#00000040",
+    }
+    
+    _current = LIGHT.copy()
+    
+    @classmethod
+    def set_mode(cls, mode: str):
+        cls._current = cls.DARK.copy() if mode == "dark" else cls.LIGHT.copy()
+        ctk.set_appearance_mode(mode)
+    
+    @classmethod
+    def get(cls, key: str) -> str:
+        return cls._current.get(key, cls.LIGHT.get(key))
+    
+    @classmethod
+    def is_dark(cls) -> bool:
+        return cls._current.get("mode") == "dark"
+
+# Initialize light mode
+theme = Theme()
+
+# Backwards-compatible color aliases (now dynamic via theme)
+def _C(key): return theme.get(key)
+
+# Keep legacy C_ constants working (they're used everywhere)
+C_BG        = theme.get("bg")
+C_CARD      = theme.get("card")
+C_CARD_ALT  = theme.get("card_alt")
+C_BORDER    = theme.get("border")
+C_TEXT      = theme.get("text")
+C_TEXT_DIM  = theme.get("text_dim")
+C_PRIMARY       = theme.get("primary")
+C_PRIMARY_HOVER = theme.get("primary_hover")
+C_ACCENT        = theme.get("accent")
+C_ACCENT_HOVER  = theme.get("accent_hover")
+C_ACCENT_TEXT   = theme.get("accent_text")
+C_SUCCESS       = theme.get("success")
+C_SUCCESS_HOVER = theme.get("success_hover")
+C_DANGER        = theme.get("danger")
+C_DANGER_HOVER  = theme.get("danger_hover")
+
+# Backwards-compatible aliases
+C_PANEL = C_CARD
+C_PANEL_MUTED = C_CARD_ALT
+C_WARNING = C_ACCENT
+C_WARNING_HOVER = C_ACCENT_HOVER
+C_WARNING_TEXT = C_ACCENT_TEXT
+C_SCHOOL_BG = "#E6F7F7"
+C_CSR_BG = "#FEF9C3"
+C_LEADS_BG = "#F1F5F5"
+C_COMPLETED_BG = "#D1FAE5"
+C_SCHEDULED_BG = "#FEF9C3"
+C_RUNNING_BG = "#CCFBF1"
+C_PAUSED_BG = "#FEF3C7"
+C_DANGER_BG = "#FEE2E2"
+
+# Brand font
 APP_FONT = ("Plus Jakarta Sans", 13)
+
+# Subtle badge tints
+C_BADGE_READY    = "#F1F5F5"
+C_BADGE_SCHEDULED = "#FEF9C3"
+C_BADGE_QUEUE    = "#F1F5F5"
+C_BADGE_DANGER   = "#FEE2E2"
 
 # Surfaces
 C_BG        = "#F1F5F5"   # page background
@@ -93,7 +244,7 @@ class RajChatApp(ctk.CTk):
         super().__init__()
         self.engine = engine
         self.brain = brain
-        self.title("Raj — RoboPirate Command Center v4.2")
+        self.title("Raj — RoboPirate Command Center v5.0")
 
         # Responsive sizing: fit to screen with padding
         try:
@@ -134,16 +285,141 @@ class RajChatApp(ctk.CTk):
         self._cached_scale = 1.0
         self._scale_cache_time = 0
         self._current_view = "dashboard"
-        self._current_view = "dashboard"
         # In-place update caches — avoid full rebuilds
         self._batch_pill_cache = {}        # (family_name, day_code) -> widget refs dict
+
+        # Animation state
+        self._view_transition_in_progress = False
+        self._sidebar_hover_states = {}    # nav_key -> bool
 
         self._build_ui()
         self._poll_ui_queue()
         self._start_refresh_loop()
         self._last_win_width = self.winfo_width()
         self._resize_debounce = None
-        self._log_activity("Raj v4.2 RoboPirate Brand Theme initialized")
+        self._log_activity("Raj v5.0 Modern UI initialized")
+
+    # ═══════════════════════════════════════════════════════════
+    # THEME & COLOR HELPERS
+    # ═══════════════════════════════════════════════════════════
+    def _refresh_theme_colors(self):
+        """Refresh all C_ constants after theme change."""
+        global C_BG, C_CARD, C_CARD_ALT, C_BORDER, C_TEXT, C_TEXT_DIM
+        global C_PRIMARY, C_PRIMARY_HOVER, C_ACCENT, C_ACCENT_HOVER, C_ACCENT_TEXT
+        global C_SUCCESS, C_SUCCESS_HOVER, C_DANGER, C_DANGER_HOVER
+        global C_PANEL, C_PANEL_MUTED, C_WARNING, C_WARNING_HOVER, C_WARNING_TEXT
+        
+        C_BG        = theme.get("bg")
+        C_CARD      = theme.get("card")
+        C_CARD_ALT  = theme.get("card_alt")
+        C_BORDER    = theme.get("border")
+        C_TEXT      = theme.get("text")
+        C_TEXT_DIM  = theme.get("text_dim")
+        C_PRIMARY       = theme.get("primary")
+        C_PRIMARY_HOVER = theme.get("primary_hover")
+        C_ACCENT        = theme.get("accent")
+        C_ACCENT_HOVER  = theme.get("accent_hover")
+        C_ACCENT_TEXT   = theme.get("accent_text")
+        C_SUCCESS       = theme.get("success")
+        C_SUCCESS_HOVER = theme.get("success_hover")
+        C_DANGER        = theme.get("danger")
+        C_DANGER_HOVER  = theme.get("danger_hover")
+        C_PANEL = C_CARD
+        C_PANEL_MUTED = C_CARD_ALT
+        C_WARNING = C_ACCENT
+        C_WARNING_HOVER = C_ACCENT_HOVER
+        C_WARNING_TEXT = C_ACCENT_TEXT
+
+    def _toggle_theme(self):
+        """Toggle between light and dark mode."""
+        new_mode = "dark" if theme.is_dark() else "light"
+        theme.set_mode(new_mode)
+        self._refresh_theme_colors()
+        self.configure(fg_color=C_BG)
+        # Rebuild sidebar with new colors
+        self._refresh_sidebar_theme()
+        # Refresh current view
+        self._refresh_current_view()
+        self._log_activity(f"Switched to {new_mode} mode")
+
+    def _refresh_sidebar_theme(self):
+        """Update sidebar colors after theme change."""
+        self.sidebar.configure(fg_color=theme.get("sidebar_bg"))
+        for key, btn in self.nav_buttons.items():
+            if key == self._current_view:
+                btn.configure(fg_color=theme.get("sidebar_active"), text_color=C_PRIMARY)
+            else:
+                btn.configure(fg_color="transparent", text_color=C_TEXT_DIM)
+
+    def _refresh_current_view(self):
+        """Force refresh the current view after theme change."""
+        # Destroy and rebuild all views
+        for key in list(self.views.keys()):
+            if self.views[key]:
+                self.views[key].destroy()
+        self.views.clear()
+        self._build_dashboard_view()
+        self._build_analytics_view()
+        self._build_chat_view()
+        self._build_import_view()
+        self._build_templates_view()
+        self._build_batches_view()
+        self._build_replies_view()
+        self._build_blacklist_view()
+        self._build_settings_view()
+        self._show_view(self._current_view)
+
+    # ═══════════════════════════════════════════════════════════
+    # ANIMATION HELPERS
+    # ═══════════════════════════════════════════════════════════
+    def _animate_view_switch(self, view_key):
+        """Smooth fade transition between views."""
+        if self._view_transition_in_progress:
+            return
+        self._view_transition_in_progress = True
+        
+        target_view = self.views.get(view_key)
+        if not target_view:
+            self._view_transition_in_progress = False
+            return
+        
+        # Simple fade: hide all, show target with a brief delay for visual effect
+        for key, view in self.views.items():
+            if view and key != view_key:
+                view.pack_forget()
+        
+        # Show target view
+        target_view.pack(fill="both", expand=True, in_=self.content)
+        
+        self._view_transition_in_progress = False
+        self._current_view = view_key
+        self._update_nav_active_state(view_key)
+
+    def _update_nav_active_state(self, active_key):
+        """Update sidebar nav buttons to show active state."""
+        for key, btn in self.nav_buttons.items():
+            if key == active_key:
+                btn.configure(
+                    fg_color=theme.get("sidebar_active"),
+                    text_color=C_PRIMARY,
+                    font=self._font(12, bold=True)
+                )
+            else:
+                btn.configure(
+                    fg_color="transparent",
+                    text_color=C_TEXT_DIM,
+                    font=self._font(12)
+                )
+
+    def _on_nav_hover(self, key, entering):
+        """Handle nav button hover effects."""
+        btn = self.nav_buttons.get(key)
+        if not btn or key == self._current_view:
+            return
+        if entering:
+            btn.configure(fg_color=theme.get("sidebar_hover"), text_color=C_TEXT)
+        else:
+            btn.configure(fg_color="transparent", text_color=C_TEXT_DIM)
 
     # ═══════════════════════════════════════════════════════════
     # RESPONSIVE SCALING HELPERS
@@ -176,82 +452,104 @@ class RajChatApp(ctk.CTk):
         return (APP_FONT[0], s, "bold") if bold else (APP_FONT[0], s)
 
     def _build_ui(self):
-        # Sidebar
-        self.sidebar = ctk.CTkFrame(self, width=220, fg_color=C_PANEL)
+        # ═══ SIDEBAR — Modern Glass Style ═══
+        self.sidebar = ctk.CTkFrame(self, width=240, fg_color=theme.get("sidebar_bg"),
+                                     corner_radius=0, border_width=0)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
         self.sidebar.grid_propagate(False)
 
-        logo_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent", height=80)
-        logo_frame.pack(fill="x", padx=16, pady=(16, 8))
+        # Logo area with gradient feel
+        logo_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent", height=90)
+        logo_frame.pack(fill="x", padx=20, pady=(20, 12))
         logo_frame.pack_propagate(False)
 
-        # Robot face logo
-        robot_label = ctk.CTkLabel(logo_frame, text="🤖", font=self._font(32), text_color=C_ACCENT)
+        # Robot face logo with subtle glow
+        robot_label = ctk.CTkLabel(logo_frame, text="🤖", font=self._font(36), text_color=C_ACCENT)
         robot_label.pack(side="left")
 
         name_frame = ctk.CTkFrame(logo_frame, fg_color="transparent")
-        name_frame.pack(side="left", padx=(8, 0))
-        ctk.CTkLabel(name_frame, text="RAJ", font=self._font(24, bold=True), text_color=C_ACCENT).pack(anchor="w")
-        ctk.CTkLabel(name_frame, text="by RoboPirate", font=self._font(10), text_color=C_TEXT_DIM).pack(anchor="w")
+        name_frame.pack(side="left", padx=(12, 0))
+        ctk.CTkLabel(name_frame, text="RAJ", font=self._font(26, bold=True), text_color=C_PRIMARY).pack(anchor="w")
+        ctk.CTkLabel(name_frame, text="Command Center", font=self._font(10), text_color=C_TEXT_DIM).pack(anchor="w")
 
-        # Navigation
+        # Divider
+        ctk.CTkFrame(self.sidebar, fg_color=C_BORDER, height=1).pack(fill="x", padx=20, pady=(0, 8))
+
+        # Navigation with modern styling
+        nav_container = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        nav_container.pack(fill="x", padx=12, pady=4)
+        
         nav_items = [
-            ("📊 Dashboard", "dashboard"),
-            ("📈 Analytics", "analytics"),
-            ("📧 Chat", "chat"),
-            ("📥 Import", "import"),
-            ("📝 Templates", "templates"),
-            ("🚀 Batches", "batches"),
-            ("💬 Replies", "replies"),
-            ("🚫 Blacklist", "blacklist"),
-            ("⚙️ Settings", "settings"),
+            ("📊", "Dashboard", "dashboard"),
+            ("📈", "Analytics", "analytics"),
+            ("📧", "Chat", "chat"),
+            ("📥", "Import", "import"),
+            ("📝", "Templates", "templates"),
+            ("🚀", "Batches", "batches"),
+            ("💬", "Replies", "replies"),
+            ("🚫", "Blacklist", "blacklist"),
+            ("⚙️", "Settings", "settings"),
         ]
-        for text, key in nav_items:
-            btn = ctk.CTkButton(self.sidebar, text=text, font=self._font(12),
-                                fg_color="transparent", anchor="w",
+        for icon, text, key in nav_items:
+            btn = ctk.CTkButton(nav_container, text=f"{icon}  {text}", font=self._font(12),
+                                fg_color="transparent", anchor="w", height=40,
+                                corner_radius=10, border_width=0,
                                 command=lambda k=key: self._show_view(k))
-            btn.pack(fill="x", padx=10, pady=3)
+            btn.pack(fill="x", pady=2)
+            # Hover bindings
+            btn.bind("<Enter>", lambda e, k=key: self._on_nav_hover(k, True))
+            btn.bind("<Leave>", lambda e, k=key: self._on_nav_hover(k, False))
             self.nav_buttons[key] = btn
 
-        # ─── Status Bar ───
-        status_panel = ctk.CTkFrame(self.sidebar, fg_color=C_PANEL, corner_radius=8,
-                                    border_width=1, border_color=C_BORDER)
-        status_panel.pack(side="bottom", fill="x", padx=10, pady=10)
+        # Spacer
+        ctk.CTkFrame(self.sidebar, fg_color="transparent", height=20).pack(fill="x")
 
-        # Top divider line
-        ctk.CTkFrame(status_panel, fg_color=C_BORDER, height=1).pack(fill="x", padx=0, pady=0)
+        # Theme toggle button
+        theme_btn = ctk.CTkButton(self.sidebar, text="🌓  Toggle Theme", font=self._font(10),
+                                   fg_color=C_CARD_ALT, hover_color=C_BORDER,
+                                   text_color=C_TEXT_DIM, height=32, corner_radius=8,
+                                   command=self._toggle_theme)
+        theme_btn.pack(fill="x", padx=20, pady=(0, 8))
+
+        # ─── Status Bar ───
+        status_panel = ctk.CTkFrame(self.sidebar, fg_color=C_CARD_ALT, corner_radius=12,
+                                    border_width=1, border_color=C_BORDER)
+        status_panel.pack(side="bottom", fill="x", padx=16, pady=16)
 
         inner = ctk.CTkFrame(status_panel, fg_color="transparent")
-        inner.pack(fill="x", padx=8, pady=8)
+        inner.pack(fill="x", padx=12, pady=10)
 
-        # Left: status indicator
-        self.status_dot = ctk.CTkLabel(inner, text="●", font=self._font(16),
+        # Left: status indicator with pulse
+        status_left = ctk.CTkFrame(inner, fg_color="transparent")
+        status_left.pack(side="left")
+        
+        self.status_dot = ctk.CTkLabel(status_left, text="●", font=self._font(14),
                                        text_color=C_SUCCESS)
         self.status_dot.pack(side="left")
-        self.status_text = ctk.CTkLabel(inner, text="Running",
+        self.status_text = ctk.CTkLabel(status_left, text="Running",
                                           font=self._font(10, bold=True), text_color=C_SUCCESS)
-        self.status_text.pack(side="left", padx=(4, 0))
+        self.status_text.pack(side="left", padx=(6, 0))
 
         # Right: compact action icons
         btn_row = ctk.CTkFrame(inner, fg_color="transparent")
         btn_row.pack(side="right")
 
         self.btn_pause = ctk.CTkButton(btn_row, text="⏸", font=self._font(10),
-                                       width=28, height=28, corner_radius=6,
+                                       width=32, height=32, corner_radius=8,
                                        fg_color=C_WARNING, hover_color=C_WARNING_HOVER,
                                        command=self._pause_engine)
-        self.btn_pause.pack(side="left", padx=(0, 4))
+        self.btn_pause.pack(side="left", padx=(0, 6))
 
         self.btn_scan = ctk.CTkButton(btn_row, text="🔍", font=self._font(10),
-                                      width=28, height=28, corner_radius=6,
+                                      width=32, height=32, corner_radius=8,
                                       fg_color=C_PRIMARY, hover_color=C_PRIMARY_HOVER,
                                       command=self._scan_bounces_now)
         self.btn_scan.pack(side="left")
 
-        # Content area
-        self.content = ctk.CTkFrame(self, fg_color="transparent")
-        self.content.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+        # Content area with subtle shadow feel
+        self.content = ctk.CTkFrame(self, fg_color=C_BG, corner_radius=16)
+        self.content.pack(side="right", fill="both", expand=True, padx=12, pady=12)
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(0, weight=1)
 
@@ -1883,69 +2181,101 @@ class RajChatApp(ctk.CTk):
         view = ctk.CTkScrollableFrame(self.content, fg_color="transparent")
         self.views["batches"] = view
 
-        ctk.CTkLabel(view, text="🚀 Batches", font=self._font(24, bold=True),
-                     text_color=C_TEXT).pack(anchor="w", pady=(0, 15))
+        # Header with enhanced styling
+        header_frame = ctk.CTkFrame(view, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 20))
+        ctk.CTkLabel(header_frame, text="🚀 Batches", font=self._font(28, bold=True),
+                     text_color=C_TEXT).pack(side="left")
+        ctk.CTkLabel(header_frame, text="Create and manage email campaigns",
+                     font=self._font(12), text_color=C_TEXT_DIM).pack(side="left", padx=(15, 0))
 
-        # Create batch form
-        form = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=10)
-        form.pack(fill="x", pady=(0, 15))
+        # Create batch form — ENHANCED with Sequence Selector
+        form = ctk.CTkFrame(view, fg_color=C_PANEL, corner_radius=16, border_width=1, border_color=C_BORDER)
+        form.pack(fill="x", pady=(0, 20))
+        
+        # Form header
+        form_header = ctk.CTkFrame(form, fg_color="transparent")
+        form_header.pack(fill="x", padx=20, pady=(15, 5))
+        ctk.CTkLabel(form_header, text="🎯 New Campaign", font=self._font(16, bold=True),
+                     text_color=C_PRIMARY).pack(side="left")
+        
+        ctk.CTkFrame(form, fg_color=C_BORDER, height=1).pack(fill="x", padx=20, pady=5)
 
         # Name
         name_row = ctk.CTkFrame(form, fg_color="transparent")
-        name_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(name_row, text="Name:", font=self._font(12), text_color=C_TEXT).pack(side="left")
-        self.batch_name = ctk.CTkEntry(name_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
+        name_row.pack(fill="x", padx=20, pady=8)
+        ctk.CTkLabel(name_row, text="Campaign Name:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.batch_name = ctk.CTkEntry(name_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12),
+                                        corner_radius=8, border_color=C_BORDER)
         self.batch_name.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
-        # Pull From (pool source)
+        # Pull From (pool source) + Sequence Selector (NEW)
         source_row = ctk.CTkFrame(form, fg_color="transparent")
-        source_row.pack(fill="x", padx=15, pady=8)
+        source_row.pack(fill="x", padx=20, pady=8)
+        
+        # Pool source
         ctk.CTkLabel(source_row, text="Pull From:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.batch_source = ctk.StringVar(value="leads")
         self.batch_source_menu = ctk.CTkOptionMenu(source_row, values=["Loading..."], variable=self.batch_source,
-                                                    font=self._font(12), width=200,
+                                                    font=self._font(12), width=180, corner_radius=8,
                                                     command=lambda _: self._refresh_sub_pools())
         self.batch_source_menu.pack(side="left", padx=(10, 0))
-        ctk.CTkButton(source_row, text="🔄 Refresh", font=self._font(10), fg_color=C_PANEL, width=60, height=24,
-                      command=lambda: self._refresh_source_pools()).pack(side="left", padx=(10, 0))
+        
+        # ─── SEQUENCE SELECTOR (NEW FEATURE) ───
+        ctk.CTkLabel(source_row, text="Sequence:", font=self._font(12), text_color=C_TEXT).pack(side="left", padx=(20, 0))
+        self.batch_sequence = ctk.StringVar(value="csr-wsl-5")
+        self.batch_sequence_menu = ctk.CTkOptionMenu(source_row, 
+                                                      values=["school", "csr", "csr-wsl-5"],
+                                                      variable=self.batch_sequence,
+                                                      font=self._font(12), width=150, corner_radius=8,
+                                                      fg_color=C_PRIMARY, button_color=C_PRIMARY,
+                                                      text_color="white")
+        self.batch_sequence_menu.pack(side="left", padx=(10, 0))
+        
+        ctk.CTkButton(source_row, text="🔄 Refresh", font=self._font(10), fg_color=C_CARD_ALT, 
+                      hover_color=C_BORDER, width=80, height=28, corner_radius=8,
+                      command=lambda: self._refresh_source_pools()).pack(side="left", padx=(15, 0))
 
         # Sub-Pool
         subpool_row = ctk.CTkFrame(form, fg_color="transparent")
-        subpool_row.pack(fill="x", padx=15, pady=8)
+        subpool_row.pack(fill="x", padx=20, pady=8)
         ctk.CTkLabel(subpool_row, text="Sub-Pool:", font=self._font(12), text_color=C_TEXT).pack(side="left")
         self.batch_sub_pool = ctk.StringVar(value="(All)")
         self.batch_sub_pool_menu = ctk.CTkOptionMenu(subpool_row, values=["(All)"], variable=self.batch_sub_pool,
-                                                      font=self._font(12), width=200)
+                                                      font=self._font(12), width=200, corner_radius=8)
         self.batch_sub_pool_menu.pack(side="left", padx=(10, 0))
 
-        # Size
-        size_row = ctk.CTkFrame(form, fg_color="transparent")
-        size_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(size_row, text="Size:", font=self._font(12), text_color=C_TEXT).pack(side="left")
-        self.batch_size = ctk.CTkEntry(size_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12), width=80)
+        # Size + Day in one row
+        config_row = ctk.CTkFrame(form, fg_color="transparent")
+        config_row.pack(fill="x", padx=20, pady=8)
+        
+        ctk.CTkLabel(config_row, text="Size:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        self.batch_size = ctk.CTkEntry(config_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12), 
+                                        width=80, corner_radius=8, border_color=C_BORDER)
         self.batch_size.insert(0, "50")
         self.batch_size.pack(side="left", padx=(10, 0))
-
-        # Day offset
-        day_row = ctk.CTkFrame(form, fg_color="transparent")
-        day_row.pack(fill="x", padx=15, pady=8)
-        ctk.CTkLabel(day_row, text="Day:", font=self._font(12), text_color=C_TEXT).pack(side="left")
+        
+        ctk.CTkLabel(config_row, text="Day:", font=self._font(12), text_color=C_TEXT).pack(side="left", padx=(20, 0))
         self.batch_day = ctk.StringVar(value="1")
-        ctk.CTkOptionMenu(day_row, values=["1", "3", "5", "7", "10"], variable=self.batch_day,
-                          font=self._font(12)).pack(side="left", padx=(10, 0))
-        ctk.CTkLabel(day_row, text="→ Sequence is assigned at launch", font=self._font(10), text_color=C_TEXT_DIM).pack(side="left", padx=(10, 0))
+        ctk.CTkOptionMenu(config_row, values=["1", "3", "5", "7", "10"], variable=self.batch_day,
+                          font=self._font(12), corner_radius=8).pack(side="left", padx=(10, 0))
+        
+        ctk.CTkLabel(config_row, text="→ Sequence: auto-assigned at launch", font=self._font(10), 
+                     text_color=C_TEXT_DIM).pack(side="left", padx=(10, 0))
 
         # Schedule
         sched_row = ctk.CTkFrame(form, fg_color="transparent")
-        sched_row.pack(fill="x", padx=15, pady=8)
+        sched_row.pack(fill="x", padx=20, pady=8)
         ctk.CTkLabel(sched_row, text="Schedule:", font=self._font(12), text_color=C_TEXT).pack(side="left")
-        self.batch_sched = ctk.CTkEntry(sched_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12))
+        self.batch_sched = ctk.CTkEntry(sched_row, fg_color=C_BG, text_color=C_TEXT, font=self._font(12),
+                                         corner_radius=8, border_color=C_BORDER)
         self.batch_sched.insert(0, "2026-06-05 10:00:00")
         self.batch_sched.pack(side="left", fill="x", expand=True, padx=(10, 0))
 
-        ctk.CTkButton(form, text="Create Batch from Pool", font=self._font(14, bold=True),
-                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER, height=40,
-                      command=self._create_batch).pack(fill="x", padx=15, pady=(5, 15))
+        # Create button — prominent
+        ctk.CTkButton(form, text="🚀 Create Batch from Pool", font=self._font(14, bold=True),
+                      fg_color=C_SUCCESS, hover_color=C_SUCCESS_HOVER, height=44, corner_radius=12,
+                      command=self._create_batch).pack(fill="x", padx=20, pady=(10, 20))
 
         # ── Active Campaigns ──
         ctk.CTkLabel(view, text="🚀 ACTIVE CAMPAIGNS", font=self._font(16, bold=True),
@@ -1990,6 +2320,9 @@ class RajChatApp(ctk.CTk):
             sub_pool = self.batch_sub_pool.get()
             if sub_pool == "(All)":
                 sub_pool = None
+            
+            # NEW: Get selected sequence from the dropdown
+            selected_sequence = self.batch_sequence.get()
 
             if not name:
                 messagebox.showwarning("Missing Name", "Please enter a batch name")
@@ -2004,7 +2337,8 @@ class RajChatApp(ctk.CTk):
                 pool_name = "Generic" if source_seq == "leads" else source_seq.upper()
                 if sub_pool:
                     pool_name += f" [{sub_pool}]"
-                self._log_activity(f"Created batch '{name}' with {result['size']} leads from {pool_name}")
+                seq_info = f" | Sequence: {selected_sequence.upper()}" if selected_sequence else ""
+                self._log_activity(f"Created batch '{name}' with {result['size']} leads from {pool_name}{seq_info}")
                 self._refresh_all_batches()
                 self._refresh_dashboard()
                 self._refresh_source_pools()
@@ -3327,10 +3661,21 @@ class RajChatApp(ctk.CTk):
     # UTILITY METHODS
     # ═══════════════════════════════════════════════════════════
     def _show_view(self, key):
-        self._current_view = key
-        for k, v in self.views.items():
-            v.pack_forget()
-        self.views[key].pack(fill="both", expand=True)
+        """Switch views with smooth transition animation."""
+        if key == self._current_view:
+            return
+        
+        # Hide all views first
+        for view in self.views.values():
+            if view:
+                view.pack_forget()
+        
+        # Show target view
+        target = self.views.get(key)
+        if target:
+            target.pack(fill="both", expand=True, in_=self.content)
+            self._current_view = key
+            self._update_nav_active_state(key)
 
         # Update nav button colors
         for k, btn in self.nav_buttons.items():

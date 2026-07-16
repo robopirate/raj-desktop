@@ -1,0 +1,17 @@
+{
+  "window": {
+    "width": 1294,
+    "height": 766,
+    "x": -7,
+    "y": -7,
+    "maximized": false
+  },
+  "page": "settings",
+  "theme": "light",
+  "sidebar_collapsed": false,
+  "desktop": {
+    "minimize_to_tray": true,
+    "start_on_boot": false,
+    "notifications": true
+  }
+}

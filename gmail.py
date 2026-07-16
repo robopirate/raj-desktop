@@ -65,7 +65,15 @@ class GmailClient:
                 if not CREDS_PATH.exists():
                     raise FileNotFoundError(f"credentials.json not found. Download it from Google Cloud Console and place it here: {CREDS_PATH}")
                 flow = InstalledAppFlow.from_client_secrets_file(str(CREDS_PATH), SCOPES)
-                creds = flow.run_local_server(port=0)
+                auth_url, _ = flow.authorization_url(prompt='consent')
+                import threading, webbrowser
+                def _open_browser():
+                    try:
+                        webbrowser.open(auth_url)
+                    except Exception:
+                        pass
+                threading.Thread(target=lambda: (_open_browser()), daemon=True).start()
+                creds = flow.run_local_server(port=0, open_browser=False)
 
             with open(TOKEN_PATH, 'wb') as token:
                 pickle.dump(creds, token)
@@ -90,35 +98,94 @@ class GmailClient:
                 raise
         raise last_err
 
-    def send_email(self, to, subject, body_html, thread_id=None):
-        message = MIMEText(body_html, 'html', 'utf-8')
-        message['to'] = to
-        message['subject'] = subject
+    def send_email(self, to, subject, body_html, body_text=None, thread_id=None, sender=None, format='html'):
+        """Send email.
+        - format='plain' or empty body_html -> plain-text only
+        - body_text provided + body_html -> multipart alternative
+        - body_text None -> HTML only (backward compatible)
+        sender: optional From/Reply-To address (must be a verified Gmail alias)
+        """
+        is_plain = (format == 'plain') or (not body_html and body_text)
+        if is_plain:
+            message = MIMEText(body_text or body_html or '', 'plain', 'utf-8')
+            message['to'] = to
+            message['subject'] = subject
+        elif body_text:
+            message = MIMEMultipart('alternative')
+            message['to'] = to
+            message['subject'] = subject
+            message.attach(MIMEText(body_text, 'plain', 'utf-8'))
+            message.attach(MIMEText(body_html, 'html', 'utf-8'))
+        else:
+            message = MIMEText(body_html, 'html', 'utf-8')
+            message['to'] = to
+            message['subject'] = subject
+
+        if sender:
+            message['From'] = sender
+            message['Reply-To'] = sender
         if thread_id:
             message['In-Reply-To'] = thread_id
             message['References'] = thread_id
+
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
         body = {'raw': raw}
         if thread_id:
             body['threadId'] = thread_id
         return self.service.users().messages().send(userId='me', body=body).execute()
 
-    def draft_email(self, to, subject, body_html):
-        message = MIMEText(body_html, 'html', 'utf-8')
-        message['to'] = to
-        message['subject'] = subject
+    def draft_email(self, to, subject, body_html, body_text=None, sender=None, format='html'):
+        """Create a Gmail draft. Supports optional plain text body for multipart."""
+        is_plain = (format == 'plain') or (not body_html and body_text)
+        if is_plain:
+            message = MIMEText(body_text or body_html or '', 'plain', 'utf-8')
+            message['to'] = to
+            message['subject'] = subject
+        elif body_text:
+            message = MIMEMultipart('alternative')
+            message['to'] = to
+            message['subject'] = subject
+            message.attach(MIMEText(body_text, 'plain', 'utf-8'))
+            message.attach(MIMEText(body_html, 'html', 'utf-8'))
+        else:
+            message = MIMEText(body_html, 'html', 'utf-8')
+            message['to'] = to
+            message['subject'] = subject
+
+        if sender:
+            message['From'] = sender
+            message['Reply-To'] = sender
+
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
         return self.service.users().drafts().create(userId='me', body={'message': {'raw': raw}}).execute()
 
-    def create_scheduled_draft(self, to, subject, body_html, send_at_iso):
+    def create_scheduled_draft(self, to, subject, body_html, send_at_iso, body_text=None, sender=None, format='html'):
         """Create a Gmail draft with a schedule prefix in the subject.
         Format: [RAJ-SCHEDULE:2026-06-05T10:00:00] Original Subject
         A Google Apps Script will pick these up and send them at the right time.
+        Supports optional plain text body for multipart emails.
         """
         scheduled_subject = f"[RAJ-SCHEDULE:{send_at_iso}] {subject}"
-        message = MIMEText(body_html, 'html', 'utf-8')
-        message['to'] = to
-        message['subject'] = scheduled_subject
+        is_plain = (format == 'plain') or (not body_html and body_text)
+        if is_plain:
+            message = MIMEText(body_text or body_html or '', 'plain', 'utf-8')
+            message['to'] = to
+            message['subject'] = scheduled_subject
+        elif body_text:
+            message = MIMEMultipart('alternative')
+            message['to'] = to
+            message['subject'] = scheduled_subject
+            message.attach(MIMEText(body_text, 'plain', 'utf-8'))
+            message.attach(MIMEText(body_html, 'html', 'utf-8'))
+        else:
+            message = MIMEText(body_html, 'html', 'utf-8')
+            message['to'] = to
+            message['subject'] = scheduled_subject
+
+        if sender:
+            message['From'] = sender
+            message['Reply-To'] = sender
+
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
         return self.service.users().drafts().create(userId='me', body={'message': {'raw': raw}}).execute()
 
@@ -186,10 +253,13 @@ class GmailClient:
             print(f'[Gmail] search_messages failed: {e}')
             return []
 
-    def draft_reply(self, thread_id, html_body, subject):
+    def draft_reply(self, thread_id, html_body, subject, sender=None):
         try:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
+            if sender:
+                msg['From'] = sender
+                msg['Reply-To'] = sender
             msg['In-Reply-To'] = thread_id
             msg['References'] = thread_id
             msg.attach(MIMEText(html_body, 'html', 'utf-8'))

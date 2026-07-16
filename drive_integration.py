@@ -55,7 +55,15 @@ class DriveManager:
                 if not os.path.exists(self.credentials_path):
                     raise FileNotFoundError(f"[Drive] credentials.json not found at {self.credentials_path}")
                 flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, SCOPES)
-                creds = flow.run_local_server(port=0)
+                auth_url, _ = flow.authorization_url(prompt='consent')
+                import threading, webbrowser
+                def _open_browser():
+                    try:
+                        webbrowser.open(auth_url)
+                    except Exception:
+                        pass
+                threading.Thread(target=lambda: (_open_browser()), daemon=True).start()
+                creds = flow.run_local_server(port=0, open_browser=False)
             with open(self.token_path, 'wb') as token:
                 pickle.dump(creds, token)
 

@@ -93,6 +93,7 @@ class Database:
                 subject TEXT,
                 subject_b TEXT,
                 html_body TEXT,
+                text_body TEXT,
                 source TEXT DEFAULT 'unknown',
                 locked INTEGER DEFAULT 0,
                 ab_test INTEGER DEFAULT 0,
@@ -388,6 +389,15 @@ class Database:
                 self.conn.commit()
                 print(f"[DB] Migration complete: {col} added to templates")
 
+        # Add format column to templates if missing (html | plain)
+        try:
+            self.conn.execute("SELECT format FROM templates LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding format to templates...")
+            self.conn.execute("ALTER TABLE templates ADD COLUMN format TEXT DEFAULT 'html'")
+            self.conn.commit()
+            print("[DB] Migration complete: format added to templates")
+
         # Add ab_variant to sends if missing
         try:
             self.conn.execute("SELECT ab_variant FROM sends LIMIT 1")
@@ -396,6 +406,15 @@ class Database:
             self.conn.execute("ALTER TABLE sends ADD COLUMN ab_variant TEXT")
             self.conn.commit()
             print("[DB] Migration complete: ab_variant added to sends")
+
+        # Add text_body to templates if missing
+        try:
+            self.conn.execute("SELECT text_body FROM templates LIMIT 1")
+        except sqlite3.OperationalError:
+            print("[DB] Migrating: Adding text_body to templates...")
+            self.conn.execute("ALTER TABLE templates ADD COLUMN text_body TEXT")
+            self.conn.commit()
+            print("[DB] Migration complete: text_body added to templates")
 
     def execute(self, sql, params=()):
         return self.conn.execute(sql, params)
@@ -588,13 +607,46 @@ class Database:
         """, (batch_id,)).fetchall()
         return {r[0]: r[1] for r in rows}
 
+    @staticmethod
+    def _family_key(name: str, sequence_id: str) -> str:
+        """Normalize a batch name to a family key by stripping day/offset suffixes.
+        Preserves run IDs like 'Campaign-1' or 'WSL-5-1'. Only strips explicit day/email suffixes.
+        """
+        import re
+        clean = (name or "").strip()
+        # Strip trailing patterns like "Day 1", "D1", "- Day 3", "Email 2", "E2", etc.
+        clean = re.sub(r"[\s\-_]*(Day|D|Email|E)\s*\d+\s*$", "", clean, flags=re.IGNORECASE).strip()
+        return f"{sequence_id or 'unassigned'}::{clean.lower()}"
+
+    def _find_family_root(self, name: str, sequence_id: str, exclude_id: int = None):
+        """Find the existing root (day_offset=1) for a family key, or return None."""
+        key = self._family_key(name, sequence_id)
+        sql = """
+            SELECT id FROM batches 
+            WHERE deleted_at IS NULL AND day_offset=1 AND lower(trim(name)) LIKE ?
+        """
+        params = [f"%{key.split('::', 1)[1]}%"]
+        if sequence_id:
+            sql += " AND sequence_id=?"
+            params.append(sequence_id)
+        else:
+            sql += " AND (sequence_id IS NULL OR sequence_id='unassigned')"
+        if exclude_id:
+            sql += " AND id != ?"
+            params.append(exclude_id)
+        sql += " ORDER BY id ASC LIMIT 1"
+        row = self.execute(sql, params).fetchone()
+        return row[0] if row else None
+
     # -- CREATE BATCH FROM POOL (NEW) --
     def batch_from_pool(self, name, sequence_id, batch_size, sub_pool=None, day_offset=1, 
-                        scheduled_at=None, timezone='Asia/Kolkata', send_rate=0, stagger_minutes=0, campaign_id=None):
+                        scheduled_at=None, timezone='Asia/Kolkata', send_rate=0, stagger_minutes=0, campaign_id=None,
+                        source_sequence=None):
         """Create a batch from unbatched leads in the pool.
         SAFETY: Only picks leads with batched=0. Double-checks before marking.
-        Optionally filter by sub_pool tag."""
-        pool_seq_id = "leads" if sequence_id is None or sequence_id == "leads" else sequence_id
+        Optionally filter by sub_pool tag.
+        source_sequence: pool to pull from (defaults to sequence_id or 'leads')."""
+        pool_seq_id = source_sequence or ("leads" if sequence_id is None or sequence_id == "leads" else sequence_id)
         batch_seq_id = "unassigned" if sequence_id is None or sequence_id == "leads" else sequence_id
         
         pool = self.get_pool(pool_seq_id, sub_pool, limit=batch_size)
@@ -613,6 +665,14 @@ class Database:
         if not verified_pool:
             return None, "All available leads were taken by another batch (race condition). Try again."
 
+        # Determine parent/root for family grouping
+        parent_batch_id = None
+        if day_offset == 1:
+            # This batch is a root; parent will be set to itself after creation
+            pass
+        else:
+            parent_batch_id = self._find_family_root(name, batch_seq_id)
+
         batch_id = self.batch_create(
             name=name,
             sequence_id=batch_seq_id,
@@ -621,8 +681,14 @@ class Database:
             send_rate=send_rate,
             stagger_minutes=stagger_minutes,
             day_offset=day_offset,
+            parent_batch_id=parent_batch_id,
             campaign_id=campaign_id
         )
+
+        # Root batches reference themselves so pipelines have a stable root id
+        if day_offset == 1:
+            self.execute("UPDATE batches SET parent_batch_id=? WHERE id=?", (batch_id, batch_id))
+            self.commit()
 
         recipient_ids = []
         for lead in verified_pool:
@@ -634,29 +700,31 @@ class Database:
 
     # -- TEMPLATES --
     def template_put(self, sequence_id, day, subject, html_body, source="synced",
-                      subject_b=None, ab_test=0, ab_split=0.5):
+                      subject_b=None, ab_test=0, ab_split=0.5, text_body=None, format="html"):
         self.execute("""
-            INSERT INTO templates (sequence_id, day, subject, subject_b, html_body, source, ab_test, ab_split)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO templates (sequence_id, day, subject, subject_b, html_body, text_body, source, ab_test, ab_split, format)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(sequence_id, day) DO UPDATE SET
                 subject=excluded.subject, subject_b=excluded.subject_b,
-                html_body=excluded.html_body, source=excluded.source,
+                html_body=excluded.html_body, text_body=excluded.text_body,
+                source=excluded.source,
                 ab_test=excluded.ab_test, ab_split=excluded.ab_split,
+                format=excluded.format,
                 cached_at=CURRENT_TIMESTAMP
-        """, (sequence_id, day, subject, subject_b, html_body, source, ab_test, ab_split))
+        """, (sequence_id, day, subject, subject_b, html_body, text_body, source, ab_test, ab_split, format))
         self.commit()
 
     def template_get(self, sequence_id, day):
         row = self.execute("""
-            SELECT subject, subject_b, html_body, source, locked, ab_test, ab_split
+            SELECT subject, subject_b, html_body, text_body, source, locked, ab_test, ab_split, format
             FROM templates WHERE sequence_id=? AND day=?
         """, (sequence_id, day)).fetchone()
         if not row:
             return None
         return {
             "subject": row[0], "subject_b": row[1], "html_body": row[2],
-            "source": row[3], "locked": bool(row[4]),
-            "ab_test": bool(row[5]), "ab_split": row[6]
+            "text_body": row[3], "source": row[4], "locked": bool(row[5]),
+            "ab_test": bool(row[6]), "ab_split": row[7], "format": row[8] or "html"
         }
 
     def template_lock(self, sequence_id, day):
@@ -804,14 +872,14 @@ class Database:
             where += " AND s.batch_id=?"
             params.append(batch_id)
         if sequence_id:
-            where += " AND b.sequence_id=?"
+            where += " AND r.sequence_id=?"
             params.append(sequence_id)
         if days_back:
             where += " AND s.sent_at >= datetime('now', '-{} days')".format(int(days_back))
 
-        sent = self.execute(f"SELECT COUNT(*) FROM sends s JOIN batches b ON s.batch_id=b.id {where}", params).fetchone()[0] or 0
-        opened = self.execute(f"SELECT COUNT(DISTINCT s.id) FROM sends s JOIN batches b ON s.batch_id=b.id {where} AND s.opened_at IS NOT NULL", params).fetchone()[0] or 0
-        clicked = self.execute(f"SELECT COUNT(DISTINCT s.id) FROM sends s JOIN batches b ON s.batch_id=b.id {where} AND s.clicked_at IS NOT NULL", params).fetchone()[0] or 0
+        sent = self.execute(f"SELECT COUNT(*) FROM sends s JOIN recipients r ON r.id=s.recipient_id LEFT JOIN batches b ON b.id=s.batch_id {where}", params).fetchone()[0] or 0
+        opened = self.execute(f"SELECT COUNT(DISTINCT s.id) FROM sends s JOIN recipients r ON r.id=s.recipient_id LEFT JOIN batches b ON b.id=s.batch_id {where} AND s.opened_at IS NOT NULL", params).fetchone()[0] or 0
+        clicked = self.execute(f"SELECT COUNT(DISTINCT s.id) FROM sends s JOIN recipients r ON r.id=s.recipient_id LEFT JOIN batches b ON b.id=s.batch_id {where} AND s.clicked_at IS NOT NULL", params).fetchone()[0] or 0
 
         return {
             "sent": sent,
@@ -827,7 +895,7 @@ class Database:
         params = []
         where = "WHERE s.status='sent'"
         if sequence_id:
-            where += " AND b.sequence_id=?"
+            where += " AND r.sequence_id=?"
             params.append(sequence_id)
         if days_back:
             where += " AND date(s.sent_at) >= date('now', '-{} days')".format(int(days_back))
@@ -838,7 +906,8 @@ class Database:
                    SUM(CASE WHEN s.opened_at IS NOT NULL THEN 1 ELSE 0 END) as opened,
                    SUM(CASE WHEN s.clicked_at IS NOT NULL THEN 1 ELSE 0 END) as clicked
             FROM sends s
-            JOIN batches b ON s.batch_id=b.id
+            JOIN recipients r ON r.id=s.recipient_id
+            LEFT JOIN batches b ON b.id=s.batch_id
             {where}
             GROUP BY date(s.sent_at)
             ORDER BY day
@@ -893,55 +962,83 @@ class Database:
         if not batch:
             return {}
 
-        root_id = batch.get("parent_batch_id") or batch_id
-        if batch.get("parent_batch_id") and batch["parent_batch_id"] != batch_id:
-            root = self.batch_get(batch["parent_batch_id"])
-            if root:
-                root_id = root["id"]
+        family_key = self._family_key(batch["name"], batch.get("sequence_id") or "")
+        seq_id = batch.get("sequence_id") or ""
 
-        rows = self.execute("""
+        # Gather all batches in the same family
+        candidates = self.execute("""
             SELECT * FROM batches 
-            WHERE parent_batch_id=? OR id=? 
-            ORDER BY day_offset
-        """, (root_id, root_id)).fetchall()
+            WHERE deleted_at IS NULL AND sequence_id=?
+            ORDER BY day_offset, id
+        """, (seq_id or "unassigned",)).fetchall()
 
         pipeline_batches = []
-        for r in rows:
+        for r in candidates:
             b = dict(r)
+            if self._family_key(b["name"], b.get("sequence_id") or "") != family_key:
+                continue
             counts = self.batch_count_by_status(b["id"])
             b["counts"] = counts
             b["total_recipients"] = sum(counts.values())
             b["sent"] = counts.get("sent", 0)
             pipeline_batches.append(b)
 
+        root = pipeline_batches[0] if pipeline_batches else batch
+        batch_ids = [b["id"] for b in pipeline_batches]
+        placeholders = ','.join('?' * len(batch_ids)) if batch_ids else "NULL"
+
+        # Real family progress: unique leads in the root batch vs distinct recipients ever sent
+        family_total_leads = self.batch_count_recipients(root["id"]) if pipeline_batches else 0
+        family_sent_leads = 0
+        if batch_ids:
+            row = self.execute(f"""
+                SELECT COUNT(DISTINCT recipient_id) FROM batch_recipients
+                WHERE batch_id IN ({placeholders}) AND status='sent'
+            """, batch_ids).fetchone()
+            family_sent_leads = row[0] or 0
+
         return {
-            "root_batch_id": root_id,
-            "root_name": self.batch_get(root_id)["name"] if self.batch_get(root_id) else "Unknown",
-            "sequence_id": batch.get("sequence_id", ""),
+            "root_batch_id": root["id"],
+            "root_name": root["name"],
+            "sequence_id": seq_id,
             "batches": pipeline_batches,
             "total_days": len(pipeline_batches),
             "completed_days": sum(1 for b in pipeline_batches if b["status"] == "completed"),
             "running_days": sum(1 for b in pipeline_batches if b["status"] == "running"),
+            "family_total_leads": family_total_leads,
+            "family_sent_leads": family_sent_leads,
+            "family_progress_pct": round((family_sent_leads / family_total_leads) * 100, 1) if family_total_leads else 0,
         }
 
     def batch_get_all_pipelines(self, sequence_id: str = None) -> list:
+        """Return one pipeline per campaign family, using family-key grouping."""
+        params = []
+        where = "WHERE deleted_at IS NULL"
         if sequence_id:
-            roots = self.execute("""
-                SELECT DISTINCT parent_batch_id FROM batches 
-                WHERE sequence_id=? AND parent_batch_id IS NOT NULL
-            """, (sequence_id,)).fetchall()
-        else:
-            roots = self.execute("""
-                SELECT DISTINCT parent_batch_id FROM batches 
-                WHERE parent_batch_id IS NOT NULL
-            """).fetchall()
+            where += " AND sequence_id=?"
+            params.append(sequence_id)
+
+        rows = self.execute(f"""
+            SELECT * FROM batches 
+            {where}
+            ORDER BY created_at DESC
+        """, params).fetchall()
+
+        # Group by family key; pick the earliest day_offset=1 batch as root when possible
+        families = {}
+        for r in rows:
+            b = dict(r)
+            key = self._family_key(b["name"], b.get("sequence_id") or "")
+            if key not in families:
+                families[key] = []
+            families[key].append(b)
 
         pipelines = []
-        for (root_id,) in roots:
-            if root_id:
-                pipe = self.batch_get_pipeline(root_id)
-                if pipe:
-                    pipelines.append(pipe)
+        for key, batches in families.items():
+            root = next((b for b in batches if b.get("day_offset") == 1), batches[0])
+            pipe = self.batch_get_pipeline(root["id"])
+            if pipe:
+                pipelines.append(pipe)
 
         return pipelines
 

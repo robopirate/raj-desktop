@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAJ — RoboPirate Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/main.css?v=4">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: {} }
+        }
+    </script>
+</head>
+<body class="bg-[var(--bg-primary)] text-[var(--text-primary)] h-screen overflow-hidden">
+    <div class="flex h-full">
+        <!-- Sidebar -->
+        <aside class="w-[240px] bg-[var(--bg-sidebar)] border-r border-[var(--border)] flex flex-col flex-shrink-0">
+            <!-- Logo -->
+            <div class="p-6 border-b border-[var(--border)]">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl text-[var(--accent-teal)]">🤖</span>
+                    <div>
+                        <h1 class="text-2xl font-bold text-[var(--accent-teal)] leading-none">RAJ</h1>
+                        <p class="text-xs text-[var(--text-muted)] mt-1">Command Center</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nav -->
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="sidebar-nav">
+                <a href="#dashboard" data-page="dashboard" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>📊</span> Dashboard
+                </a>
+                <a href="#analytics" data-page="analytics" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>📈</span> Analytics
+                </a>
+                <a href="#batches" data-page="batches" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>🚀</span> Batches
+                </a>
+                <a href="#templates" data-page="templates" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>📝</span> Templates
+                </a>
+                <a href="#import" data-page="import" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>📥</span> Import
+                </a>
+                <a href="#replies" data-page="replies" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>💬</span> Replies <span id="nav-replies-badge" class="hidden ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">0</span>
+                </a>
+                <a href="#integrations" data-page="integrations" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>🔌</span> Integrations
+                </a>
+                <a href="#blacklist" data-page="blacklist" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>🚫</span> Blacklist
+                </a>
+                <a href="#settings" data-page="settings" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
+                    <span>⚙️</span> Settings
+                </a>
+            </nav>
+
+            <!-- Bottom bar -->
+            <div class="p-4 border-t border-[var(--border)]">
+                <button id="theme-toggle" class="w-full flex items-center gap-3 px-4 py-2 rounded-[10px] text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors mb-3">
+                    <span id="theme-icon">🌙</span> <span id="theme-label">Dark mode</span>
+                </button>
+                <div class="flex items-center justify-between bg-[var(--bg-secondary)] rounded-[10px] px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-[var(--success)]"></span>
+                        <span id="status-text" class="text-sm font-medium">Running</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-pause" class="icon-btn w-8 h-8 rounded-lg flex items-center justify-center text-sm" title="Pause engine">⏸</button>
+                        <button id="btn-scan" class="icon-btn w-8 h-8 rounded-lg flex items-center justify-center text-sm" title="Scan bounces">🔍</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 flex flex-col min-w-0">
+            <!-- Header -->
+            <header class="h-16 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-between px-8 flex-shrink-0">
+                <div>
+                    <h2 id="page-title" class="text-lg font-semibold">Dashboard</h2>
+                    <p id="page-subtitle" class="text-xs text-[var(--text-muted)]">Overview of your email campaigns</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="header-export" class="btn-secondary px-4 py-2 rounded-[10px] text-sm font-medium">Export</button>
+                    <button id="header-refresh" class="btn-primary px-4 py-2 rounded-[10px] text-sm font-medium">Refresh</button>
+                </div>
+            </header>
+
+            <!-- Scrollable content -->
+            <div id="content-area" class="flex-1 overflow-y-auto p-8">
+                <!-- Analytics -->
+                <section id="page-analytics" class="page-section hidden max-w-[1400px] mx-auto">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-lg font-semibold">📈 Engagement Analytics</h3>
+                            <p class="text-xs text-[var(--text-muted)]">Opens, clicks, and send trends</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select id="analytics-range" class="input rounded-xl px-3 py-2 text-sm">
+                                <option value="7">Last 7 days</option>
+                                <option value="14" selected>Last 14 days</option>
+                                <option value="30">Last 30 days</option>
+                            </select>
+                            <select id="analytics-seq" class="input rounded-xl px-3 py-2 text-sm">
+                                <option value="">All sequences</option>
+                                <option value="school">SCHOOL</option>
+                                <option value="csr">CSR</option>
+                                <option value="csr-wsl-5">CSR-WSL-5</option>
+                            </select>
+                            <button id="btn-refresh-analytics" class="btn-primary px-4 py-2 rounded-[10px] text-sm font-medium">Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Summary cards -->
+                    <div id="analytics-summary" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                        <div class="card p-4 rounded-2xl"><div class="text-xs text-[var(--text-muted)]">Sent</div><div class="text-2xl font-bold text-blue-500">—</div></div>
+                        <div class="card p-4 rounded-2xl"><div class="text-xs text-[var(--text-muted)]">Opened</div><div class="text-2xl font-bold text-emerald-500">—</div></div>
+                        <div class="card p-4 rounded-2xl"><div class="text-xs text-[var(--text-muted)]">Clicked</div><div class="text-2xl font-bold text-amber-500">—</div></div>
+                        <div class="card p-4 rounded-2xl"><div class="text-xs text-[var(--text-muted)]">Open Rate</div><div class="text-2xl font-bold text-violet-500">—</div></div>
+                        <div class="card p-4 rounded-2xl"><div class="text-xs text-[var(--text-muted)]">CTR</div><div class="text-2xl font-bold text-pink-500">—</div></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <!-- Daily chart -->
+                        <div class="card rounded-2xl p-6 lg:col-span-2">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-4">Daily Activity</h3>
+                            <div id="analytics-daily-chart" class="space-y-2">
+                                <p class="text-[var(--text-muted)] text-sm">No data yet.</p>
+                            </div>
+                        </div>
+
+                        <!-- Funnel -->
+                        <div class="card rounded-2xl p-6">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-4">Conversion Funnel</h3>
+                            <div id="analytics-funnel" class="space-y-4">
+                                <p class="text-[var(--text-muted)] text-sm">No data yet.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Top links -->
+                        <div class="card rounded-2xl p-6">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-4">Top Clicked Links</h3>
+                            <div id="analytics-top-links" class="space-y-2">
+                                <p class="text-[var(--text-muted)] text-sm">No clicks yet.</p>
+                            </div>
+                        </div>
+
+                        <!-- Recent activity -->
+                        <div class="card rounded-2xl p-6">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-4">Recent Activity</h3>
+                            <div id="analytics-activity" class="space-y-2 max-h-[300px] overflow-y-auto">
+                                <p class="text-[var(--text-muted)] text-sm">No recent activity.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dashboard -->
+                <section id="page-dashboard" class="page-section max-w-[1400px] mx-auto">
+                    <!-- Stats cards -->
+                    <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                        <div class="card p-6 rounded-2xl animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-4"></div>
+                            <div class="h-8 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div class="card p-6 rounded-2xl animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-4"></div>
+                            <div class="h-8 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div class="card p-6 rounded-2xl animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-4"></div>
+                            <div class="h-8 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div class="card p-6 rounded-2xl animate-pulse">
+                            <div class="h-4 bg-gray-200 rounded w-24 mb-4"></div>
+                            <div class="h-8 bg-gray-200 rounded w-16"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline table -->
+                    <div class="card rounded-2xl p-6 mb-8">
+                        <h3 class="text-lg font-semibold mb-4">📅 Email Pipeline</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="text-left text-[var(--text-muted)] border-b border-[var(--border)]">
+                                        <th class="py-3 px-4 font-medium uppercase text-xs">Day</th>
+                                        <th class="py-3 px-4 font-medium uppercase text-xs">Total</th>
+                                        <th class="py-3 px-4 font-medium uppercase text-xs">Sent</th>
+                                        <th class="py-3 px-4 font-medium uppercase text-xs">Bounced</th>
+                                        <th class="py-3 px-4 font-medium uppercase text-xs">Replied</th>
+                                        <th class="py-3 px-4 font-medium uppercase text-xs">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pipeline-body">
+                                    <tr><td colspan="6" class="py-8 text-center text-[var(--text-muted)]">Loading pipeline...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Active campaigns -->
+                    <div class="card rounded-2xl p-6">
+                        <h3 class="text-lg font-semibold mb-4">🚀 Active Campaigns</h3>
+                        <div id="active-campaigns" class="space-y-4">
+                            <p class="text-[var(--text-muted)] text-sm">Loading campaigns...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Batches -->
+                <section id="page-batches" class="page-section hidden max-w-[1400px] mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Create batch card -->
+                        <div class="lg:col-span-1">
+                            <div class="card rounded-2xl p-6 mb-6">
+                                <h3 class="text-lg font-semibold mb-4">➕ Create Batch</h3>
+                                <form id="batch-create-form" class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Batch name</label>
+                                        <input type="text" id="batch-name" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="e.g. Master_Lead_B2" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Pull From</label>
+                                        <select id="batch-pull-from" class="input w-full rounded-xl px-4 py-2 text-sm"></select>
+                                        <p class="text-xs text-[var(--text-muted)] mt-1">Pool source for unbatched leads</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Assign Sequence</label>
+                                        <select id="batch-sequence" class="input w-full rounded-xl px-4 py-2 text-sm"></select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Sub-pool (optional)</label>
+                                        <select id="batch-sub-pool" class="input w-full rounded-xl px-4 py-2 text-sm"><option value="">— All leads —</option></select>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Batch size</label>
+                                            <input type="number" id="batch-size" class="input w-full rounded-xl px-4 py-2 text-sm" value="10" min="1" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Day</label>
+                                            <select id="batch-offset" class="input w-full rounded-xl px-4 py-2 text-sm">
+                                                <option value="1">Day 1</option>
+                                                <option value="3">Day 3</option>
+                                                <option value="5">Day 5</option>
+                                                <option value="7">Day 7</option>
+                                                <option value="10">Day 10</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Schedule (optional)</label>
+                                        <input type="datetime-local" id="batch-schedule" class="input w-full rounded-xl px-4 py-2 text-sm">
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-[var(--text-muted)]">Available in pool:</span>
+                                        <span id="pool-count" class="font-semibold">—</span>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full py-2.5 rounded-xl text-sm font-medium">Create batch</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Batch list -->
+                        <div class="lg:col-span-2">
+                            <div class="card rounded-2xl p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold">🚀 Batches</h3>
+                                    <select id="batch-filter-seq" class="input rounded-xl px-3 py-1.5 text-xs">
+                                        <option value="">All sequences</option>
+                                    </select>
+                                </div>
+                                <div id="batches-body" class="space-y-4">
+                                    <p class="text-[var(--text-muted)] text-sm text-center py-8">Loading batches...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Templates -->
+                <section id="page-templates" class="page-section hidden max-w-[1400px] mx-auto">
+                    <!-- Bulk actions -->
+                    <div class="card rounded-2xl p-4 mb-6">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <button id="btn-sync-templates" class="btn-secondary px-4 py-2 rounded-xl text-sm font-medium">🔄 Sync from Gmail</button>
+                            <button id="btn-generate-missing" class="btn-secondary px-4 py-2 rounded-xl text-sm font-medium">✨ Generate Missing</button>
+                            <button id="btn-lock-all" class="btn-secondary px-4 py-2 rounded-xl text-sm font-medium">🔒 Lock All</button>
+                            <span id="template-sync-status" class="text-xs text-[var(--text-muted)] ml-auto"></span>
+                        </div>
+                    </div>
+
+                    <!-- Template status grid -->
+                    <div class="card rounded-2xl p-6 mb-6 overflow-x-auto">
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-4">Template Status</h3>
+                        <table class="w-full text-sm text-left">
+                            <thead>
+                                <tr class="border-b border-[var(--border)] text-[var(--text-muted)]">
+                                    <th class="py-2 px-3 font-medium">Sequence</th>
+                                    <th class="py-2 px-3 font-medium text-center">Day 1</th>
+                                    <th class="py-2 px-3 font-medium text-center">Day 3</th>
+                                    <th class="py-2 px-3 font-medium text-center">Day 5</th>
+                                    <th class="py-2 px-3 font-medium text-center">Day 7</th>
+                                    <th class="py-2 px-3 font-medium text-center">Day 10</th>
+                                </tr>
+                            </thead>
+                            <tbody id="template-status-grid"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Left sidebar: Sequences + Days -->
+                        <div class="lg:col-span-3 space-y-6">
+                            <!-- Sequence selector -->
+                            <div class="card rounded-2xl p-5">
+                                <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-3">Sequence</h3>
+                                <div id="template-seq-list" class="space-y-1">
+                                    <p class="text-sm text-[var(--text-muted)]">Loading...</p>
+                                </div>
+                            </div>
+
+                            <!-- Day selector -->
+                            <div class="card rounded-2xl p-5">
+                                <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-3">Day</h3>
+                                <div class="grid grid-cols-5 gap-2" id="template-day-grid">
+                                    <button data-day="1" class="day-btn py-2 rounded-lg text-sm font-medium bg-[var(--accent-teal)] text-white">1</button>
+                                    <button data-day="3" class="day-btn py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--accent-teal)] hover:text-white transition-colors">3</button>
+                                    <button data-day="5" class="day-btn py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--accent-teal)] hover:text-white transition-colors">5</button>
+                                    <button data-day="7" class="day-btn py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--accent-teal)] hover:text-white transition-colors">7</button>
+                                    <button data-day="10" class="day-btn py-2 rounded-lg text-sm font-medium bg-[var(--bg-secondary)] hover:bg-[var(--accent-teal)] hover:text-white transition-colors">10</button>
+                                </div>
+                                <div class="mt-3 text-xs text-[var(--text-muted)]" id="template-day-status">Day 1: Template loaded</div>
+                            </div>
+
+                            <!-- Format toggle -->
+                            <div class="card rounded-2xl p-5">
+                                <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-3">Format</h3>
+                                <div class="flex bg-[var(--bg-secondary)] rounded-lg p-1">
+                                    <button id="format-html" class="flex-1 py-2 rounded-md text-sm font-medium bg-white shadow-sm text-[var(--text-primary)] transition-all">HTML</button>
+                                    <button id="format-plain" class="flex-1 py-2 rounded-md text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all">Plain Text</button>
+                                </div>
+                                <p class="text-xs text-[var(--text-muted)] mt-2">
+                                    HTML: Rich formatting with images and links<br>
+                                    Plain Text: Simple text, +18% better reply rates
+                                </p>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="card rounded-2xl p-5 space-y-3">
+                                <button id="btn-preview-template" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">👁 Open Preview in Browser</button>
+                                <button id="btn-test-template" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">🧪 Test Send</button>
+                                <button id="btn-generate-template" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">✨ Auto-Generate</button>
+                                <button id="btn-lock-template" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">🔓 Lock Template</button>
+                                <button id="btn-save-template" class="btn-primary w-full py-2.5 rounded-xl text-sm font-medium">💾 Save Template</button>
+                            </div>
+                        </div>
+
+                        <!-- Main editor area -->
+                        <div class="lg:col-span-9 space-y-6">
+                            <!-- Subject line -->
+                            <div class="card rounded-2xl p-6 space-y-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-[var(--text-muted)] mb-2">Subject Line</label>
+                                    <input type="text" id="template-subject" class="input w-full rounded-xl px-4 py-3 text-sm font-medium" placeholder="Enter subject line...">
+                                    <p class="text-xs text-[var(--text-muted)] mt-2">Use {{name}}, {{org}} for personalization</p>
+                                </div>
+
+                                <div class="border-t border-[var(--border)] pt-4">
+                                    <label class="flex items-center gap-2 cursor-pointer mb-3">
+                                        <input type="checkbox" id="template-ab-enabled" class="w-4 h-4 accent-[var(--accent-teal)] rounded">
+                                        <span class="text-sm font-medium">Enable A/B Test</span>
+                                    </label>
+                                    <div id="template-ab-fields" class="hidden space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Subject B</label>
+                                            <input type="text" id="template-subject-b" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="Alternative subject line...">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">A/B Split: <span id="ab-split-value">50</span>% to A</label>
+                                            <input type="range" id="template-ab-split" min="0" max="100" value="50" class="w-full accent-[var(--accent-teal)]">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Editor -->
+                            <div class="card rounded-2xl p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-sm font-semibold" id="editor-label">HTML Editor</h3>
+                                    <span class="text-xs text-[var(--text-muted)]" id="editor-hint">HTML tags supported</span>
+                                </div>
+                                <textarea id="template-body" rows="16" class="input w-full rounded-xl px-4 py-3 text-sm font-mono" placeholder="Enter email content..."></textarea>
+                            </div>
+
+                            <!-- Trial send -->
+                            <div class="card rounded-2xl p-6">
+                                <h3 class="text-sm font-semibold mb-4">🧪 Trial Send (All 5 Days)</h3>
+                                <p class="text-xs text-[var(--text-muted)] mb-4">Send the complete sequence to your email to test</p>
+                                <form id="trial-form" class="flex flex-wrap gap-3 items-end">
+                                    <div class="flex-1 min-w-[200px]">
+                                        <label class="block text-xs text-[var(--text-muted)] mb-1">Your Email</label>
+                                        <input type="email" id="trial-email" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="you@example.com" required>
+                                    </div>
+                                    <div class="min-w-[150px]">
+                                        <label class="block text-xs text-[var(--text-muted)] mb-1">Your Name</label>
+                                        <input type="text" id="trial-name" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="John Doe">
+                                    </div>
+                                    <div class="min-w-[150px]">
+                                        <label class="block text-xs text-[var(--text-muted)] mb-1">Organization</label>
+                                        <input type="text" id="trial-org" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="Company">
+                                    </div>
+                                    <button type="submit" class="btn-primary px-6 py-2 rounded-xl text-sm font-medium">Send Trial</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Import -->
+                <section id="page-import" class="page-section hidden max-w-[1400px] mx-auto">
+                    <!-- Sequence selector bar -->
+                    <div class="card rounded-2xl p-4 mb-6">
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium text-[var(--text-muted)]">Target Sequence:</label>
+                                <select id="import-sequence" class="input rounded-xl px-3 py-2 text-sm">
+                                    <option value="leads">— Select Sequence —</option>
+                                    <option value="school">SCHOOL (Private Schools)</option>
+                                    <option value="csr">CSR (Corporate CSR)</option>
+                                    <option value="csr-wsl-5">CSR-WSL-5 (5-Year Model)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium text-[var(--text-muted)]">Sub-pool:</label>
+                                <input type="text" id="import-sub-pool" class="input rounded-xl px-3 py-2 text-sm" placeholder="e.g. pune-csr, mumbai-school">
+                            </div>
+                            <span class="text-xs text-[var(--text-muted)]">Leads will be tagged for the selected sequence</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- File upload -->
+                        <div class="card rounded-2xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">📁 Upload file</h3>
+                            <form id="import-file-form" class="space-y-4">
+                                <div class="border-2 border-dashed border-[var(--border)] rounded-2xl p-8 text-center hover:border-[var(--accent-teal)] transition-colors">
+                                    <input type="file" id="import-file" accept=".csv,.xlsx,.xls" class="hidden">
+                                    <label for="import-file" class="cursor-pointer block">
+                                        <span class="text-3xl">📄</span>
+                                        <p class="mt-2 text-sm font-medium" id="file-label">Click to select CSV or Excel</p>
+                                        <p class="text-xs text-[var(--text-muted)]">Required: email column</p>
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn-primary w-full py-2.5 rounded-xl text-sm font-medium">Preview & import</button>
+                            </form>
+                        </div>
+
+                        <!-- Paste leads -->
+                        <div class="card rounded-2xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">📋 Paste leads</h3>
+                            <form id="import-paste-form" class="space-y-4">
+                                <div>
+                                    <textarea id="import-paste" rows="10" class="input w-full rounded-xl px-4 py-3 text-sm font-mono" placeholder="email, name, company, phone, source...
+One per line, comma separated."></textarea>
+                                    <p class="text-xs text-[var(--text-muted)] mt-1">Format: email, name, company, phone, source. First row can be headers.</p>
+                                </div>
+                                <button type="submit" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">Preview paste</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Preview / confirm -->
+                    <div id="import-preview-card" class="card rounded-2xl p-6 mt-6 hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">👁 Import preview</h3>
+                            <div class="text-sm">
+                                <span class="text-[var(--text-muted)]">Rows:</span>
+                                <span id="preview-count" class="font-semibold ml-1">0</span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead id="preview-head"></thead>
+                                <tbody id="preview-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="flex justify-end gap-3 mt-4">
+                            <button id="import-cancel" class="btn-secondary px-4 py-2 rounded-xl text-sm font-medium">Cancel</button>
+                            <button id="import-confirm" class="btn-primary px-4 py-2 rounded-xl text-sm font-medium">Confirm import</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Integrations -->
+                <section id="page-integrations" class="page-section hidden max-w-[1400px] mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Calendar -->
+                        <div class="card rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">📅 Google Calendar</h3>
+                                <span id="calendar-status" class="text-xs text-[var(--text-muted)]">Checking...</span>
+                            </div>
+                            <div id="calendar-connect-prompt" class="hidden mb-4 p-4 bg-amber-50 rounded-xl text-sm text-amber-700">
+                                Calendar not connected. <button id="btn-connect-calendar" class="underline font-medium">Connect</button>
+                            </div>
+
+                            <form id="calendar-create-form" class="space-y-3 mb-6">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="email" id="cal-email" class="input rounded-xl px-3 py-2 text-sm" placeholder="Attendee email" required>
+                                    <input type="text" id="cal-name" class="input rounded-xl px-3 py-2 text-sm" placeholder="Attendee name">
+                                </div>
+                                <input type="text" id="cal-subject" class="input rounded-xl px-3 py-2 text-sm" placeholder="Meeting subject" required>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <input type="number" id="cal-duration" class="input rounded-xl px-3 py-2 text-sm" placeholder="Duration (min)" value="30" min="15">
+                                    <input type="number" id="cal-days" class="input rounded-xl px-3 py-2 text-sm" placeholder="Days from now" value="2" min="0">
+                                    <input type="time" id="cal-time" class="input rounded-xl px-3 py-2 text-sm" value="10:00" required>
+                                </div>
+                                <textarea id="cal-desc" rows="2" class="input w-full rounded-xl px-3 py-2 text-sm" placeholder="Description"></textarea>
+                                <button type="submit" class="btn-primary w-full py-2 rounded-xl text-sm font-medium">Create Meeting</button>
+                            </form>
+
+                            <h4 class="text-sm font-semibold mb-2">Upcoming Meetings</h4>
+                            <div id="calendar-events" class="space-y-2 max-h-[300px] overflow-y-auto">
+                                <p class="text-[var(--text-muted)] text-sm">No upcoming meetings.</p>
+                            </div>
+                        </div>
+
+                        <!-- Drive -->
+                        <div class="card rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">📁 Google Drive</h3>
+                                <span id="drive-status" class="text-xs text-[var(--text-muted)]">Checking...</span>
+                            </div>
+                            <div id="drive-connect-prompt" class="hidden mb-4 p-4 bg-amber-50 rounded-xl text-sm text-amber-700">
+                                Drive not connected. <button id="btn-connect-drive" class="underline font-medium">Connect</button>
+                            </div>
+
+                            <div class="mb-4">
+                                <form id="drive-upload-form" class="space-y-3">
+                                    <input type="file" id="drive-file" class="hidden">
+                                    <label for="drive-file" class="block border-2 border-dashed border-[var(--border)] rounded-xl p-4 text-center cursor-pointer hover:border-[var(--accent-teal)] transition-colors">
+                                        <span class="text-sm" id="drive-file-label">📄 Click to upload file</span>
+                                    </label>
+                                    <button type="submit" class="btn-secondary w-full py-2 rounded-xl text-sm font-medium">Upload to Drive</button>
+                                </form>
+                            </div>
+
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="text" id="drive-search" class="input flex-1 rounded-xl px-3 py-2 text-sm" placeholder="Search Drive files...">
+                                <button id="btn-drive-search" class="btn-secondary px-3 py-2 rounded-xl text-xs font-medium">Search</button>
+                            </div>
+                            <div id="drive-files" class="space-y-2 max-h-[300px] overflow-y-auto">
+                                <p class="text-[var(--text-muted)] text-sm">No files loaded.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Replies -->
+                <section id="page-replies" class="page-section hidden max-w-[1400px] mx-auto">
+                    <div class="card rounded-2xl p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                            <h3 class="text-lg font-semibold">💬 Replies</h3>
+                            <div class="flex items-center gap-3">
+                                <input type="text" id="reply-search" class="input rounded-xl px-4 py-2 text-sm" placeholder="Search replies...">
+                                <select id="reply-filter" class="input rounded-xl px-3 py-2 text-sm">
+                                    <option value="all">All</option>
+                                    <option value="pending">Unread</option>
+                                    <option value="drafted">Drafted</option>
+                                    <option value="handled">Replied</option>
+                                </select>
+                                <select id="reply-sentiment" class="input rounded-xl px-3 py-2 text-sm">
+                                    <option value="all">All sentiments</option>
+                                    <option value="positive">Positive</option>
+                                    <option value="neutral">Neutral</option>
+                                    <option value="hostile">Hostile</option>
+                                    <option value="unsubscribe">Unsubscribe</option>
+                                </select>
+                                <button id="btn-fetch-replies" class="btn-primary px-4 py-2 rounded-xl text-sm font-medium">🔄 Fetch</button>
+                            </div>
+                        </div>
+                        <div id="replies-list" class="space-y-3">
+                            <p class="text-[var(--text-muted)] text-sm">Click "Fetch" to load replies from Gmail</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Blacklist -->
+                <section id="page-blacklist" class="page-section hidden max-w-[1400px] mx-auto">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="card rounded-2xl p-4">
+                            <div class="text-xs text-[var(--text-muted)]">Total Blacklisted</div>
+                            <div class="text-2xl font-bold text-[var(--text-primary)]" id="blacklist-total">0</div>
+                        </div>
+                        <div class="card rounded-2xl p-4">
+                            <div class="text-xs text-[var(--text-muted)]">Bounced</div>
+                            <div class="text-2xl font-bold text-red-500" id="blacklist-bounced">0</div>
+                        </div>
+                        <div class="card rounded-2xl p-4">
+                            <div class="text-xs text-[var(--text-muted)]">Manual</div>
+                            <div class="text-2xl font-bold text-amber-500" id="blacklist-manual">0</div>
+                        </div>
+                        <div class="card rounded-2xl p-4">
+                            <div class="text-xs text-[var(--text-muted)]">Hostile / Unsubscribe</div>
+                            <div class="text-2xl font-bold text-violet-500" id="blacklist-hostile">0</div>
+                        </div>
+                    </div>
+
+                    <div class="card rounded-2xl p-6 mb-6">
+                        <div class="flex items-center justify-between flex-wrap gap-3">
+                            <div>
+                                <h3 class="text-lg font-semibold">🔍 Bounce Scan</h3>
+                                <p class="text-xs text-[var(--text-muted)]">Scan Gmail for bounced emails and auto-blacklist them.</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <select id="bounce-scan-range" class="input rounded-xl px-3 py-2 text-sm">
+                                    <option value="3">Last 3 days</option>
+                                    <option value="7">Last 7 days</option>
+                                    <option value="15" selected>Last 15 days</option>
+                                    <option value="30">Last 30 days</option>
+                                </select>
+                                <button id="btn-bounce-scan" class="btn-primary px-4 py-2 rounded-xl text-sm font-medium">Scan Now</button>
+                            </div>
+                        </div>
+                        <div id="bounce-scan-results" class="hidden mt-4 p-4 bg-[var(--bg-secondary)] rounded-xl text-sm"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Add to blacklist -->
+                        <div class="lg:col-span-1">
+                            <div class="card rounded-2xl p-6 space-y-4">
+                                <h3 class="text-lg font-semibold">🚫 Add to Blacklist</h3>
+                                <textarea id="blacklist-input" rows="6" class="input w-full rounded-xl px-4 py-3 text-sm font-mono" placeholder="Enter emails to blacklist, one per line..."></textarea>
+                                <button id="btn-blacklist-add" class="btn-primary w-full py-2.5 rounded-xl text-sm font-medium">Add to Blacklist</button>
+                                <div class="border-t border-[var(--border)] pt-4">
+                                    <p class="text-xs text-[var(--text-muted)] mb-2">Or upload CSV:</p>
+                                    <input type="file" id="blacklist-file" accept=".csv" class="hidden">
+                                    <label for="blacklist-file" class="block border-2 border-dashed border-[var(--border)] rounded-xl p-4 text-center cursor-pointer hover:border-[var(--accent-teal)] transition-colors">
+                                        <span class="text-sm" id="blacklist-file-label">📄 Click to upload CSV</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Blacklist list -->
+                        <div class="lg:col-span-2">
+                            <div class="card rounded-2xl p-6">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                    <div class="bg-[var(--bg-secondary)] rounded-xl p-3 text-center">
+                                        <div id="blacklist-total" class="text-xl font-bold text-[var(--text-primary)]">0</div>
+                                        <div class="text-[10px] text-[var(--text-muted)] uppercase">Total</div>
+                                    </div>
+                                    <div class="bg-[var(--bg-secondary)] rounded-xl p-3 text-center">
+                                        <div id="blacklist-bounced" class="text-xl font-bold text-red-500">0</div>
+                                        <div class="text-[10px] text-[var(--text-muted)] uppercase">Bounced</div>
+                                    </div>
+                                    <div class="bg-[var(--bg-secondary)] rounded-xl p-3 text-center">
+                                        <div id="blacklist-manual" class="text-xl font-bold text-blue-500">0</div>
+                                        <div class="text-[10px] text-[var(--text-muted)] uppercase">Manual</div>
+                                    </div>
+                                    <div class="bg-[var(--bg-secondary)] rounded-xl p-3 text-center">
+                                        <div id="blacklist-hostile" class="text-xl font-bold text-amber-500">0</div>
+                                        <div class="text-[10px] text-[var(--text-muted)] uppercase">Hostile/Unsub</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                                    <h3 class="text-lg font-semibold">Blacklisted Emails</h3>
+                                    <div class="flex items-center gap-3">
+                                        <input type="text" id="blacklist-search" class="input rounded-xl px-4 py-2 text-sm" placeholder="Search emails...">
+                                        <button id="btn-bulk-remove" class="btn-secondary px-4 py-2 rounded-xl text-sm font-medium" disabled>Remove Selected (0)</button>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="text-left text-[var(--text-muted)] border-b border-[var(--border)]">
+                                                <th class="py-3 px-4 font-medium uppercase text-xs">
+                                                    <input type="checkbox" id="blacklist-select-all" class="rounded">
+                                                </th>
+                                                <th class="py-3 px-4 font-medium uppercase text-xs">Email</th>
+                                                <th class="py-3 px-4 font-medium uppercase text-xs">Added</th>
+                                                <th class="py-3 px-4 font-medium uppercase text-xs">Reason</th>
+                                                <th class="py-3 px-4 font-medium uppercase text-xs">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="blacklist-body">
+                                            <tr><td colspan="5" class="py-8 text-center text-[var(--text-muted)]">Loading...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-3 text-right">
+                                    <span class="text-sm text-[var(--text-muted)]" id="blacklist-count">0 emails</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-settings" class="page-section hidden max-w-[1400px] mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Google Connections -->
+                        <div class="card rounded-2xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">🔌 Google Connections</h3>
+                            <p class="text-xs text-[var(--text-muted)] mb-4">Connect Gmail, Calendar, and Drive so Raj can send emails and sync replies.</p>
+                            <div id="google-connections" class="space-y-3">
+                                <div class="flex items-center justify-between py-2 border-b border-[var(--border)]" data-service="gmail">
+                                    <div class="flex items-center gap-2">
+                                        <span id="status-dot-gmail" class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
+                                        <span class="text-sm font-medium">Gmail</span>
+                                    </div>
+                                    <span id="status-text-gmail" class="text-xs text-[var(--text-muted)]">Checking...</span>
+                                    <button data-connect="gmail" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">Connect</button>
+                                </div>
+                                <div class="flex items-center justify-between py-2 border-b border-[var(--border)]" data-service="calendar">
+                                    <div class="flex items-center gap-2">
+                                        <span id="status-dot-calendar" class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
+                                        <span class="text-sm font-medium">Calendar</span>
+                                    </div>
+                                    <span id="status-text-calendar" class="text-xs text-[var(--text-muted)]">Checking...</span>
+                                    <button data-connect="calendar" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">Connect</button>
+                                </div>
+                                <div class="flex items-center justify-between py-2" data-service="drive">
+                                    <div class="flex items-center gap-2">
+                                        <span id="status-dot-drive" class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
+                                        <span class="text-sm font-medium">Drive</span>
+                                    </div>
+                                    <span id="status-text-drive" class="text-xs text-[var(--text-muted)]">Checking...</span>
+                                    <button data-connect="drive" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">Connect</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="card rounded-2xl p-6">
+                                <h3 class="text-lg font-semibold mb-4">📢 Campaign Settings</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Morning Brief Email</label>
+                                        <input type="email" id="setting-brief-email" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="you@example.com">
+                                        <p class="text-xs text-[var(--text-muted)] mt-1">Daily summary report recipient.</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Default Sender Email</label>
+                                        <input type="email" id="setting-default-sender" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="om@robopirate.in">
+                                        <p class="text-xs text-[var(--text-muted)] mt-1">Campaign/test/trial From address. Must be a Gmail alias.</p>
+                                    </div>
+                                    <div class="border-t border-[var(--border)] pt-4">
+                                        <p class="text-sm font-medium mb-2">Pause Sequences</p>
+                                        <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                                            <input type="checkbox" id="setting-pause-school" class="w-4 h-4 accent-[var(--accent-teal)] rounded">
+                                            <span class="text-sm">Pause SCHOOL</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                                            <input type="checkbox" id="setting-pause-csr" class="w-4 h-4 accent-[var(--accent-teal)] rounded">
+                                            <span class="text-sm">Pause CSR</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="setting-pause-csrwsl" class="w-4 h-4 accent-[var(--accent-teal)] rounded">
+                                            <span class="text-sm">Pause CSR-WSL-5</span>
+                                        </label>
+                                    </div>
+                                    <button id="btn-save-campaign-settings" class="btn-primary w-full py-2 rounded-xl text-sm font-medium">Save Campaign Settings</button>
+                                </div>
+                            </div>
+
+                            <div class="card rounded-2xl p-6">
+                                <h3 class="text-lg font-semibold mb-4">🤖 Automation</h3>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm font-medium">Engine Status</p>
+                                            <p class="text-xs text-[var(--text-muted)]">Runs scheduled sends, bounce/reply scans</p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button id="btn-engine-start" class="btn-primary px-3 py-1.5 rounded-lg text-xs font-medium">Start</button>
+                                            <button id="btn-engine-stop" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">Stop</button>
+                                        </div>
+                                    </div>
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-sm">Start engine automatically on launch</span>
+                                        <input type="checkbox" id="setting-engine-autostart" class="w-5 h-5 accent-[var(--accent-teal)] rounded">
+                                    </label>
+                                    <div class="border-t border-[var(--border)] pt-4">
+                                        <p class="text-sm font-medium mb-2">Emergency Commands</p>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <button id="btn-emergency-stop-all" class="btn-secondary py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50">STOP ALL</button>
+                                            <button id="btn-emergency-resume" class="btn-secondary py-1.5 rounded-lg text-xs font-medium text-emerald-600 hover:bg-emerald-50">RESUME ALL</button>
+                                            <button id="btn-emergency-stop-school" class="btn-secondary py-1.5 rounded-lg text-xs font-medium">STOP SCHOOL</button>
+                                            <button id="btn-emergency-stop-csr" class="btn-secondary py-1.5 rounded-lg text-xs font-medium">STOP CSR</button>
+                                        </div>
+                                    </div>
+                                    <div class="border-t border-[var(--border)] pt-4">
+                                        <button id="btn-trigger-brief" class="btn-secondary w-full py-2 rounded-xl text-sm font-medium">📧 Send Morning Brief Now</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card rounded-2xl p-6">
+                                <h3 class="text-lg font-semibold mb-4">🖥 Desktop</h3>
+                                <div class="space-y-4">
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-sm">Minimize to system tray</span>
+                                        <input type="checkbox" id="setting-tray" class="w-5 h-5 accent-[var(--accent-teal)] rounded">
+                                    </label>
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-sm">Start Raj on boot</span>
+                                        <input type="checkbox" id="setting-autostart" class="w-5 h-5 accent-[var(--accent-teal)] rounded">
+                                    </label>
+                                    <label class="flex items-center justify-between cursor-pointer">
+                                        <span class="text-sm">Desktop notifications</span>
+                                        <input type="checkbox" id="setting-notify" class="w-5 h-5 accent-[var(--accent-teal)] rounded">
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="card rounded-2xl p-6">
+                                <h3 class="text-lg font-semibold mb-4">⌨ Shortcuts</h3>
+                                <div class="space-y-2 text-sm text-[var(--text-secondary)]">
+                                    <div class="flex justify-between border-b border-[var(--border)] py-2"><span>Refresh dashboard</span><kbd class="font-mono bg-[var(--bg-secondary)] px-2 rounded">Ctrl+Shift+R</kbd></div>
+                                    <div class="flex justify-between border-b border-[var(--border)] py-2"><span>Pause / Resume engine</span><kbd class="font-mono bg-[var(--bg-secondary)] px-2 rounded">Ctrl+Shift+P</kbd></div>
+                                    <div class="flex justify-between border-b border-[var(--border)] py-2"><span>New campaign</span><kbd class="font-mono bg-[var(--bg-secondary)] px-2 rounded">Ctrl+Shift+N</kbd></div>
+                                    <div class="flex justify-between border-b border-[var(--border)] py-2"><span>Go to Dashboard</span><kbd class="font-mono bg-[var(--bg-secondary)] px-2 rounded">Ctrl+Shift+D</kbd></div>
+                                    <div class="flex justify-between border-b border-[var(--border)] py-2"><span>Toggle theme</span><kbd class="font-mono bg-[var(--bg-secondary)] px-2 rounded">Ctrl+Shift+T</kbd></div>
+                                    <div class="flex justify-between py-2"><span>Quit</span><kbd class="font-mono bg-[var(--bg-secondary)] px-2 rounded">Ctrl+Q</kbd></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Audit log -->
+                        <div class="card rounded-2xl p-6 mt-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">📋 Audit Log</h3>
+                                <button id="btn-refresh-audit" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">Refresh</button>
+                            </div>
+                            <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-left text-[var(--text-muted)] border-b border-[var(--border)]">
+                                            <th class="py-2 px-3 font-medium uppercase text-xs">Time</th>
+                                            <th class="py-2 px-3 font-medium uppercase text-xs">Action</th>
+                                            <th class="py-2 px-3 font-medium uppercase text-xs">User</th>
+                                            <th class="py-2 px-3 font-medium uppercase text-xs">Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="audit-log-body">
+                                        <tr><td colspan="4" class="py-8 text-center text-[var(--text-muted)]">Loading audit log...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Reply draft modal -->
+    <div id="reply-draft-modal" class="fixed inset-0 z-[60] hidden bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-[var(--bg-card)] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-[var(--border)]">
+            <div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
+                <h3 class="font-semibold">✍️ Reply Draft</h3>
+                <button id="reply-modal-close" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <div id="reply-modal-meta" class="text-xs text-[var(--text-muted)] mb-2"></div>
+                <textarea id="reply-modal-body" rows="14" class="input w-full rounded-xl px-4 py-3 text-sm"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 p-4 border-t border-[var(--border)]">
+                <button id="reply-modal-cancel" class="btn-secondary px-4 py-2 rounded-xl text-sm">Cancel</button>
+                <button id="reply-modal-send" class="btn-primary px-4 py-2 rounded-xl text-sm">Send Draft</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js?v=4"></script>
+    <script src="/static/js/app.js?v=4"></script>
+    <script src="/static/js/dashboard.js?v=4"></script>
+    <script src="/static/js/analytics.js?v=4"></script>
+    <script src="/static/js/batches.js?v=4"></script>
+    <script src="/static/js/import.js?v=4"></script>
+    <script src="/static/js/templates.js?v=4"></script>
+    <script src="/static/js/replies.js?v=4"></script>
+    <script src="/static/js/integrations.js?v=4"></script>
+    <script src="/static/js/blacklist.js?v=4"></script>
+    <script src="/static/js/settings.js?v=4"></script>
+</body>
+</html>
