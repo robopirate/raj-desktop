@@ -6,8 +6,8 @@
     "y": -7,
     "maximized": false
   },
-  "page": "settings",
-  "theme": "light",
+  "page": "templates",
+  "theme": "dark",
   "sidebar_collapsed": false,
   "desktop": {
     "minimize_to_tray": true,
