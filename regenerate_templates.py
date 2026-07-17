@@ -27,6 +27,24 @@ def main():
     for seq_id in seq_ids:
         os.makedirs(os.path.join(export_root, seq_id), exist_ok=True)
 
+    # Descriptive file names per sequence/day
+    file_names = {
+        "school": {
+            1: "01_Introduction",
+            3: "02_NEP_Positioning",
+            5: "03_VeerBaji_CaseStudy",
+            7: "04_85Plus_Principals",
+            10: "05_FinalCall",
+        },
+        "csr-wsl-5": {
+            1: "01_5Year_Model",
+            3: "02_Full_Academic_Year",
+            5: "03_Trainer_Story",
+            7: "04_Math_Breakdown",
+            10: "05_Final_Call",
+        },
+    }
+
     for seq_id in seq_ids:
         for day in SEQUENCES.get(seq_id, {}).get("days", []):
             if engine.is_template_locked(seq_id, day):
@@ -53,7 +71,7 @@ def main():
 
             # Export HTML and plain text files
             export_dir = os.path.join(export_root, seq_id)
-            filename_base = f"D{day}"
+            filename_base = file_names.get(seq_id, {}).get(day, f"D{day}")
             html_path = os.path.join(export_dir, f"{filename_base}.html")
             txt_path = os.path.join(export_dir, f"{filename_base}.txt")
 

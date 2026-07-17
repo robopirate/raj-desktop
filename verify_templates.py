@@ -17,7 +17,7 @@ EXPECTED_ASSETS = {
         1: {"brochure", "video_wsl", "video_abp", "video_ig"},
         3: {"video_abp", "video_ig"},
         5: {"report_vbv", "video_star", "folder_vbv", "video_ig"},
-        7: {"profile", "video_abp", "video_star", "video_ig"},
+        7: {"brochure", "video_abp", "video_ig"},
         10: {"plans", "video_ig"},
     },
     "csr-wsl-5": {

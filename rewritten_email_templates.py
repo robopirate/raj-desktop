@@ -27,7 +27,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>That's what a WE Smart Lab is. Not a product. A room where kids build things that surprise them.</p>
 
-<p>We run 85+ of these labs across 6 states. The one that still surprises me is Veer Baji Prabhu Vidyalay in Sangli, which started with a single room and now has students winning at state level.</p>
+<p>We run 85+ of these labs across 6 states. The one that still surprises me is Veer Baji Prabhu Vidyalay in Pune, which started with a single lab and now has students who build things that surprise even the trainers.</p>
 
 <p>If you're curious, I can send you the two-minute video of a lab in action.</p>
 
@@ -43,7 +43,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
         3: f"""<p>Dear Principal,</p>
 
-<p>By now you've seen a dozen emails about NEP 2020 compliance. Most of them turn into a checklist of boxes to tick.</p>
+<p>By now you've seen a dozen emails about NEP compliance. Most of them turn into a checklist of boxes to tick.</p>
 
 <p>I think the better way to look at it is this: NEP is a fork in the road. Schools that build real experiential learning now will quietly separate themselves from the ones that wait.</p>
 
@@ -62,9 +62,9 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>At Veer Baji Prabhu Vidyalay, we use Prajwal as the proxy for the quiet kid in the last bench. Six months after we set up a WE Smart Lab in his school, he built an obstacle-avoidance robot from his own design.</p>
 
-<p>That is the kind of progress we track in the report we keep on every child: attendance, project completion, competition results, and confidence growth.</p>
+<p>That is the kind of progress we track in the report we keep on every child: attendance, project completion, assessment scores, and confidence growth.</p>
 
-<p>Veer Baji started with one room and a handful of kits. Today their students have built 12+ working robots, entered state-level competitions, and their science engagement scores have moved up noticeably. The principal now uses the lab as a talking point for parent meetings.</p>
+<p>Veer Baji started with a single lab. Today, attendance is consistent, and the trainer was hired from the local community. The students there build things that surprise even the trainers.</p>
 
 <p>Your school could be the next case study. Not because you are the same as Veer Baji, but because the model works wherever the principal is willing to give students room to build.</p>
 
@@ -93,9 +93,8 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('profile','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the Company Profile</a>
+<a href="{a.get('brochure','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the WSL Brochure</a>
 <a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
-<a href="{a.get('video_star','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star</a>
 <a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
@@ -130,7 +129,7 @@ The schools that get this right don't talk about kits or curriculum. They talk a
 
 That's what a WE Smart Lab is. Not a product. A room where kids build things that surprise them.
 
-We run 85+ of these labs across 6 states. The one that still surprises me is Veer Baji Prabhu Vidyalay in Sangli, which started with a single room and now has students winning at state level.
+We run 85+ of these labs across 6 states. The one that still surprises me is Veer Baji Prabhu Vidyalay in Pune, which started with a single lab and now has students who build things that surprise even the trainers.
 
 If you're curious, I can send you the two-minute video of a lab in action.
 
@@ -147,7 +146,7 @@ Latest on Instagram: {a.get('video_ig', 'Available on request')}
 
         3: f"""Dear Principal,
 
-By now you've seen a dozen emails about NEP 2020 compliance. Most of them turn into a checklist of boxes to tick.
+By now you've seen a dozen emails about NEP compliance. Most of them turn into a checklist of boxes to tick.
 
 I think the better way to look at it is this: NEP is a fork in the road. Schools that build real experiential learning now will quietly separate themselves from the ones that wait.
 
@@ -168,9 +167,9 @@ Instagram: {a.get('video_ig', 'Available on request')}
 
 At Veer Baji Prabhu Vidyalay, we use Prajwal as the proxy for the quiet kid in the last bench. Six months after we set up a WE Smart Lab in his school, he built an obstacle-avoidance robot from his own design.
 
-That is the kind of progress we track in the report we keep on every child: attendance, project completion, competition results, and confidence growth.
+That is the kind of progress we track in the report we keep on every child: attendance, project completion, assessment scores, and confidence growth.
 
-Veer Baji started with one room and a handful of kits. Today their students have built 12+ working robots, entered state-level competitions, and their science engagement scores have moved up noticeably. The principal now uses the lab as a talking point for parent meetings.
+Veer Baji started with a single lab. Today, attendance is consistent, and the trainer was hired from the local community. The students there build things that surprise even the trainers.
 
 Your school could be the next case study. Not because you are the same as Veer Baji, but because the model works wherever the principal is willing to give students room to build.
 
@@ -202,9 +201,8 @@ Baban Jadhav
 Robo Pirate
 https://robopirate.in
 
-Company Profile: {a.get('profile', 'Available on request')}
+WSL Brochure: {a.get('brochure', 'Available on request')}
 ABP News Coverage: {a.get('video_abp', 'Available on request')}
-Student Star: {a.get('video_star', 'Available on request')}
 Instagram: {a.get('video_ig', 'Available on request')}
 """,
 
@@ -258,7 +256,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Not a pilot. Not a demo. A full year of classes, projects, assessments, and student reports.</p>
 
-<p>The trainer we placed came from an underprivileged background himself. He is now certified, full-time, and managing 600+ students. The principal called last week to ask when we can expand to the secondary wing.</p>
+<p>The trainer we placed came from an underprivileged background himself. He is now certified, full-time, and managing up to 600 students. The principal called last week to ask when we can expand to the secondary wing.</p>
 
 <p>It is not theory. It is already happening. And it started with one CSR partner willing to fund Year 1.</p>
 
@@ -279,7 +277,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>That is the job your CSR creates. It is not a short-term workshop. It is a career ladder. It is a family lifted. It is a community watching someone from their own neighbourhood teach robotics and AI to government school students.</p>
 
-<p>I've met these trainers. They come in nervous. Three months later they are managing 600 students with a certification they can use anywhere.</p>
+<p>I've met these trainers. They come in nervous. Three months later they are managing up to 600 students with a certification they can use anywhere.</p>
 
 <p>This is the kind of CSR impact that gets talked about in annual reports.</p>
 
@@ -288,7 +286,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Trainer Video</a>
+<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Lab Video</a>
 <a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
@@ -315,7 +313,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>This is the last email I will send on this.</p>
 
-<p>Your FY 2026-27 budget window is closing. If you want a 90-day launch plan for a WE Smart Lab under your CSR, now is the time to lock it in.</p>
+<p>Your FY 2026-27 budget window is closing. If you want a 10-week launch plan for a WE Smart Lab under your CSR, now is the time to lock it in.</p>
 
 <p>I've seen what happens when a CSR partner says yes. The lab opens in a government school. The trainer starts. The students show up. And three years later the principal is still sending updates.</p>
 
@@ -360,7 +358,7 @@ The first WE Smart Lab just completed its full academic year in a government sch
 
 Not a pilot. Not a demo. A full year of classes, projects, assessments, and student reports.
 
-The trainer we placed came from an underprivileged background himself. He is now certified, full-time, and managing 600+ students. The principal called last week to ask when we can expand to the secondary wing.
+The trainer we placed came from an underprivileged background himself. He is now certified, full-time, and managing up to 600 students. The principal called last week to ask when we can expand to the secondary wing.
 
 It is not theory. It is already happening. And it started with one CSR partner willing to fund Year 1.
 
@@ -383,7 +381,7 @@ One trainer. Five years. Trained from an underprivileged background.
 
 That is the job your CSR creates. It is not a short-term workshop. It is a career ladder. It is a family lifted. It is a community watching someone from their own neighbourhood teach robotics and AI to government school students.
 
-I've met these trainers. They come in nervous. Three months later they are managing 600 students with a certification they can use anywhere.
+I've met these trainers. They come in nervous. Three months later they are managing up to 600 students with a certification they can use anywhere.
 
 This is the kind of CSR impact that gets talked about in annual reports.
 
@@ -423,7 +421,7 @@ Instagram: {a.get('video_ig', 'Available on request')}
 
 This is the last email I will send on this.
 
-Your FY 2026-27 budget window is closing. If you want a 90-day launch plan for a WE Smart Lab under your CSR, now is the time to lock it in.
+Your FY 2026-27 budget window is closing. If you want a 10-week launch plan for a WE Smart Lab under your CSR, now is the time to lock it in.
 
 I've seen what happens when a CSR partner says yes. The lab opens in a government school. The trainer starts. The students show up. And three years later the principal is still sending updates.
 
@@ -445,7 +443,7 @@ Instagram: {a.get('video_ig', 'Available on request')}
 REWRITTEN_SUBJECTS = {
     "school": {
         1: "{{SCHOOL_NAME}} — what are your students actually building this year?",
-        3: "NEP 2020 is a fork in the road for {{SCHOOL_NAME}}",
+        3: "NEP is a fork in the road for {{SCHOOL_NAME}}",
         5: "{{PRINCIPAL_NAME}}, the boy in the back row at {{SCHOOL_NAME}}",
         7: "{{SCHOOL_NAME}} — what 85+ principals have already figured out",
         10: "{{PRINCIPAL_NAME}}, this is my last note about WSL for {{SCHOOL_NAME}}"

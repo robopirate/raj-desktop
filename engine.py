@@ -78,7 +78,7 @@ SEQUENCES = {
                 "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
             },
             7: {
-                "profile": "https://drive.google.com/file/d/1g9JJ4_VO_28QKYD7iVVDJZcv9l4uRbZu/view",
+                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
                 "video_abp": "https://youtu.be/FJ2_W53WjmA",
                 "video_star": "https://youtube.com/watch?v=iziKPBSfGKU",
                 "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
@@ -184,9 +184,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <td align="center" style="padding:20px 10px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:8px;overflow:hidden;">
 <tr>
-<td align="center" bgcolor="#5BD3D9" style="padding:20px 15px;">
-<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="Robo Pirate" width="100" style="display:block;max-width:100%;height:auto;border:0;">
-<div style="color:#FFFFFF;font-size:13px;margin-top:8px;letter-spacing:1px;font-weight:bold;">WE SMART LAB</div>
+<td align="center" bgcolor="#006B6B" style="padding:12px 15px;">
+<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="Robo Pirate" width="80" style="display:block;max-width:100%;height:auto;border:0;">
+<div style="color:#FFFFFF;font-size:11px;margin-top:6px;letter-spacing:1px;font-weight:bold;">WE SMART LAB</div>
 </td>
 </tr>
 <tr>
