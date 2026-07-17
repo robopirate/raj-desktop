@@ -9,6 +9,10 @@ Use this checklist before declaring the app production-ready on this machine.
       taskkill //F //IM python.exe
       taskkill //F //IM pythonw.exe
       ```
+- [ ] Python bytecode cache is cleared so code changes take effect:
+      ```bash
+      find . -type d -name __pycache__ -exec rm -rf {} +
+      ```
 - [ ] Virtual environment is up to date:
       ```bash
       .venv\Scripts\pip install -r requirements.txt

@@ -41,6 +41,18 @@ try:
 except ImportError:
     SMART_IMPORT_AVAILABLE = False
 
+try:
+    from rewritten_email_templates import (
+        _generate_school_content as _new_school_content,
+        _generate_school_text_content as _new_school_text_content,
+        _generate_csr_wsl5_content as _new_csr_wsl5_content,
+        _generate_csr_wsl5_text_content as _new_csr_wsl5_text_content,
+        REWRITTEN_SUBJECTS,
+    )
+    REWRITTEN_TEMPLATES_AVAILABLE = True
+except ImportError:
+    REWRITTEN_TEMPLATES_AVAILABLE = False
+
 # Sequences: SCHOOL (private schools) and CSR (corporates)
 SEQUENCES = {
     "school": {
@@ -1118,6 +1130,8 @@ class CampaignEngine:
         }
 
     def _generate_subject(self, seq_id: str, day: int) -> str:
+        if REWRITTEN_TEMPLATES_AVAILABLE and seq_id in REWRITTEN_SUBJECTS:
+            return REWRITTEN_SUBJECTS[seq_id].get(day, f"RoboPirate {seq_id.upper()} - Day {day}")
         subjects = {
             "school": {
                 1: "{{SCHOOL_NAME}} — Transform Your School with Hands-On STEM Labs",
@@ -1145,13 +1159,16 @@ class CampaignEngine:
 
     def _generate_content(self, seq_id: str, day: int, assets: dict) -> str:
         if seq_id == "school":
-            return self._generate_school_content(day, assets)
-        elif seq_id in ("csr", "csr-wsl-5"):
+            return _new_school_content(day, assets)
+        elif seq_id == "csr-wsl-5":
+            return _new_csr_wsl5_content(day, assets)
+        elif seq_id == "csr":
             return self._generate_csr_content(day, assets)
         else:
             return self._generate_csr_content(day, assets)
 
     def _generate_school_content(self, day: int, assets: dict) -> str:
+        """Legacy school HTML generator; active routing now uses rewritten_email_templates."""
         a = assets
         contents = {
             1: f"""<p>Dear Principal,</p>
@@ -1320,15 +1337,16 @@ class CampaignEngine:
     def _generate_text_content(self, seq_id: str, day: int, assets: dict) -> str:
         """Generate plain text version of email content for multipart emails."""
         if seq_id == "school":
-            return self._generate_school_text_content(day, assets)
+            return _new_school_text_content(day, assets)
         elif seq_id == "csr-wsl-5":
-            return self._generate_csr_wsl5_text_content(day, assets)
+            return _new_csr_wsl5_text_content(day, assets)
         elif seq_id == "csr":
             return self._generate_csr_text_content(day, assets)
         else:
             return self._generate_csr_text_content(day, assets)
 
     def _generate_school_text_content(self, day: int, assets: dict) -> str:
+        """Legacy school plain-text generator; active routing now uses rewritten_email_templates."""
         a = assets
         contents = {
             1: f"""Dear Principal,
