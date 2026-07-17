@@ -30,6 +30,10 @@ PORT = 5555
 URL = f"http://{HOST}:{PORT}"
 HEALTH_URL = f"{URL}/api/health"
 
+# Version expected from a fresh backend; mismatch means a stale process is bound to PORT.
+from engine import VERSION as _ENGINE_VERSION
+EXPECTED_VERSION = _ENGINE_VERSION
+
 _shutdown_requested = threading.Event()
 _exit_requested = threading.Event()
 
@@ -42,14 +46,32 @@ def _message_box(title: str, message: str) -> None:
         print(f"{title}: {message}")
 
 
+def _kill_stale_python_processes() -> None:
+    """Kill lingering python.exe / pythonw.exe processes that may hold PORT."""
+    import subprocess
+    for proc in ("python.exe", "pythonw.exe"):
+        try:
+            subprocess.run(["taskkill", "/F", "/IM", proc], capture_output=True, check=False)
+        except Exception as e:
+            print(f"[Desktop] taskkill warning: {e}")
+
+
 def _wait_for_server(timeout: float = 15.0) -> bool:
-    """Wait until the Flask server is responding to health checks."""
+    """Wait until the Flask server is responding to health checks.
+
+    Also verifies the backend version matches this codebase, so a stale
+    python.exe bound to PORT is detected instead of silently reused.
+    """
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             r = requests.get(HEALTH_URL, timeout=1)
             if r.status_code == 200:
-                return True
+                data = r.json().get("data", {})
+                if data.get("version") == EXPECTED_VERSION:
+                    return True
+                print(f"[Desktop] Stale server detected (version {data.get('version')}, expected {EXPECTED_VERSION})")
+                return False
         except Exception:
             pass
         time.sleep(0.2)
@@ -101,11 +123,16 @@ class RajDesktop:
         except Exception as e:
             print(f"[Desktop] Autostart sync warning: {e}")
 
-        # Start Flask
+        # Start Flask (retry once if a stale process is occupying the port)
         _start_flask()
         if not _wait_for_server(timeout=15):
-            _message_box("Raj failed to start", "The Raj backend did not start. Check the logs.")
-            sys.exit(1)
+            print("[Desktop] Trying to clear stale python processes and restart Flask...")
+            _kill_stale_python_processes()
+            time.sleep(1)
+            _start_flask()
+            if not _wait_for_server(timeout=15):
+                _message_box("Raj failed to start", "The Raj backend did not start. Check the logs.")
+                sys.exit(1)
 
         # Auto-start engine if requested
         if self.state.get("desktop", {}).get("engine_autostart"):

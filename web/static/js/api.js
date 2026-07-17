@@ -3,11 +3,14 @@
 const API = {
     baseUrl: '',
 
-    async request(method, path, body = null) {
+    async request(method, path, body = null, timeoutMs = 30000) {
         const url = `${this.baseUrl}${path}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
         const options = {
             method,
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
         };
         if (body !== null) {
             options.body = JSON.stringify(body);
@@ -15,12 +18,17 @@ const API = {
 
         try {
             const res = await fetch(url, options);
+            clearTimeout(timeout);
             const json = await res.json().catch(() => ({ success: false, error: 'Invalid JSON response' }));
             if (!res.ok || !json.success) {
                 throw new Error(json.error || `HTTP ${res.status}`);
             }
             return json.data;
         } catch (err) {
+            clearTimeout(timeout);
+            if (err.name === 'AbortError') {
+                throw new Error(`Request timeout: ${method} ${path}`);
+            }
             console.error(`API ${method} ${path} failed:`, err);
             throw err;
         }

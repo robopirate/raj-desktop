@@ -114,7 +114,7 @@
                         else if (st.exists && st.empty) badge += '⚠️';
                         else badge += '⬜';
                         if (st.ab_test) badge += ' A/B';
-                        const title = `Source: ${st.source || 'none'}${st.locked ? ' (locked)' : ''}`;
+                        const title = `Source: ${(st.source || 'none').replace(/"/g, '&quot;')}${st.locked ? ' (locked)' : ''}`;
                         return `<td class="py-2 px-3 text-center">
                             <button data-seq="${seq}" data-day="${d}" title="${title}" class="template-status-cell inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${seq === state.currentSeq && d === state.currentDay ? 'bg-[var(--accent-teal)] text-white' : 'bg-[var(--bg-secondary)] hover:bg-[var(--accent-teal)] hover:text-white'} transition-colors">
                                 ${badge}
@@ -205,7 +205,7 @@
 
     function setFormat(format) {
         state.format = format;
-        const active = 'flex-1 py-2 rounded-md text-sm font-medium bg-white shadow-sm text-[var(--text-primary)] transition-all';
+        const active = 'flex-1 py-2 rounded-md text-sm font-medium bg-[var(--bg-card)] shadow-sm text-[var(--text-primary)] transition-all';
         const inactive = 'flex-1 py-2 rounded-md text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all';
         els.formatHtml.className = format === 'html' ? active : inactive;
         els.formatPlain.className = format === 'plain' ? active : inactive;
@@ -406,8 +406,11 @@
 
         els.trialForm.addEventListener('submit', trialSend);
 
-        document.addEventListener('page:templates', () => {
-            loadSequences();
+        document.addEventListener('page:templates', async () => {
+            state.templates = {}; // invalidate cache on revisit
+            await loadSequences();
+            await loadTemplateStatus();
+            await loadTemplate();
         });
     }
 

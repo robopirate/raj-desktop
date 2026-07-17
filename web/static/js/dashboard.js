@@ -1,5 +1,12 @@
 /* dashboard.js — dashboard data fetching and rendering */
 
+function escapeHtml(text) {
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
 const DASHBOARD = {
     async load() {
         await Promise.allSettled([
@@ -9,10 +16,14 @@ const DASHBOARD = {
         ]);
     },
 
+    init() {
+        document.addEventListener('page:dashboard', () => this.load());
+    },
+
     setError(containerId, message) {
         const container = document.getElementById(containerId);
         if (container) {
-            container.innerHTML = `<p class="text-red-500 text-sm">${message}</p>`;
+            container.innerHTML = `<p class="text-red-500 text-sm">${escapeHtml(message)}</p>`;
         }
     },
 
@@ -117,8 +128,8 @@ const DASHBOARD = {
                 el.innerHTML = `
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
-                            <h4 class="font-semibold text-[var(--text-primary)]">${batch.name}</h4>
-                            <span class="badge badge-teal">${(batch.sequence_id || '').toUpperCase()}</span>
+                            <h4 class="font-semibold text-[var(--text-primary)]">${escapeHtml(batch.name)}</h4>
+                            <span class="badge badge-teal">${escapeHtml((batch.sequence_id || '').toUpperCase())}</span>
                         </div>
                         <div class="flex items-center gap-3 text-sm text-[var(--text-muted)]">
                             <span>${sent}/${total}</span>

@@ -35,6 +35,13 @@
         if (els.hostile) els.hostile.textContent = hostile;
     }
 
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+
     function render() {
         const displayEmails = filteredEmails.length > 0 || els.search?.value ? filteredEmails : emails;
         updateSummary();
@@ -46,13 +53,13 @@
         els.tbody.innerHTML = displayEmails.map(e => `
             <tr class="border-b border-[var(--border)] hover:bg-[var(--bg-secondary)]">
                 <td class="py-3 px-4">
-                    <input type="checkbox" class="blacklist-checkbox rounded" data-email="${e.email}" ${selectedEmails.has(e.email) ? 'checked' : ''}>
+                    <input type="checkbox" class="blacklist-checkbox rounded" data-email="${escapeHtml(e.email)}" ${selectedEmails.has(e.email) ? 'checked' : ''}>
                 </td>
-                <td class="py-3 px-4 font-medium">${e.email}</td>
+                <td class="py-3 px-4 font-medium">${escapeHtml(e.email)}</td>
                 <td class="py-3 px-4 text-[var(--text-muted)]">${formatDate(e.added_at)}</td>
-                <td class="py-3 px-4 text-[var(--text-muted)]">${e.reason || '—'}</td>
+                <td class="py-3 px-4 text-[var(--text-muted)]">${escapeHtml(e.reason) || '—'}</td>
                 <td class="py-3 px-4">
-                    <button data-email="${e.email}" class="action-btn text-red-600 hover:bg-red-50" title="Remove">🗑</button>
+                    <button data-email="${escapeHtml(e.email)}" class="action-btn text-red-600 hover:bg-red-50" title="Remove">🗑</button>
                 </td>
             </tr>
         `).join('');
@@ -159,7 +166,7 @@
                 ];
                 if (result.details && result.details.length) {
                     lines.push('<ul class="mt-2 space-y-1 max-h-40 overflow-y-auto">' +
-                        result.details.map(d => `<li class="text-xs">${d.email} — ${d.action}</li>`).join('') +
+                        result.details.map(d => `<li class="text-xs">${escapeHtml(d.email)} — ${escapeHtml(d.action)}</li>`).join('') +
                         '</ul>');
                 }
                 els.scanResults.innerHTML = lines.join('<br>');
@@ -168,7 +175,7 @@
             await load();
         } catch (e) {
             if (els.scanResults) {
-                els.scanResults.innerHTML = `<p class="text-red-600">${e.message || 'Scan failed'}</p>`;
+                els.scanResults.innerHTML = `<p class="text-red-600">${escapeHtml(e.message) || 'Scan failed'}</p>`;
             }
             showToast(e.message, 'error');
         }

@@ -38,6 +38,7 @@ CORS(app)
 _db = Database()
 _gmail = None
 _engine = None
+_last_connect_error = {}  # service -> {"success": bool, "error": str | None}
 
 
 def _init_engine():
@@ -96,8 +97,10 @@ def static_files(path):
 def health():
     return _ok({
         "status": "ok",
+        "version": getattr(_engine, "VERSION", "5.0.0") if _engine else "5.0.0",
         "engine_initialized": _engine is not None,
         "gmail_connected": _gmail.is_connected() if _gmail else False,
+        "last_error": _last_connect_error,
     })
 
 
@@ -462,11 +465,15 @@ def upload_drive_file():
 # ── Auth / Connections ────────────────────────────────────────────────────────
 @app.route("/api/auth/status", methods=["GET"])
 def auth_status():
-    return _ok({
-        "gmail": _gmail.is_connected() if _gmail else False,
-        "calendar": _engine.calendar.is_connected() if _engine and getattr(_engine, "calendar", None) else False,
-        "drive": _engine.drive.is_connected() if _engine and getattr(_engine, "drive", None) else False,
-    })
+    try:
+        return _ok({
+            "gmail": _gmail.is_connected() if _gmail else False,
+            "calendar": _engine.calendar.is_connected() if _engine and getattr(_engine, "calendar", None) else False,
+            "drive": _engine.drive.is_connected() if _engine and getattr(_engine, "drive", None) else False,
+            "last_error": _last_connect_error,
+        })
+    except Exception as e:
+        return _err(str(e), 500)
 
 
 # ── Templates (read-only for Phase 1) ─────────────────────────────────────────
@@ -501,7 +508,12 @@ def list_pools():
     sequence_id = request.args.get("sequence_id", "leads")
     try:
         rows = _db.execute(
-            "SELECT sub_pool, COUNT(*) as cnt FROM recipients WHERE sequence_id=? AND batched=0 GROUP BY sub_pool",
+            """
+            SELECT sub_pool, COUNT(*) as cnt FROM recipients r
+            WHERE r.sequence_id=? AND r.batched=0
+            AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
+            GROUP BY sub_pool
+            """,
             (sequence_id,)
         ).fetchall()
         pools = [{"name": r["sub_pool"] or "(no sub-pool)", "count": r["cnt"]} for r in rows]
@@ -556,12 +568,19 @@ def start_batch(batch_id):
     if error:
         return error
     try:
+        batch = _db.batch_get(batch_id)
+        if not batch:
+            return _err("Batch not found", 404)
+        if batch.get("sequence_id") in (None, "", "unassigned"):
+            return _err("Assign a sequence before starting the batch", 400)
         data = request.get_json() or {}
         sequence_id = data.get("sequence_id")
         if sequence_id and sequence_id not in ("leads", "unassigned") and sequence_id in SEQUENCES:
             assign = engine.assign_sequence_to_batch(batch_id, sequence_id)
             if not assign.get("success"):
                 return _err(assign.get("error", "Sequence assignment failed"), 400)
+        # Force-start: clear scheduled time so it takes the send path, not draft path
+        _db.execute("UPDATE batches SET scheduled_at=NULL WHERE id=?", (batch_id,))
         _db.batch_update_status(batch_id, "running")
         return _ok({"batch_id": batch_id, "status": "running"})
     except Exception as e:
@@ -571,6 +590,9 @@ def start_batch(batch_id):
 @app.route("/api/batches/<int:batch_id>/pause", methods=["POST"])
 def pause_batch(batch_id):
     try:
+        batch = _db.batch_get(batch_id)
+        if not batch:
+            return _err("Batch not found", 404)
         _db.batch_update_status(batch_id, "paused")
         return _ok({"batch_id": batch_id, "status": "paused"})
     except Exception as e:
@@ -1009,60 +1031,24 @@ def lock_all_templates():
         return _err(str(e), 500)
 
 
-# ── Template preview in browser ───────────────────────────────────────────────
-@app.route("/api/preview", methods=["POST"])
-def preview_template():
-    try:
-        data = request.get_json() or {}
-        subject = data.get("subject", "Raj Preview")
-        body = data.get("body", "")
-        fmt = data.get("format", "html")
-
-        if fmt == "plain":
-            html = f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>{escape(subject)}</title>
-<style>body{{font-family:Segoe UI,Arial,sans-serif;background:#FAFAF5;color:#0F172A;padding:40px;max-width:700px;margin:0 auto;line-height:1.6}}</style>
-</head><body>
-<h2>{escape(subject)}</h2>
-<pre style="white-space:pre-wrap;font-family:Segoe UI,Arial,sans-serif">{escape(body)}</pre>
-</body></html>"""
-        else:
-            html = f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>{escape(subject)}</title>
-<style>body{{font-family:Segoe UI,Arial,sans-serif;background:#FAFAF5;color:#0F172A;padding:40px;max-width:700px;margin:0 auto;line-height:1.6}}</style>
-</head><body>
-<h2>{escape(subject)}</h2>
-{body}
-</body></html>"""
-
-        fd, path = tempfile.mkstemp(suffix=".html", prefix="raj_preview_")
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(html)
-        webbrowser.open(f"file:///{path.replace(os.sep, '/')}")
-        return _ok({"opened": True})
-    except Exception as e:
-        return _err(str(e), 500)
-
-
 # ── Desktop integration ───────────────────────────────────────────────────────
 _shutdown_callback = None
 
 
 @app.route("/api/shutdown", methods=["POST"])
 def shutdown():
-    """Graceful shutdown request from the desktop wrapper."""
-    try:
-        func = request.environ.get("werkzeug.server.shutdown")
-        if func:
-            func()
-    except Exception:
-        pass
+    """Shutdown request from the desktop wrapper.
+
+    Werkzeug no longer exposes request.environ['werkzeug.server.shutdown'],
+    so we rely on the desktop wrapper's callback to terminate the process.
+    """
     if _shutdown_callback:
         try:
             _shutdown_callback()
         except Exception:
             pass
-    return _ok({"shutdown": True})
+        return _ok({"shutdown": True})
+    return _err("No shutdown callback registered", 501)
 
 
 @app.route("/api/state", methods=["GET", "POST"])
@@ -1382,6 +1368,8 @@ def connect_google(service):
         return _err(f"Invalid service: {service}", 400)
 
     def cb(success, error):
+        global _last_connect_error
+        _last_connect_error[service] = {"success": success, "error": error}
         print(f"[Connect] {service}: success={success} error={error}")
 
     try:
@@ -1389,6 +1377,7 @@ def connect_google(service):
         method(callback=cb)
         return _ok({"started": True, "service": service})
     except Exception as e:
+        _last_connect_error[service] = {"success": False, "error": str(e)}
         return _err(str(e), 500)
 
 

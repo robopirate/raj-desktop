@@ -10,7 +10,7 @@
 
 Key facts:
 
-- **Current version:** v5.0 in active development; v4.3 (analytics charts) is the last stable baseline.
+- **Current version:** v5.0.0 (defined as `VERSION` in `engine.py`); v4.3 (analytics charts) is the last stable baseline.
 - **Runtime modes:**
   - **Desktop (primary):** `desktop.py` runs a Flask backend and wraps the web UI in a `pywebview` window.
   - **Web browser:** `web_start.py` runs the same Flask backend and opens it in the default browser.
@@ -214,11 +214,12 @@ SQLite database wrapper. Key tables:
 
 ### 5.3 `gmail.py` — GmailClient
 
-- Desktop OAuth 2.0 flow using `credentials.json`.
+- Desktop OAuth 2.0 flow using `credentials.json` via `flow.run_local_server(port=0, open_browser=True)`.
+- Refresh-token fallback with bounded timeout, pickle-error handling, and explicit credential paths.
 - Scope: `https://www.googleapis.com/auth/gmail.modify` (code), although internal docs sometimes reference `gmail.send`.
 - Token stored in `token.pickle`.
 - Supports HTML-only or multipart HTML+plain-text sends/drafts.
-- Provides `send_email`, `draft_email`, `create_scheduled_draft`, `search_messages`, and message-reading helpers.
+- Provides `send_email`, `draft_email`, `create_scheduled_draft`, `search_messages`, `get_draft_full` (now returns `text_body` too), and message-reading helpers.
 
 ### 5.4 `raj_brain.py` — Raj AI Brain
 
@@ -235,6 +236,10 @@ Auto-detects columns from CSV/Excel/TXT and maps them to `email`, `name`, `org`,
 ### 5.6 `tracking_server.py`
 
 Lightweight `http.server` thread that serves a 1x1 tracking pixel and link redirects, recording opens/clicks to `engagement_events`. The engine starts this automatically.
+
+- Binds `127.0.0.1` by default; set `tracking_public_url` meta to enable external tracking URLs.
+- HMAC-signs tracking tokens and validates redirect destinations before recording clicks.
+- Tracking pixels/links are only injected when `tracker.base_url` is set.
 
 ### 5.7 `raj_guard.py`
 
@@ -258,7 +263,7 @@ Representative endpoints:
 - `POST /api/leads/import/paste` — paste preview.
 - `POST /api/leads/import/confirm` — confirm pasted leads.
 - `GET /api/templates` / `GET /api/templates/<seq>/<day>` — templates.
-- `PUT /api/templates/<seq>/<day>` — update template.
+- `PUT /api/templates/<seq>/<day>` — update template (lock state is stored on the `templates.locked` column; legacy `meta` lock keys are auto-migrated).
 - `GET /api/replies` — reply inbox.
 - `POST /api/replies/<id>/draft|send-draft|update-draft` — reply drafting.
 - `GET /api/blacklist` / `POST /api/blacklist` / `DELETE /api/blacklist/<email>`.
@@ -328,10 +333,11 @@ There is no configured formatter (Black/Ruff) or linter. Do not introduce one un
 Before committing changes, verify:
 
 1. **Schema compatibility:** Run `python test_raj.py` and ensure database migrations still work.
-2. **Desktop launch:** Run `python desktop.py`, confirm Flask starts on `:5555` and the window opens.
-3. **Web launch:** Run `python web_start.py` and confirm the dashboard loads in the browser.
-4. **Legacy UI (if touched):** Run `python main.py` and exercise the relevant view.
-5. **OAuth not required for pure UI work:** The app starts without Gmail auth, but auth-related pages will show a "Connect Gmail" state.
+2. **One-time repairs:** After pulling these fixes on an existing DB, run `python repair_db_phase6.py`.
+3. **Desktop launch:** Run `python desktop.py`, confirm Flask starts on `:5555`, the `/api/health` `version` matches `engine.py`, and the window opens.
+4. **Web launch:** Run `python web_start.py` and confirm the dashboard loads in the browser.
+5. **Legacy UI (if touched):** Run `python main.py` and exercise the relevant view.
+6. **OAuth not required for pure UI work:** The app starts without Gmail auth, but auth-related pages will show a "Connect Gmail" state.
 
 If you add new database columns, add the corresponding `ALTER TABLE` migration in `db.py::_migrate_schema()`.
 
@@ -357,6 +363,7 @@ If you add new database columns, add the corresponding `ALTER TABLE` migration i
 - **Ollama model name:** The code calls `gpt-oss:20b-cloud`. If a model is renamed or unavailable, AI features fail gracefully but produce no output.
 - **WAL files:** Because the database uses WAL mode, you will see `campaign_data.db-shm` and `campaign_data.db-wal` files while the app is running. These are normal and gitignored.
 - **Single-instance lock:** `desktop.py` uses TCP port `55555` to prevent multiple Raj instances. If a prior process crashed, the port may remain bound for a short time.
+- **Stale backend:** `desktop.py` now checks the `/api/health` `version` and kills lingering `python.exe` processes if an old server is bound to port `5555`.
 - **Tracking server port:** The tracking server auto-selects an available port and stores it on the engine instance.
 
 ---

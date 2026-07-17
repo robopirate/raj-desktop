@@ -16,6 +16,7 @@ const APP = {
         this.initPolling();
         this.initShutdownSignal();
         this.initSettings();
+        if (typeof DASHBOARD !== 'undefined') DASHBOARD.init();
         const startPage = this.state?.page || 'dashboard';
         this.showPage(startPage);
         this.updateEngineStatus();

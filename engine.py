@@ -23,6 +23,7 @@ import re
 import json
 import time
 import threading
+import email.utils
 import html as html_module
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional
@@ -149,6 +150,7 @@ SEQUENCES = {
 
 EMAIL_NUM_TO_DAY = {1: 1, 2: 3, 3: 5, 4: 7, 5: 10}
 DAY_TO_EMAIL_NUM = {1: 1, 3: 2, 5: 3, 7: 4, 10: 5}
+VERSION = "5.0.0"
 
 SEND_DELAY = 45
 BOUNCE_INTERVAL = 6
@@ -182,7 +184,8 @@ body{{font-family:Segoe UI,Arial,sans-serif;background:#0A1628;color:#E6EDF3;pad
 {body}
 </div>
 <div class="footer">
-© 2026 RoboPirate · robopirate.in · Unsubscribe: reply STOP
+© 2026 RoboPirate · robopirate.in · Unsubscribe: reply STOP<br>
+Robo Pirate, Baner - Mahalunge Rd, opp. of shreeram sankul NXT to Euphoria bunglow, Baner Gaon, Baner, Pune, Maharashtra 411045, India · Phone: +91 91368 99925
 </div>
 </div>
 </body>
@@ -196,6 +199,7 @@ class Recipient:
     name: str
     org: str
     extra_json: str
+    sub_pool: str = ""
     import_status: str = ""
     import_error: str = ""
     imported_at: str = ""
@@ -224,9 +228,26 @@ class CampaignEngine:
         self._log_callbacks = []
         self.tracker = None
 
+    def _get_verified_sender(self) -> Optional[str]:
+        """Return a verified From address, or None to let Gmail use the authenticated account."""
+        wanted = (self.db.get_meta("default_sender") or "").strip()
+        if not wanted:
+            return None
+        if not self.gmail or not self.gmail.is_connected():
+            # Cannot verify yet; do not risk silent rewrite by Gmail.
+            return None
+        try:
+            send_as = self.gmail.service.users().settings().sendAs().list(userId="me").execute()
+            aliases = {a.get("sendAsEmail", "").lower() for a in send_as.get("sendAs", [])}
+            if wanted.lower() in aliases:
+                return wanted
+        except Exception as e:
+            self._log(f"[Sender] Could not verify send-as aliases: {e}")
+        return None
+
     @property
     def default_sender(self):
-        return (self.db.get_meta("default_sender") or "om@robopirate.in").strip() or "om@robopirate.in"
+        return self._get_verified_sender()
 
     def add_log_callback(self, fn):
         self._log_callbacks.append(fn)
@@ -293,11 +314,13 @@ class CampaignEngine:
         Preserves structure, links, and readability. Idempotent on plain text."""
         if not html_body:
             return ""
-        # If already plain text (no HTML tags), return as-is
-        if "<" not in html_body and ">" not in html_body:
+        # If already plain text (no real HTML tags), return as-is
+        if not re.search(r'<[a-zA-Z/][^>]*>', html_body):
             return html_body.strip()
 
         text = html_body
+        # Strip invisible/head blocks first so CSS/JS does not leak into plain text
+        text = re.sub(r'<(style|script)[^>]*>.*?</\1>', '', text, flags=re.IGNORECASE | re.DOTALL)
         # Replace <br> variants with newlines
         text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
         # Replace </p> with double newline
@@ -343,9 +366,13 @@ class CampaignEngine:
 
         # Start tracking server for engagement analytics
         try:
-            self.tracker = TrackingServer(self.db.db_path)
+            public_url = self.db.get_meta("tracking_public_url") or None
+            self.tracker = TrackingServer(self.db.db_path, public_base_url=public_url)
             self.tracker.start()
-            self._log(f"[Tracking] Engagement tracking active at {self.tracker.base_url}")
+            if self.tracker.base_url:
+                self._log(f"[Tracking] Engagement tracking active at {self.tracker.base_url}")
+            else:
+                self._log("[Tracking] Local-only server; tracking injection disabled (set tracking_public_url meta to enable)")
         except Exception as e:
             self._log(f"[Tracking] Failed to start: {e}")
 
@@ -436,14 +463,14 @@ class CampaignEngine:
         """Process running batches and send emails at staggered intervals."""
         try:
             running_batches = self.db.execute(
-                "SELECT * FROM batches WHERE status='running' ORDER BY created_at"
+                "SELECT * FROM batches WHERE status='running' AND deleted_at IS NULL ORDER BY created_at"
             ).fetchall()
 
             if not running_batches:
                 return
 
             # BATCH SLOT LOCK: Only process one batch at a time
-            if hasattr(self, '_last_batch_process_time') and self._last_batch_process_time:
+            if self._last_batch_process_time:
                 if (now - self._last_batch_process_time).total_seconds() < 2:
                     return
             self._last_batch_process_time = now
@@ -452,6 +479,9 @@ class CampaignEngine:
                 batch = dict(batch_row)
                 batch_id = batch["id"]
                 seq_id = batch["sequence_id"]
+                if seq_id and self.db.get_meta(f"pause_{seq_id}") == "true":
+                    self._log(f"[Batch {batch_id}] {seq_id.upper()} is paused, skipping")
+                    continue
                 if seq_id == "unassigned":
                     self._log(f"[Batch {batch_id}] UNASSIGNED — pausing. Assign a sequence before running.")
                     self.db.batch_update_status(batch_id, "paused")
@@ -461,7 +491,7 @@ class CampaignEngine:
 
                 # Find next pending recipient
                 next_recipient = self.db.execute("""
-                    SELECT r.id, r.sequence_id, r.email, r.name, r.org, r.extra_json, r.import_status, r.import_error, r.imported_at, r.batched
+                    SELECT r.id, r.sequence_id, r.email, r.name, r.org, r.extra_json, r.sub_pool, r.import_status, r.import_error, r.imported_at, r.batched
                     FROM recipients r
                     JOIN batch_recipients br ON r.id = br.recipient_id
                     WHERE br.batch_id = ? AND br.status = 'pending'
@@ -557,6 +587,16 @@ class CampaignEngine:
                     self._log(f"[Batch {batch_id}] No template for {rec.email} Day {day_offset}, skipping")
                     self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
                         (batch_id, rec.id))
+                    self.db.commit()
+                    continue
+
+                # Empty body guard: do not send blank emails
+                is_plain = fmt == 'plain'
+                if (is_plain and not (body_text or "").strip()) or (not is_plain and not (body_html or "").strip()):
+                    self._log(f"[Batch {batch_id}] Empty body for {rec.email} Day {day_offset}, skipping")
+                    self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
+                        (batch_id, rec.id))
+                    self.db.commit()
                     continue
 
                 try:
@@ -616,10 +656,16 @@ class CampaignEngine:
                     self._log(f"[Batch {batch_id}] Failed to send to {rec.email}: {e}")
                     self.db.execute("UPDATE batch_recipients SET status='failed' WHERE batch_id=? AND recipient_id=?",
                         (batch_id, rec.id))
-                    # Permanent failures: blacklist immediately so next day skips them
-                    permanent = ["invalid", "not found", "does not exist", "user unknown",
-                                 "address rejected", "domain not found", "recipient address"]
-                    if any(p in err for p in permanent):
+                    self.db.execute("UPDATE sends SET status='failed' WHERE id=?", (send_id,))
+                    self.db.commit()
+                    # Only blacklist on Gmail 4xx recipient errors (e.g. invalidRecipient).
+                    # Auth/network errors must NOT blacklist valid leads.
+                    is_recipient_error = False
+                    status = getattr(e, 'status', None)
+                    reason = getattr(e, 'reason', '') or ''
+                    if status in (400, 403, 404) and any(k in (reason.lower() + err) for k in ['invalidrecipient', 'badaddress', 'recipient', 'address not found']):
+                        is_recipient_error = True
+                    if is_recipient_error:
                         self.db.blacklist_add(rec.email, f"send_failed:{err[:80]}")
                         self._log(f"[BLACKLIST] {rec.email} — permanent failure")
 
@@ -732,6 +778,7 @@ class CampaignEngine:
             SELECT * FROM batches
             WHERE scheduled_at IS NOT NULL AND scheduled_at != ''
               AND status IN ('scheduled', 'draft', 'paused')
+              AND deleted_at IS NULL
         """).fetchall()
 
         for batch_row in scheduled:
@@ -762,10 +809,11 @@ class CampaignEngine:
         if now.weekday() == 6:
             return
 
-        if now.hour != 10 or now.minute > 5:
+        today_10am = now.replace(hour=10, minute=0, second=0, microsecond=0)
+        if now < today_10am:
             return
-        today = now.strftime("%Y-%m-%d")
-        if self.db.get_meta("last_scheduled_send_date") == today:
+        last = self.db.get_meta("last_scheduled_send_date")
+        if last == now.strftime("%Y-%m-%d"):
             return
 
         self._log(f"Scheduled send check: {today}")
@@ -794,6 +842,7 @@ class CampaignEngine:
             return {"success": False, "error": str(e)}
 
     def import_recipients(self, path: str, sequence_id: str = None, mapping: dict = None, sub_pool: str = None) -> Tuple[int, int]:
+        mapping = mapping or {}
         try:
             import openpyxl
         except ImportError:
@@ -907,20 +956,22 @@ class CampaignEngine:
                 continue
 
             draft_subject = (full.get("subject") or "").strip()
-            draft_body = (full.get("html_body") or "").strip()
-            if not draft_subject or not draft_body:
+            draft_html = (full.get("html_body") or "").strip()
+            draft_text = (full.get("text_body") or "").strip()
+            if not draft_subject or not draft_html:
                 skipped.append(f"Empty draft: {subject}")
                 self._log(f"WARNING: Skipping empty Gmail draft: {subject}")
                 continue
 
-            # Preserve existing A/B test settings and text_body when syncing
+            # Preserve existing A/B test settings; regenerate text_body from HTML if Gmail did not provide plain text
             existing = self.db.template_get(seq, day)
+            synced_text = draft_text or self.html_to_text(draft_html)
             self.db.template_put(
-                seq, day, draft_subject, draft_body,
+                seq, day, draft_subject, draft_html,
                 subject_b=existing.get("subject_b") if existing else None,
                 ab_test=existing.get("ab_test", 0) if existing else 0,
                 ab_split=existing.get("ab_split", 0.5) if existing else 0.5,
-                text_body=existing.get("text_body") if existing else None,
+                text_body=synced_text,
                 format=existing.get("format") if existing else "html"
             )
             loaded += 1
@@ -941,26 +992,37 @@ class CampaignEngine:
 
     # -- Template Locking System --
     def lock_templates(self) -> dict:
+        """Lock all existing templates on the DB column. Any legacy meta locks are migrated."""
         locked = 0
         for seq_id in SEQUENCES:
             for day in SEQUENCES[seq_id]["days"]:
                 tmpl = self.db.template_get(seq_id, day)
                 if tmpl:
-                    self.db.set_meta(f"locked_{seq_id}_{day}", "true")
+                    # Migrate legacy meta lock if present
+                    if self.db.get_meta(f"locked_{seq_id}_{day}") == "true":
+                        self.db.template_lock(seq_id, day)
+                        self.db.execute("DELETE FROM meta WHERE key=?", (f"locked_{seq_id}_{day}",))
+                        self.db.commit()
+                    elif not self.db.template_is_locked(seq_id, day):
+                        self.db.template_lock(seq_id, day)
                     locked += 1
         self._log(f"Locked {locked} templates. Sync will not overwrite locked templates.")
         return {"locked": locked}
 
     def unlock_template(self, seq_id: str, day: int):
-        self.db.set_meta(f"locked_{seq_id}_{day}", "false")
+        self.db.template_unlock(seq_id, day)
+        self.db.execute("DELETE FROM meta WHERE key=?", (f"locked_{seq_id}_{day}",))
+        self.db.commit()
         self._log(f"Unlocked {seq_id.upper()} Day {day} for updates")
 
     def lock_template(self, seq_id: str, day: int):
-        self.db.set_meta(f"locked_{seq_id}_{day}", "true")
+        self.db.template_lock(seq_id, day)
+        self.db.execute("DELETE FROM meta WHERE key=?", (f"locked_{seq_id}_{day}",))
+        self.db.commit()
         self._log(f"Locked {seq_id.upper()} Day {day}")
 
     def is_template_locked(self, seq_id: str, day: int) -> bool:
-        return self.db.get_meta(f"locked_{seq_id}_{day}") == "true"
+        return self.db.template_is_locked(seq_id, day)
 
     def create_missing_drafts(self) -> dict:
         created = []
@@ -972,8 +1034,9 @@ class CampaignEngine:
                         self.db.template_put(seq_id, day, tmpl["subject"], tmpl["html_body"], "generated",
                                               text_body=tmpl.get("text_body"), format=tmpl.get("format", "html"))
                         try:
+                            to_addr = self.brief_email or self.default_sender or "om@robopirate.in"
                             draft = self.gmail.draft_email(
-                                self.default_sender,
+                                to_addr,
                                 f"[TEMPLATE] {tmpl['subject']}",
                                 tmpl["html_body"],
                                 tmpl.get("text_body"),
@@ -1096,7 +1159,7 @@ class CampaignEngine:
 <p>We've set up <strong>85+ WE Smart Labs</strong> across <strong>6 states</strong>. Schools like <strong>Veer Baji Prabhu Vidyalay</strong> (Sangli) started with a single room and now have students winning state-level competitions.</p>
 <p>Everything's included — lab setup, 120+ kits, trained teacher, NEP curriculum, LMS. You just open the door.</p>
 <p>Worth a 15-minute call to explore?</p>
-<p>Warmly,<br>Omkar<br>RoboPirate</p>
+<p>Warmly,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <p style="font-size:12px;color:#8B949E;margin-bottom:8px;">Resources:</p>
 <a href="{a.get('brochure','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📄 WSL Program PDF</a>
@@ -1117,7 +1180,7 @@ class CampaignEngine:
 <li>Quarterly reports + annual exhibition</li>
 </ul>
 <p>Let's discuss how {{SCHOOL_NAME}} can be NEP-ready this academic year.</p>
-<p>Warmly,<br>Omkar<br>RoboPirate</p>
+<p>Warmly,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('video_abp','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;">📺 ABP News Coverage</a>
 <a href="{a.get('video_ig','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;">📱 Instagram</a>
@@ -1128,7 +1191,7 @@ class CampaignEngine:
 <p><strong>Veer Baji Prabhu Vidyalay</strong> — a school much like yours — partnered with us in 2024-25. Today, their students have built 12+ working robots, participated in state-level competitions, and seen measurable improvement in science engagement.</p>
 <p>We develop detailed reports over every child — tracking attendance, project completion, competition results, and confidence growth. <strong>Prajwal</strong> (a specimen student from our program) went from back-row silence to building an obstacle-avoidance robot in six months. That's the kind of transformation we document.</p>
 <p>Your school could be our next success story.</p>
-<p>Warmly,<br>Omkar<br>RoboPirate</p>
+<p>Warmly,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <p style="font-size:12px;color:#8B949E;margin-bottom:8px;">See the impact:</p>
 <a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📊 Veer Baji Report</a>
@@ -1141,7 +1204,7 @@ class CampaignEngine:
 <p>You're not alone in this journey. <strong>85+ schools</strong> across Maharashtra, Karnataka, Gujarat, and more have already chosen WE Smart Lab.</p>
 <p>We deliver, and we always deliver. We don't let people down. Every single lab we've committed to is running, every single trainer is certified, every single school is seeing results.</p>
 <p>Ready to join them?</p>
-<p>Warmly,<br>Omkar<br>RoboPirate</p>
+<p>Warmly,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('profile','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📄 Company Profile</a>
 <a href="{a.get('video_abp','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📺 ABP News</a>
@@ -1154,7 +1217,7 @@ class CampaignEngine:
 <p>But if you're even a little curious about what a WE Smart Lab could do for {{SCHOOL_NAME}}, I'll make time for a 10-minute call. No pitch, just show-and-tell.</p>
 <p>We've prepared flexible subscription plans for schools of all sizes. Every plan includes: complete lab setup, 120+ DIY kits, full-time trained teacher, NEP 2020 + NCF aligned curriculum, LMS portal, assessments, and ongoing support.</p>
 <p>If not, I genuinely wish you a great academic year.</p>
-<p>Warmly,<br>Omkar<br>RoboPirate</p>
+<p>Warmly,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('plans','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📄 Plans & Pricing</a>
 <a href="{a.get('video_ig','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">📱 Instagram</a>
@@ -1170,7 +1233,7 @@ class CampaignEngine:
 <p>RoboPirate's <strong>WE Smart Lab</strong> sets up fully managed STEAM/AI Smart Labs inside schools across India. As of now, we've reached <strong>65,000+ students</strong> across <strong>6 states</strong> with <strong>85+ labs</strong> delivered through strategic CSR partnerships.</p>
 <p>We deliver, and we always deliver. We don't let people down.</p>
 <p>Would you be open to exploring how your CSR mandate can create measurable STEM impact?</p>
-<p>Best regards,<br>Omkar<br>RoboPirate</p>
+<p>Best regards,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <p style="font-size:12px;color:#8B949E;margin-bottom:8px;">See the evidence:</p>
 <a href="{a.get('report_sangli1','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📊 Sangli Impact Report</a>
@@ -1188,7 +1251,7 @@ class CampaignEngine:
 </ul>
 <p>WE Smart Lab aligns perfectly with all three. We don't just set up labs — we create sustainable STEM ecosystems that run for years.</p>
 <p>We deliver and we always deliver. We don't let people down.</p>
-<p>Best regards,<br>Omkar<br>RoboPirate</p>
+<p>Best regards,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('report_sangli1','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📊 Sangli Impact Report</a>
 <a href="{a.get('brochure','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📄 Brochure</a>
@@ -1208,7 +1271,7 @@ class CampaignEngine:
 <p>We also teach in <strong>Baalgruh</strong> (children's homes) and run workshops for <strong>divyang students</strong>. The 2nd stage of our Sangli expansion is now live — training trainers from underprivileged backgrounds who go on to teach 200+ students each.</p>
 <p>See our work on Instagram: <a href="https://www.instagram.com/p/DSSIy7nglXc/" style="color:#59ced9;">Baalgruh</a> | <a href="https://www.instagram.com/p/DTDBcsdk9FI/" style="color:#59ced9;">Veer Baji Workshop</a> | <a href="https://www.instagram.com/p/DMhEDutOrl-/" style="color:#59ced9;">Sangli Divyang 1st Workshop</a></p>
 <p>This could be your company's legacy.</p>
-<p>Best regards,<br>Omkar<br>RoboPirate</p>
+<p>Best regards,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('report_sangli2','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📊 Sangli Report 2</a>
 <a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📊 Veer Baji Report</a>
@@ -1229,7 +1292,7 @@ class CampaignEngine:
 </ul>
 <p>Partial adoption works too. They can take 3 schools, or 4, or 10. Every child reached is a life changed.</p>
 <p>Let's discuss a pilot program for Q1.</p>
-<p>Best regards,<br>Omkar<br>RoboPirate</p>
+<p>Best regards,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('plans','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📄 Plans & Pricing</a>
 <a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">🎥 WSL Video</a>
@@ -1245,7 +1308,7 @@ class CampaignEngine:
 <p>Six months later, Prajwal had built a working obstacle-avoidance robot. Not from a kit manual — from his own design. His teachers showed us the report we develop over children like him. The data was clear: attendance up, science scores up, but more than that — he asked questions now. He stood in the front row.</p>
 <p>That's the imprint I want to leave. Not a sales pitch. Not a begging letter. Just this: your CSR budget can create Prajwals. One at a time, or a hundred at a time. The math works either way.</p>
 <p>If this resonates, you know where to find me. If not, I genuinely wish you and your team the very best this fiscal year.</p>
-<p>Warmly,<br>Omkar<br>RoboPirate</p>
+<p>Warmly,<br>Robo Pirate team<br>RoboPirate</p>
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
 <a href="{a.get('profile','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📄 Company Profile</a>
 <a href="{a.get('kits','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">📦 Sample Kits</a>
@@ -1279,7 +1342,7 @@ Everything is included — lab setup, 120+ DIY kits, full-time trained teacher, 
 Would you be open to a 15-minute call to discuss how WSL can transform your school?
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate · WSL Initiative
 robopirate.in
 
@@ -1306,7 +1369,7 @@ WSL provides:
 Let's discuss how your school can be NEP-ready this academic year.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate · WSL Initiative
 
 ---
@@ -1323,7 +1386,7 @@ Veer Baji Prabhu Vidyalay — a school much like yours — partnered with us in 
 Your school could be our next success story.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate · WSL Initiative
 
 ---
@@ -1340,7 +1403,7 @@ You're not alone in this journey. 85+ schools across Maharashtra, Karnataka, Guj
 Ready to join them?
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate · WSL Initiative
 
 ---
@@ -1359,7 +1422,7 @@ We've prepared flexible WE Smart Lab subscription plans for schools of all sizes
 If now isn't the right time, I understand. But if you're even slightly curious, let's have a 10-minute conversation. No obligation.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate · WSL Initiative
 
 ---
@@ -1381,7 +1444,7 @@ RoboPirate's WE Smart Lab sets up fully managed STEAM/AI Smart Labs inside schoo
 Would you be open to exploring how your CSR mandate can create measurable STEM impact?
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1403,7 +1466,7 @@ WSL aligns perfectly with all three.
 We deliver and we always deliver. We don't let people down.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1426,7 +1489,7 @@ Sangli District Phase 2 Results — WE Smart Lab Impact (Delivered 2025-26):
 This could be your company's legacy.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1453,7 +1516,7 @@ They can take 3/4 schools or something — partial adoption is absolutely possib
 Let's discuss a pilot program for Q1.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1479,7 +1542,7 @@ That's the imprint I want to leave. Not a sales pitch. Not a begging letter. Jus
 If this resonates, you know where to find me. If not, I wish you and your team the very best this fiscal year.
 
 Warmly,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1507,7 +1570,7 @@ We handle everything — setup, trainer, curriculum, reporting. You fund Year 1,
 Would you be open to a 15-minute call to see how this works?
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1525,7 +1588,7 @@ The trainer we placed — from an underprivileged background himself — is now 
 This isn't theory. It's already happening.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1548,7 +1611,7 @@ We don't just place trainers. We train them at our Baner HQ, certify them, and s
 This is the kind of CSR impact that gets talked about in annual reports.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1571,7 +1634,7 @@ But this — this changes 2,000 lives over 5 years. This creates a STEM culture 
 Partial adoption works too. They can take 3 schools, or 4, or 10. Every child reached is a life changed.
 
 Best regards,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1594,7 +1657,7 @@ If you want to see what we offer in detail: {a.get('plans', 'Available on reques
 If this resonates, you know where to find me. If not, I genuinely wish you the very best this fiscal year.
 
 Warmly,
-Omkar
+Robo Pirate team
 RoboPirate
 
 ---
@@ -1699,8 +1762,8 @@ RoboPirate
             prev = cfg["days"][idx - 1]
             gap = day - prev
             cutoff = (datetime.now() - timedelta(days=gap)).isoformat()
-            sql = """SELECT r.* FROM recipients r
-                JOIN sends s ON s.recipient_id=r.id AND s.day=? AND s.status IN ('sent','drafted')
+            sql = """SELECT DISTINCT r.* FROM recipients r
+                JOIN sends s ON s.recipient_id=r.id AND s.day=? AND s.status='sent'
                 WHERE r.sequence_id=? AND s.created_at<=?
                 AND NOT EXISTS (SELECT 1 FROM sends s2 WHERE s2.recipient_id=r.id AND s2.day=?)
                 AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
@@ -1750,7 +1813,7 @@ RoboPirate
         Supports optional plain text body for multipart emails."""
         if not self.gmail or not self.gmail.is_connected():
             raise Exception("Gmail not connected. Go to Settings > Google Connections.")
-        sender = sender or self.db.get_meta("default_sender") or "om@robopirate.in"
+        sender = sender or self.default_sender
         last_err = None
         for attempt in range(max_retries):
             try:
@@ -1779,6 +1842,10 @@ RoboPirate
             if not subj:
                 self._log(f"No template for {rec.email}, skipping")
                 continue
+            is_plain = fmt == 'plain'
+            if (is_plain and not (body_text or "").strip()) or (not is_plain and not (body_html or "").strip()):
+                self._log(f"Empty body for {rec.email}, skipping")
+                continue
             try:
                 # Inject tracking
                 send_id = self.db.campaign_queue_send(rec.id, day, subj, "pending", "pending", None, ab_variant)
@@ -1805,6 +1872,8 @@ RoboPirate
                     remaining = len(due) - i
                     self._log(f"Saved {remaining} emails to pending_resumes. Type 'resume batch {seq_id} day {day}' to continue.")
                     return BatchResult(queued=len(due), sent=sent, error="quota_hit")
+                self.db.execute("UPDATE sends SET status='failed' WHERE id=?", (send_id,))
+                self.db.commit()
                 self._log(f"Failed: {rec.email} -- {e}")
         return BatchResult(queued=len(due), sent=sent)
 
@@ -1824,7 +1893,7 @@ RoboPirate
 
         days = SEQUENCES[seq_id]["days"]
         # Create a temporary recipient for rendering
-        rec = Recipient(id=0, sequence_id=seq_id, email=email, name=name or "CSR Head", org=org or "Company", extra_json="{}")
+        rec = Recipient(id=0, sequence_id=seq_id, email=email, name=name or "CSR Head", org=org or "Company", extra_json="{}", sub_pool="")
 
         results = []
         for i, day in enumerate(days):
@@ -1964,9 +2033,12 @@ RoboPirate
             return {"success": False, "error": error}
 
         # Make sure recipients know their real sequence so templates render correctly
+        seq_result = None
         if target_seq:
             try:
-                self.db.assign_sequence_to_batch(batch_id, target_seq)
+                seq_result = self.db.assign_sequence_to_batch(batch_id, target_seq)
+                if seq_result.get("skipped", 0):
+                    self._log(f"[POOL] Batch created; {seq_result['assigned']} assigned to {target_seq}, {seq_result['skipped']} skipped (duplicate email in target sequence)")
             except Exception as e:
                 self._log(f"[POOL] Batch created but sequence assignment failed: {e}")
 
@@ -1981,7 +2053,9 @@ RoboPirate
             "requested_size": batch_size,
             "pool_remaining": pool_count - actual_size,
             "day_offset": day_offset,
-            "scheduled_at": scheduled_at
+            "scheduled_at": scheduled_at,
+            "sequence_assigned": seq_result.get("assigned", 0) if target_seq else actual_size,
+            "sequence_skipped": seq_result.get("skipped", 0) if target_seq else 0,
         }
 
     # -- Blacklist --
@@ -2080,6 +2154,7 @@ RoboPirate
 
     def scan_bounces(self, days_back: int = 1) -> dict:
         """Scan for bounces and auto-replies. Deletes processed emails from Gmail."""
+        self.db.set_meta("last_bounce_scan", datetime.now().isoformat())
         last = self.db.get_meta("last_bounce_scan")
         if last:
             last_dt = datetime.fromisoformat(last)
@@ -2212,7 +2287,6 @@ RoboPirate
             self._delete_bounce_email(msg_id)
             deleted_count += 1
 
-        self.db.set_meta("last_bounce_scan", datetime.now().isoformat())
         self._log(f"Bounce scan: {new_blacklisted} new blacklisted, {auto_reply_count} auto-replies, {protected_count} protected, {deleted_count} deleted, {skipped} already blacklisted")
         return {
             "new_blacklisted": new_blacklisted,
@@ -2337,18 +2411,27 @@ RoboPirate
     def _classify_bounce(self, body: str) -> tuple:
         """Classify bounce as hard (permanent) or soft (temporary).
         Returns (type, reason) where type is 'hard' or 'soft'.
+        Only blacklists on explicit hard 5xx/2.5.x DSN codes or clear hard keywords.
         """
         if not body:
-            return "hard", "unknown"
+            return "soft", "unknown"
         body_lower = body.lower()
 
-        # Check SMTP status codes first (most reliable)
-        for m in re.finditer(r'status:\s*(\d\.\d\.\d)|(\d{3})', body_lower):
-            code = m.group(1) or m.group(2)
-            if code and (code.startswith('5') or code.startswith('2.')):
+        # Check SMTP DSN status codes first (most reliable): 5.x.y = hard, 4.x.y = soft
+        for m in re.finditer(r'status:\s*(\d\.\d\.\d)', body_lower):
+            code = m.group(1)
+            if code.startswith('5'):
                 return "hard", f"SMTP {code}"
-            if code and (code.startswith('4') or code.startswith('1.')):
+            if code.startswith('4'):
                 return "soft", f"SMTP {code}"
+
+        # Bare 3-digit SMTP codes only when explicitly tied to a delivery status
+        if re.search(r'(smtp|delivery|status|code|error)\s*[:#]?\s*5\d{2}', body_lower):
+            code = re.search(r'5\d{2}', body_lower).group(0)
+            return "hard", f"SMTP {code}"
+        if re.search(r'(smtp|delivery|status|code|error)\s*[:#]?\s*4\d{2}', body_lower):
+            code = re.search(r'4\d{2}', body_lower).group(0)
+            return "soft", f"SMTP {code}"
 
         # Hard bounce keywords (permanent failures)
         hard_keywords = [
@@ -2373,8 +2456,8 @@ RoboPirate
             if kw in body_lower:
                 return "soft", kw
 
-        # Default: treat unknown as hard (better safe than sorry for bounces)
-        return "hard", "unknown"
+        # Default: unknown = soft (do not auto-blacklist ambiguous bounces)
+        return "soft", "unknown"
 
     def _looks_like_bounce(self, from_addr: str, subject: str, body: str) -> bool:
         """Quick heuristic check if an email looks like a bounce or auto-reply."""
@@ -2435,7 +2518,14 @@ RoboPirate
         subject_lower = subject.lower()
         body_lower = body.lower()
 
-        auto_reply_keywords = [
+        # Detect true auto-replies: header declaration + subject-line hints.
+        # We deliberately do NOT match body phrases like "thank you for your email"
+        # because real human replies often contain them.
+        auto_reply_headers = ["auto-submitted", "autoreplied", "x-autoreply"]
+        if any(h in body_lower or h in subject_lower for h in auto_reply_headers):
+            return True
+
+        auto_reply_subjects = [
             "out of office", "out of the office", "away from office", "on vacation",
             "on leave", "auto reply", "automated response", "automatic reply",
             "automatic response", "auto-response", "out of office reply",
@@ -2444,7 +2534,6 @@ RoboPirate
             "automatisch antwoord", "automaattinen vastaus", "automatsvar",
             "i am currently out of", "i will be out of", "i am away",
             "not in office", "not available", "currently unavailable",
-            "thank you for your email", "we have received your email",
             "this is an automated", "this email is automatically",
             "do not reply to this", "noreply", "no reply",
             "i am on holiday", "i am on vacation", "annual leave",
@@ -2454,8 +2543,8 @@ RoboPirate
             "email access limited", "delayed response"
         ]
 
-        for keyword in auto_reply_keywords:
-            if keyword in subject_lower or keyword in body_lower:
+        for keyword in auto_reply_subjects:
+            if keyword in subject_lower:
                 return True
 
         header_patterns = [
@@ -2562,6 +2651,7 @@ RoboPirate
 
     def scan_replies(self, days_back: int = 3) -> int:
         """Scan inbox for replies from recipients."""
+        self.db.set_meta("last_reply_scan", datetime.now().isoformat())
         after = int((datetime.now() - timedelta(days=days_back)).timestamp())
 
         msgs_all = self.gmail.search_messages(f"in:inbox after:{after}", 200)
@@ -2581,7 +2671,7 @@ RoboPirate
         checked_count = 0
 
         for msg in all_msgs:
-            from_addr = msg.get("from", "").lower()
+            from_addr = email.utils.parseaddr(msg.get("from", ""))[1].lower()
             subject = msg.get("subject", "").lower()
             body = msg.get("body", "") or ""
 
@@ -2623,10 +2713,12 @@ RoboPirate
         return new_count
 
     def _check_eod(self, now: datetime):
-        if now.hour != EOD_HOUR or now.minute > 5: return
+        today_eod = now.replace(hour=EOD_HOUR, minute=0, second=0, microsecond=0)
+        if now < today_eod:
+            return
         last = self.db.get_meta("last_eod_run")
-        today = now.replace(hour=EOD_HOUR, minute=0, second=0, microsecond=0)
-        if last and datetime.fromisoformat(last) >= today: return
+        if last and datetime.fromisoformat(last) >= today_eod:
+            return
         self.draft_replies_eod()
 
     def draft_replies_eod(self) -> dict:
@@ -2673,7 +2765,9 @@ RoboPirate
 
                 draft_html = result.get("draft_html", "")
                 sender = self.db.get_meta("default_sender") or "om@robopirate.in"
-                draft = self.gmail.draft_reply(thread_id, draft_html, f"Re: {subject}" if not subject.startswith("Re:") else subject, sender=sender)
+                reply_subject = reply.get("subject", "")
+                reply_subject = f"Re: {reply_subject}" if reply_subject and not reply_subject.startswith("Re:") else reply_subject
+                draft = self.gmail.draft_reply(reply["thread_id"], draft_html, reply_subject, to=from_addr, sender=sender)
                 draft_id = draft.get("id") if draft else None
                 self.db.execute("UPDATE replies SET status='drafted', sentiment=?, summary=?, draft_reply_id=?, draft_html=? WHERE id=?",
                     (sentiment, result.get("summary", ""), draft_id, draft_html, reply_id))
@@ -2781,7 +2875,7 @@ Instructions:
 - Keep it concise (under 200 words).
 - Do not be pushy or apologetic.
 - Use natural Indian business English tone.
-- Sign off as "Omkar, RoboPirate".
+- Sign off as "Robo Pirate team, RoboPirate".
 - Output valid JSON with exactly these keys: sentiment, summary, draft_html.
 - sentiment must be one of: positive, neutral, hostile, unsubscribe.
 - summary is a 1-sentence summary of the reply.
@@ -2828,8 +2922,10 @@ Instructions:
             # Optionally create Gmail draft immediately
             try:
                 sender = self.db.get_meta("default_sender") or "om@robopirate.in"
-                draft = self.gmail.draft_reply(reply["thread_id"], draft_html,
-                    f"Re: {subject}" if not subject.startswith("Re:") else subject, sender=sender)
+                reply_subject = reply.get("subject", "")
+                reply_subject = f"Re: {reply_subject}" if reply_subject and not reply_subject.startswith("Re:") else reply_subject
+                draft = self.gmail.draft_reply(reply["thread_id"], draft_html, reply_subject,
+                    to=reply.get("from_addr", ""), sender=sender)
                 if draft:
                     self.db.execute("UPDATE replies SET draft_reply_id=? WHERE id=?", (draft.get("id"), reply_id))
             except Exception as draft_err:
@@ -2853,13 +2949,17 @@ Instructions:
         if not body:
             return {"success": False, "error": "No draft to send"}
 
+        # If the editor gave us plain text, convert newlines to HTML for the send.
+        if body and '<' not in body:
+            body = body.replace('\n', '<br>')
+
         subject = reply.get("subject", "")
         to_addr = reply.get("from_addr", "")
         thread_id = reply.get("thread_id", "")
 
         try:
-            reply_subject = f"Re: {subject}" if not subject.startswith("Re:") else subject
-            sender = self.db.get_meta("default_sender") or "om@robopirate.in"
+            reply_subject = f"Re: {subject}" if subject and not subject.startswith("Re:") else subject
+            sender = self.default_sender
             sent = self.gmail.send_email(to_addr, reply_subject, body, thread_id=thread_id, sender=sender)
             if sent:
                 self.db.mark_reply_handled(reply_id)
@@ -2883,10 +2983,12 @@ Instructions:
 
     # -- Morning Brief --
     def _check_morning_brief(self, now: datetime):
-        if now.hour != MORNING_HOUR or now.minute > 5: return
+        today_brief = now.replace(hour=MORNING_HOUR, minute=0, second=0, microsecond=0)
+        if now < today_brief:
+            return
         last = self.db.get_meta("last_morning_brief")
-        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        if last and datetime.fromisoformat(last) >= today: return
+        if last and datetime.fromisoformat(last) >= today_brief:
+            return
 
         brief = self.morning_brief()
         if self.brief_email:
@@ -2939,9 +3041,9 @@ Instructions:
             subj = msg.get("subject", "").upper()
             if "STOP SCHOOL" in subj: self.db.set_meta("pause_school", "true"); self._log("SCHOOL paused")
             elif "STOP CSR" in subj: self.db.set_meta("pause_csr", "true"); self._log("CSR paused")
-            elif "STOP WSL" in subj: self.db.set_meta("pause_csr_wsl_5", "true"); self._log("CSR-WSL-5 paused")
+            elif "STOP WSL" in subj: self.db.set_meta("pause_csr-wsl-5", "true"); self._log("CSR-WSL-5 paused")
             elif "STOP ALL" in subj: self.pause(); self._log("ALL paused")
-            elif "RESUME" in subj: self.resume(); self.db.execute("DELETE FROM meta WHERE key LIKE 'pause_%'"); self._log("All resumed")
+            elif "RESUME" in subj: self.resume(); self.db.execute("DELETE FROM meta WHERE key LIKE 'pause\\_%' ESCAPE '\\'"); self._log("All resumed")
 
         self.db.set_meta("last_emergency_scan", now.isoformat())
 

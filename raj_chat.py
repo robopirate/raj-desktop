@@ -39,45 +39,6 @@ from datetime import datetime, timedelta
 
 # Light theme matching robopirate.in
 # Neutral base with intentional, sparing color use.
-"""
-raj_chat.py — Raj Command Center GUI v5.0
-Dashboard, Batch Manager, Pipeline View, Individual Blacklist Removal
-RESPONSIVE: Auto-adjusts to screen size, DPI aware, resize-friendly.
-FIXED: Thread-safe dashboard refresh (v4.2.1)
-ENHANCED: Modern glass sidebar, animated transitions, sequence selector, dark mode
-"""
-
-# --- DPI Awareness for Windows (laptop ↔ monitor) ---
-try:
-    from ctypes import windll
-    windll.shcore.SetProcessDpiAwareness(1)  # Per-monitor DPI aware
-except Exception:
-    pass
-# --- End DPI Awareness ---
-
-import re
-import customtkinter as ctk
-from tkinter import filedialog, messagebox
-import threading
-import time
-import json
-import webbrowser
-import tempfile
-import queue
-from analytics import AnalyticsView
-try:
-    import pandas as pd
-    PANDAS_AVAILABLE = True
-except ImportError:
-    PANDAS_AVAILABLE = False
-
-try:
-    from smart_importer import SmartImporter
-    SMART_IMPORT_AVAILABLE = True
-except ImportError:
-    SMART_IMPORT_AVAILABLE = False
-import os
-from datetime import datetime, timedelta
 
 # ═══════════════════════════════════════════════════════════
 # THEME SYSTEM — Light & Dark modes

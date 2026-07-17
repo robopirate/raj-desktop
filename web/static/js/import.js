@@ -27,6 +27,13 @@
         return els.subPoolInput ? els.subPoolInput.value.trim() : '';
     }
 
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+
     function showPreview(rows, columns) {
         if (!rows || rows.length === 0) {
             showToast('No rows to preview', 'warning');
@@ -37,9 +44,9 @@
         els.previewCard.classList.remove('hidden');
 
         const cols = columns || Object.keys(rows[0]);
-        els.previewHead.innerHTML = `<tr class="text-left text-[var(--text-muted)] border-b border-[var(--border)]">${cols.map(c => `<th class="py-2 px-3 font-medium uppercase text-xs">${c}</th>`).join('')}</tr>`;
+        els.previewHead.innerHTML = `<tr class="text-left text-[var(--text-muted)] border-b border-[var(--border)]">${cols.map(c => `<th class="py-2 px-3 font-medium uppercase text-xs">${escapeHtml(c)}</th>`).join('')}</tr>`;
         els.previewBody.innerHTML = rows.slice(0, 50).map(row => {
-            return `<tr class="border-b border-[var(--border)]">${cols.map(c => `<td class="py-2 px-3">${row[c] ?? ''}</td>`).join('')}</tr>`;
+            return `<tr class="border-b border-[var(--border)]">${cols.map(c => `<td class="py-2 px-3">${escapeHtml(row[c] ?? '')}</td>`).join('')}</tr>`;
         }).join('');
         if (rows.length > 50) {
             els.previewBody.innerHTML += `<tr><td colspan="${cols.length}" class="py-2 px-3 text-[var(--text-muted)] text-xs">...and ${rows.length - 50} more rows</td></tr>`;

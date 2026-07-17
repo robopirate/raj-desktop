@@ -80,11 +80,19 @@
         }
     }
 
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+
     async function updatePoolCount() {
         const seq = els.pullFrom.value || 'leads';
         const sub = els.subPool.value || null;
         try {
-            const count = await API.poolCount(seq, sub);
+            const res = await API.poolCount(seq, sub);
+            const count = (res && typeof res === 'object' ? res.count : res) ?? '—';
             els.poolCount.textContent = count;
         } catch (e) {
             els.poolCount.textContent = '—';
@@ -102,6 +110,33 @@
         renderPipelines();
     }
 
+    function showReportModal(report) {
+        const existing = document.getElementById('batch-report-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('dialog');
+        modal.id = 'batch-report-modal';
+        modal.className = 'p-0 rounded-2xl shadow-lg bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border)]';
+        modal.innerHTML = `
+            <div class="p-5 min-w-[320px] max-w-[90vw]">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold">Batch Report</h3>
+                    <button id="batch-report-close" class="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
+                </div>
+                <pre class="text-xs bg-[var(--bg-secondary)] p-3 rounded-xl overflow-auto max-h-[60vh]">${escapeHtml(JSON.stringify(report, null, 2))}</pre>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.showModal();
+        modal.querySelector('#batch-report-close').addEventListener('click', () => {
+            modal.close();
+            modal.remove();
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) { modal.close(); modal.remove(); }
+        });
+    }
+
     function statusBadge(status) {
         const map = {
             running: 'bg-emerald-100 text-emerald-700',
@@ -111,8 +146,8 @@
             draft: 'bg-purple-100 text-purple-700',
             failed: 'bg-red-100 text-red-700',
         };
-        const cls = map[status] || 'bg-gray-100 text-gray-600';
-        return `<span class="px-2 py-1 rounded-full text-xs font-medium ${cls}">${status || 'unknown'}</span>`;
+        const cls = map[status] || 'bg-[var(--border)] text-[var(--text-muted)]';
+        return `<span class="px-2 py-1 rounded-full text-xs font-medium ${cls}">${escapeHtml(status || 'unknown')}</span>`;
     }
 
     function dayBadge(day, batch) {
@@ -148,14 +183,15 @@
             const total = pipe.family_total_leads || (pipe.batches || []).reduce((sum, b) => sum + (b.total_recipients || 0), 0);
             const sent = pipe.family_sent_leads || (pipe.batches || []).reduce((sum, b) => sum + (b.sent || 0), 0);
             const pct = total > 0 ? Math.round((sent / total) * 100) : 0;
-            const isExpanded = state.expandedFamilies.has(pipe.root_batch_id);
+            const rootId = String(pipe.root_batch_id);
+            const isExpanded = state.expandedFamilies.has(rootId);
 
             return `
-                <div class="card rounded-2xl p-5 family-card" data-root="${pipe.root_batch_id}">
+                <div class="card rounded-2xl p-5 family-card" data-root="${rootId}">
                     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
                         <div class="flex items-center gap-3">
-                            <h4 class="font-semibold text-[var(--text-primary)]">${pipe.root_name || root.name || 'Unknown'}</h4>
-                            <span class="badge badge-teal">${(pipe.sequence_id || root.sequence_id || '').toUpperCase()}</span>
+                            <h4 class="font-semibold text-[var(--text-primary)]">${escapeHtml(pipe.root_name || root.name || 'Unknown')}</h4>
+                            <span class="badge badge-teal">${escapeHtml((pipe.sequence_id || root.sequence_id || '').toUpperCase())}</span>
                         </div>
                         <div class="flex items-center gap-3 text-sm text-[var(--text-muted)]">
                             <span>${sent}/${total}</span>
@@ -165,11 +201,11 @@
                             <span>${pct}%</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button data-action="start-family" data-root="${pipe.root_batch_id}" class="action-btn text-emerald-600 hover:bg-emerald-50" title="Start family">▶</button>
-                            <button data-action="pause-family" data-root="${pipe.root_batch_id}" class="action-btn text-amber-600 hover:bg-amber-50" title="Pause family">⏸</button>
-                            <button data-action="clone-family" data-root="${pipe.root_batch_id}" class="action-btn text-blue-600 hover:bg-blue-50" title="Clone family">📋</button>
-                            <button data-action="delete-family" data-root="${pipe.root_batch_id}" class="action-btn text-red-600 hover:bg-red-50" title="Delete family">🗑</button>
-                            <button data-action="expand-family" data-root="${pipe.root_batch_id}" class="action-btn text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]" title="Toggle details">${isExpanded ? '▲' : '▼'}</button>
+                            <button data-action="start-family" data-root="${rootId}" class="action-btn text-emerald-600 hover:bg-emerald-50" title="Start family">▶</button>
+                            <button data-action="pause-family" data-root="${rootId}" class="action-btn text-amber-600 hover:bg-amber-50" title="Pause family">⏸</button>
+                            <button data-action="clone-family" data-root="${rootId}" class="action-btn text-blue-600 hover:bg-blue-50" title="Clone family">📋</button>
+                            <button data-action="delete-family" data-root="${rootId}" class="action-btn text-red-600 hover:bg-red-50" title="Delete family">🗑</button>
+                            <button data-action="expand-family" data-root="${rootId}" class="action-btn text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]" title="Toggle details">${isExpanded ? '▲' : '▼'}</button>
                         </div>
                     </div>
 
@@ -197,7 +233,7 @@
                                 <div class="space-y-1 text-[var(--text-secondary)]">
                                     <div class="flex justify-between"><span>Total</span><span>${b.total_recipients || 0}</span></div>
                                     <div class="flex justify-between"><span>Sent</span><span>${b.sent || 0}</span></div>
-                                    ${Object.entries(b.counts || {}).filter(([k]) => k !== 'sent').map(([k, v]) => `<div class="flex justify-between"><span>${k}</span><span>${v}</span></div>`).join('')}
+                                    ${Object.entries(b.counts || {}).filter(([k]) => k !== 'sent').map(([k, v]) => `<div class="flex justify-between"><span>${escapeHtml(k)}</span><span>${v}</span></div>`).join('')}
                                 </div>
                                 <div class="flex gap-2 mt-3">
                                     ${b.status !== 'running' ? `<button data-action="start" data-id="${b.id}" class="text-emerald-600 hover:underline">Start</button>` : ''}
@@ -239,7 +275,8 @@
     }
 
     async function startFamily(rootId) {
-        const pipe = state.pipelines.find(p => p.root_batch_id == rootId);
+        rootId = String(rootId);
+        const pipe = state.pipelines.find(p => String(p.root_batch_id) === rootId);
         if (!pipe) return;
         let started = 0;
         for (const b of pipe.batches || []) {
@@ -258,7 +295,8 @@
     }
 
     async function pauseFamily(rootId) {
-        const pipe = state.pipelines.find(p => p.root_batch_id == rootId);
+        rootId = String(rootId);
+        const pipe = state.pipelines.find(p => String(p.root_batch_id) === rootId);
         if (!pipe) return;
         let paused = 0;
         for (const b of pipe.batches || []) {
@@ -274,7 +312,8 @@
     }
 
     async function cloneFamily(rootId) {
-        const pipe = state.pipelines.find(p => p.root_batch_id == rootId);
+        rootId = String(rootId);
+        const pipe = state.pipelines.find(p => String(p.root_batch_id) === rootId);
         if (!pipe || !pipe.batches || !pipe.batches.length) return;
         const first = pipe.batches[0];
         const newName = prompt('New family name:', `${pipe.root_name || first.name}_copy`);
@@ -289,6 +328,7 @@
     }
 
     async function deleteFamily(rootId) {
+        rootId = String(rootId);
         if (!confirm('Delete this campaign family? All leads will return to the pool.')) return;
         try {
             await API.deleteFamily(rootId);
@@ -300,12 +340,22 @@
     }
 
     async function onBatchAction(e) {
+        const pill = e.target.closest('.day-pill');
         const btn = e.target.closest('[data-action]');
+        if (pill) {
+            const rootId = String(pill.closest('.family-card')?.dataset.root);
+            if (rootId && rootId !== 'undefined') {
+                if (state.expandedFamilies.has(rootId)) state.expandedFamilies.delete(rootId);
+                else state.expandedFamilies.add(rootId);
+                renderPipelines();
+            }
+            return;
+        }
         if (!btn) return;
         const action = btn.dataset.action;
 
         if (action === 'start-family' || action === 'pause-family' || action === 'clone-family' || action === 'delete-family' || action === 'expand-family') {
-            const rootId = btn.dataset.root;
+            const rootId = String(btn.dataset.root);
             if (action === 'start-family') return startFamily(rootId);
             if (action === 'pause-family') return pauseFamily(rootId);
             if (action === 'clone-family') return cloneFamily(rootId);
@@ -335,7 +385,7 @@
         } else if (action === 'report') {
             try {
                 const report = await API.batchReport(id);
-                alert(JSON.stringify(report, null, 2));
+                showReportModal(report);
             } catch (err) { showToast(err.message, 'error'); }
         }
     }

@@ -5,6 +5,8 @@ All leads go to DB first. Batches are created FROM the pool.
 
 import sqlite3
 import json
+import threading
+import contextlib
 from pathlib import Path
 from datetime import datetime
 
@@ -23,6 +25,7 @@ class Database:
         # Enable WAL mode for concurrent reads during writes (fixes UI lag)
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.execute("PRAGMA synchronous = NORMAL")
+        self._lock = threading.RLock()
         self._init_tables()
         self._migrate_schema()
 
@@ -416,26 +419,41 @@ class Database:
             self.conn.commit()
             print("[DB] Migration complete: text_body added to templates")
 
+    @staticmethod
+    def _now_iso():
+        """Return local ISO timestamp for consistent app-side datetime writes."""
+        return datetime.now().isoformat()
+
     def execute(self, sql, params=()):
-        return self.conn.execute(sql, params)
+        with self._lock:
+            return self.conn.execute(sql, params)
 
     def commit(self):
-        self.conn.commit()
+        with self._lock:
+            self.conn.commit()
+
+    @contextlib.contextmanager
+    def atomic(self):
+        """Hold the DB lock across multiple execute()/commit() calls."""
+        with self._lock:
+            yield
 
     # -- RECIPIENTS / POOL --
     def recipient_add(self, sequence_id, email, name, org, extra_json=None, sub_pool=None):
-        try:
-            self.execute("""
-                INSERT INTO recipients (sequence_id, email, name, org, extra_json, sub_pool, import_status, batched)
-                VALUES (?, ?, ?, ?, ?, ?, 'success', 0)
-                ON CONFLICT(sequence_id, email) DO UPDATE SET
-                    name=excluded.name, org=excluded.org, extra_json=excluded.extra_json,
-                    sub_pool=excluded.sub_pool, import_status='success', import_error=NULL, batched=0
-            """, (sequence_id, email.lower().strip(), name, org, extra_json, sub_pool or ''))
-            self.commit()
-            return True, None
-        except Exception as e:
-            return False, str(e)
+        with self.atomic():
+            try:
+                self.execute("""
+                    INSERT INTO recipients (sequence_id, email, name, org, extra_json, sub_pool, import_status, batched, imported_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'success', 0, ?)
+                    ON CONFLICT(sequence_id, email) DO UPDATE SET
+                        name=excluded.name, org=excluded.org, extra_json=excluded.extra_json,
+                        sub_pool=excluded.sub_pool, import_status='success', import_error=NULL,
+                        imported_at=excluded.imported_at
+                """, (sequence_id, email.lower().strip(), name, org, extra_json, sub_pool or '', self._now_iso()))
+                self.commit()
+                return True, None
+            except Exception as e:
+                return False, str(e)
 
     def recipient_get_by_sequence(self, sequence_id):
         rows = self.execute("SELECT * FROM recipients WHERE sequence_id=? ORDER BY id", (sequence_id,)).fetchall()
@@ -544,13 +562,27 @@ class Database:
 
     def batch_soft_delete(self, batch_id):
         """Soft delete a batch: mark as deleted and return leads to pool.
+        Only unmarks leads that have no other live batch membership.
         Returns number of leads returned."""
-        self.execute("UPDATE batches SET deleted_at = CURRENT_TIMESTAMP, status='deleted' WHERE id=?", (batch_id,))
-        recipient_rows = self.execute("SELECT recipient_id FROM batch_recipients WHERE batch_id=?", (batch_id,)).fetchall()
-        recipient_ids = [r[0] for r in recipient_rows]
-        self.unmark_batched(recipient_ids)
-        self.commit()
-        return len(recipient_ids)
+        with self.atomic():
+            self.execute("UPDATE batches SET deleted_at = CURRENT_TIMESTAMP, status='deleted' WHERE id=?", (batch_id,))
+            recipient_rows = self.execute("SELECT recipient_id FROM batch_recipients WHERE batch_id=?", (batch_id,)).fetchall()
+            recipient_ids = [r[0] for r in recipient_rows]
+            if recipient_ids:
+                placeholders = ','.join('?' * len(recipient_ids))
+                self.execute(f"""
+                    UPDATE recipients SET batched=0
+                    WHERE id IN ({placeholders})
+                    AND NOT EXISTS (
+                        SELECT 1 FROM batch_recipients br2
+                        JOIN batches b2 ON b2.id = br2.batch_id
+                        WHERE br2.recipient_id = recipients.id
+                        AND b2.deleted_at IS NULL
+                        AND b2.id != ?
+                    )
+                """, (*recipient_ids, batch_id))
+            self.commit()
+            return len(recipient_ids)
 
     def batch_get_deleted(self):
         """Get all soft-deleted batches, newest first."""
@@ -572,11 +604,12 @@ class Database:
         return [dict(r) for r in rows]
 
     def batch_update_status(self, batch_id, status):
+        now = self._now_iso()
         self.execute("UPDATE batches SET status=? WHERE id=?", (status, batch_id))
         if status == 'running':
-            self.execute("UPDATE batches SET started_at=CURRENT_TIMESTAMP WHERE id=?", (batch_id,))
+            self.execute("UPDATE batches SET started_at=? WHERE id=?", (now, batch_id))
         elif status == 'completed':
-            self.execute("UPDATE batches SET completed_at=CURRENT_TIMESTAMP WHERE id=?", (batch_id,))
+            self.execute("UPDATE batches SET completed_at=? WHERE id=?", (now, batch_id))
         self.commit()
 
     def batch_get_recipients(self, batch_id):
@@ -609,13 +642,15 @@ class Database:
 
     @staticmethod
     def _family_key(name: str, sequence_id: str) -> str:
-        """Normalize a batch name to a family key by stripping day/offset suffixes.
-        Preserves run IDs like 'Campaign-1' or 'WSL-5-1'. Only strips explicit day/email suffixes.
+        """Normalize a batch name to a family key by stripping day suffixes.
+        Preserves run IDs like 'Campaign-1' or 'WSL-5-1'. Only strips explicit day suffixes.
         """
         import re
         clean = (name or "").strip()
-        # Strip trailing patterns like "Day 1", "D1", "- Day 3", "Email 2", "E2", etc.
-        clean = re.sub(r"[\s\-_]*(Day|D|Email|E)\s*\d+\s*$", "", clean, flags=re.IGNORECASE).strip()
+        # Strip trailing patterns like "Day 1", "D1", "- Day 3" anchored to end.
+        clean = re.sub(r"[\s\-_]+(Day|D)\s*\d+\s*$", "", clean, flags=re.IGNORECASE).strip()
+        # Also strip legacy "Email N" suffixes used by synced drafts.
+        clean = re.sub(r"[\s\-_]+(Email|E)\s*\d+\s*$", "", clean, flags=re.IGNORECASE).strip()
         return f"{sequence_id or 'unassigned'}::{clean.lower()}"
 
     def _find_family_root(self, name: str, sequence_id: str, exclude_id: int = None):
@@ -623,9 +658,9 @@ class Database:
         key = self._family_key(name, sequence_id)
         sql = """
             SELECT id FROM batches 
-            WHERE deleted_at IS NULL AND day_offset=1 AND lower(trim(name)) LIKE ?
+            WHERE deleted_at IS NULL AND day_offset=1 AND lower(trim(name)) = ?
         """
-        params = [f"%{key.split('::', 1)[1]}%"]
+        params = [key.split('::', 1)[1]]
         if sequence_id:
             sql += " AND sequence_id=?"
             params.append(sequence_id)
@@ -643,60 +678,57 @@ class Database:
                         scheduled_at=None, timezone='Asia/Kolkata', send_rate=0, stagger_minutes=0, campaign_id=None,
                         source_sequence=None):
         """Create a batch from unbatched leads in the pool.
-        SAFETY: Only picks leads with batched=0. Double-checks before marking.
+        SAFETY: Only picks leads with batched=0. Atomic claim via row-level check.
         Optionally filter by sub_pool tag.
         source_sequence: pool to pull from (defaults to sequence_id or 'leads')."""
-        pool_seq_id = source_sequence or ("leads" if sequence_id is None or sequence_id == "leads" else sequence_id)
-        batch_seq_id = "unassigned" if sequence_id is None or sequence_id == "leads" else sequence_id
-        
-        pool = self.get_pool(pool_seq_id, sub_pool, limit=batch_size)
-        if not pool:
-            return None, "No unbatched leads in pool for this sequence"
+        with self.atomic():
+            pool_seq_id = source_sequence or ("leads" if sequence_id is None or sequence_id == "leads" else sequence_id)
+            batch_seq_id = "unassigned" if sequence_id is None or sequence_id == "leads" else sequence_id
+            
+            pool = self.get_pool(pool_seq_id, sub_pool, limit=batch_size)
+            if not pool:
+                return None, "No unbatched leads in pool for this sequence"
 
-        # EXTRA SAFETY: Re-verify all leads are still unbatched (race condition protection)
-        verified_pool = []
-        for lead in pool:
-            check = self.execute("SELECT batched FROM recipients WHERE id=?", (lead["id"],)).fetchone()
-            if check and check[0] == 0:
-                verified_pool.append(lead)
-            else:
-                print(f"[DB-SAFETY] Skipping lead {lead['id']} — already batched (race condition)")
+            # Atomic claim: UPDATE only rows still unbatched, then verify rowcount
+            verified_pool = []
+            for lead in pool:
+                cur = self.execute("UPDATE recipients SET batched=1 WHERE id=? AND batched=0", (lead["id"],))
+                if cur.rowcount == 1:
+                    verified_pool.append(lead)
+                else:
+                    print(f"[DB-SAFETY] Skipping lead {lead['id']} — already batched (race condition)")
 
-        if not verified_pool:
-            return None, "All available leads were taken by another batch (race condition). Try again."
+            if not verified_pool:
+                return None, "All available leads were taken by another batch (race condition). Try again."
 
-        # Determine parent/root for family grouping
-        parent_batch_id = None
-        if day_offset == 1:
-            # This batch is a root; parent will be set to itself after creation
-            pass
-        else:
-            parent_batch_id = self._find_family_root(name, batch_seq_id)
+            # Determine parent/root for family grouping
+            parent_batch_id = None
+            if day_offset != 1:
+                parent_batch_id = self._find_family_root(name, batch_seq_id)
 
-        batch_id = self.batch_create(
-            name=name,
-            sequence_id=batch_seq_id,
-            scheduled_at=scheduled_at,
-            timezone=timezone,
-            send_rate=send_rate,
-            stagger_minutes=stagger_minutes,
-            day_offset=day_offset,
-            parent_batch_id=parent_batch_id,
-            campaign_id=campaign_id
-        )
+            batch_id = self.batch_create(
+                name=name,
+                sequence_id=batch_seq_id,
+                scheduled_at=scheduled_at,
+                timezone=timezone,
+                send_rate=send_rate,
+                stagger_minutes=stagger_minutes,
+                day_offset=day_offset,
+                parent_batch_id=parent_batch_id,
+                campaign_id=campaign_id
+            )
 
-        # Root batches reference themselves so pipelines have a stable root id
-        if day_offset == 1:
-            self.execute("UPDATE batches SET parent_batch_id=? WHERE id=?", (batch_id, batch_id))
+            # Root batches reference themselves so pipelines have a stable root id
+            if day_offset == 1:
+                self.execute("UPDATE batches SET parent_batch_id=? WHERE id=?", (batch_id, batch_id))
+
+            recipient_ids = []
+            for lead in verified_pool:
+                self.batch_add_recipient(batch_id, lead["id"])
+                recipient_ids.append(lead["id"])
+
             self.commit()
-
-        recipient_ids = []
-        for lead in verified_pool:
-            self.batch_add_recipient(batch_id, lead["id"])
-            recipient_ids.append(lead["id"])
-
-        self.mark_batched(recipient_ids)
-        return batch_id, None
+            return batch_id, None
 
     # -- TEMPLATES --
     def template_put(self, sequence_id, day, subject, html_body, source="synced",
@@ -743,9 +775,9 @@ class Database:
     def campaign_queue_send(self, recipient_id, day, subject, draft_id, status="drafted",
                             batch_id=None, ab_variant=None):
         cur = self.execute("""
-            INSERT INTO sends (recipient_id, day, subject, draft_id, status, batch_id, ab_variant)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (recipient_id, day, subject, draft_id, status, batch_id, ab_variant))
+            INSERT INTO sends (recipient_id, day, subject, draft_id, status, batch_id, ab_variant, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (recipient_id, day, subject, draft_id, status, batch_id, ab_variant, self._now_iso()))
         self.commit()
         return cur.lastrowid
 
@@ -783,12 +815,23 @@ class Database:
         return {r[0]: {"total": r[1], "sent": r[2], "bounced": r[3], "replied": r[4]} for r in rows}
 
     # -- BLACKLIST --
+    @staticmethod
+    def _is_protected_email(email):
+        if not email:
+            return True
+        e = email.lower().strip()
+        return e.endswith("@robopirate.in") or e == "itsomkarsinghhh@gmail.com"
+
     def blacklist_add(self, email, reason="manual", source="user"):
+        email = email.lower().strip()
+        if self._is_protected_email(email):
+            print(f"[BLACKLIST-SKIP] Protected email not blacklisted: {email}")
+            return
         self.execute("""
             INSERT INTO blacklist (email, reason, source) 
             VALUES (?, ?, ?) 
             ON CONFLICT(email) DO UPDATE SET reason=excluded.reason, source=excluded.source
-        """, (email.lower().strip(), reason, source))
+        """, (email, reason, source))
         self.commit()
 
     def blacklist_remove(self, email_or_id):
@@ -957,15 +1000,22 @@ class Database:
         return [dict(r) for r in rows]
 
     # -- BATCH PIPELINE TRACKING --
+    def _family_root_id(self, batch: dict) -> int:
+        """Return the stable family root id for a batch.
+        Root batches reference themselves; fall back to the batch's own id if unset.
+        """
+        pid = batch.get("parent_batch_id")
+        return pid if pid else batch.get("id", 0)
+
     def batch_get_pipeline(self, batch_id: int) -> dict:
         batch = self.batch_get(batch_id)
         if not batch:
             return {}
 
-        family_key = self._family_key(batch["name"], batch.get("sequence_id") or "")
+        root_id = self._family_root_id(batch)
         seq_id = batch.get("sequence_id") or ""
 
-        # Gather all batches in the same family
+        # Gather all batches in the same family via parent_batch_id chain
         candidates = self.execute("""
             SELECT * FROM batches 
             WHERE deleted_at IS NULL AND sequence_id=?
@@ -975,7 +1025,7 @@ class Database:
         pipeline_batches = []
         for r in candidates:
             b = dict(r)
-            if self._family_key(b["name"], b.get("sequence_id") or "") != family_key:
+            if self._family_root_id(b) != root_id:
                 continue
             counts = self.batch_count_by_status(b["id"])
             b["counts"] = counts
@@ -1011,7 +1061,7 @@ class Database:
         }
 
     def batch_get_all_pipelines(self, sequence_id: str = None) -> list:
-        """Return one pipeline per campaign family, using family-key grouping."""
+        """Return one pipeline per campaign family, using parent_batch_id grouping."""
         params = []
         where = "WHERE deleted_at IS NULL"
         if sequence_id:
@@ -1024,17 +1074,17 @@ class Database:
             ORDER BY created_at DESC
         """, params).fetchall()
 
-        # Group by family key; pick the earliest day_offset=1 batch as root when possible
+        # Group by effective family root; pick the earliest day_offset=1 batch as root when possible
         families = {}
         for r in rows:
             b = dict(r)
-            key = self._family_key(b["name"], b.get("sequence_id") or "")
-            if key not in families:
-                families[key] = []
-            families[key].append(b)
+            root_id = self._family_root_id(b)
+            if root_id not in families:
+                families[root_id] = []
+            families[root_id].append(b)
 
         pipelines = []
-        for key, batches in families.items():
+        for root_id, batches in families.items():
             root = next((b for b in batches if b.get("day_offset") == 1), batches[0])
             pipe = self.batch_get_pipeline(root["id"])
             if pipe:
@@ -1129,24 +1179,31 @@ class Database:
         return dict(rows[0]) if rows else None
 
 
-    def get_scheduled_batches(self):
-        """Get all batches that are scheduled (ready to run if time passed)."""
-        rows = self.execute("""
-            SELECT * FROM batches 
-            WHERE status='scheduled' 
-            ORDER BY scheduled_at
-        """).fetchall()
-        return [dict(r) for r in rows]
-
     def assign_sequence_to_batch(self, batch_id, sequence_id):
-        """Update a batch and its recipients to a new sequence_id."""
-        cur_batch = self.execute("UPDATE batches SET sequence_id=? WHERE id=?", (sequence_id, batch_id))
-        cur_recipients = self.execute("""
-            UPDATE recipients SET sequence_id=?
-            WHERE id IN (SELECT recipient_id FROM batch_recipients WHERE batch_id=?)
-        """, (sequence_id, batch_id))
-        self.commit()
-        return cur_batch.rowcount + cur_recipients.rowcount
+        """Update a batch and its recipients to a new sequence_id.
+        Skips recipients that would violate the UNIQUE(sequence_id, email) constraint.
+        Returns dict with batch_rows, assigned, skipped."""
+        with self.atomic():
+            cur_batch = self.execute("UPDATE batches SET sequence_id=? WHERE id=?", (sequence_id, batch_id))
+            recipient_ids = [r[0] for r in self.execute(
+                "SELECT recipient_id FROM batch_recipients WHERE batch_id=?", (batch_id,)
+            ).fetchall()]
+            assigned = 0
+            skipped = 0
+            for rid in recipient_ids:
+                # Skip if same email already exists in target sequence
+                conflict = self.execute("""
+                    SELECT 1 FROM recipients r1
+                    JOIN recipients r2 ON r2.email = r1.email AND r2.sequence_id = ?
+                    WHERE r1.id = ? AND r2.id != r1.id
+                """, (sequence_id, rid)).fetchone()
+                if conflict:
+                    skipped += 1
+                    continue
+                cur = self.execute("UPDATE recipients SET sequence_id=? WHERE id=?", (sequence_id, rid))
+                assigned += cur.rowcount
+            self.commit()
+            return {"batch_rows": cur_batch.rowcount, "assigned": assigned, "skipped": skipped}
 
     # -- REPLIES --
     def get_replies_with_drafts(self, filter_status=None, filter_sentiment=None, search=None):

@@ -2,8 +2,8 @@
 
 (function () {
     const els = {
-        calStatus: document.getElementById('calendar-status'),
-        calConnectPrompt: document.getElementById('calendar-connect-prompt'),
+        calendarStatus: document.getElementById('calendar-status'),
+        calendarConnectPrompt: document.getElementById('calendar-connect-prompt'),
         btnConnectCal: document.getElementById('btn-connect-calendar'),
         calForm: document.getElementById('calendar-create-form'),
         calEmail: document.getElementById('cal-email'),
@@ -33,6 +33,15 @@
             const status = await API.authStatus();
             updateConnectionUI('calendar', !!status.calendar);
             updateConnectionUI('drive', !!status.drive);
+            const err = status.last_error || {};
+            ['calendar', 'drive'].forEach(svc => {
+                const info = err[svc];
+                if (info && info.success === false && info.error) {
+                    showToast(`${svc} connect failed: ${info.error}`, 'error');
+                    // prevent repeated toasts
+                    info.reported = true;
+                }
+            });
         } catch (e) {
             updateConnectionUI('calendar', false);
             updateConnectionUI('drive', false);
@@ -88,6 +97,13 @@
     }
 
     // ── Calendar ─────────────────────────────────────────────────────────────
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+
     async function loadCalendarEvents() {
         if (!els.calEvents) return;
         try {
@@ -102,18 +118,18 @@
                 return `
                     <div class="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-secondary)] text-sm">
                         <div class="min-w-0">
-                            <div class="font-medium truncate">${ev.summary || '(no title)'}</div>
-                            <div class="text-xs text-[var(--text-muted)]">${when}</div>
+                            <div class="font-medium truncate">${escapeHtml(ev.summary) || '(no title)'}</div>
+                            <div class="text-xs text-[var(--text-muted)]">${escapeHtml(when)}</div>
                         </div>
                         <div class="flex gap-2 shrink-0 ml-2">
-                            <a href="${ev.htmlLink || '#'}" target="_blank" class="text-[var(--accent-teal)] hover:underline text-xs">Open</a>
-                            <button data-event-id="${ev.id}" class="cal-cancel text-red-600 hover:underline text-xs">Cancel</button>
+                            <a href="${escapeHtml(ev.htmlLink || '#')}" target="_blank" class="text-[var(--accent-teal)] hover:underline text-xs">Open</a>
+                            <button data-event-id="${escapeHtml(ev.id)}" class="cal-cancel text-red-600 hover:underline text-xs">Cancel</button>
                         </div>
                     </div>
                 `;
             }).join('');
         } catch (e) {
-            els.calEvents.innerHTML = `<p class="text-red-500 text-sm">${e.message}</p>`;
+            els.calEvents.innerHTML = `<p class="text-red-500 text-sm">${escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -166,17 +182,17 @@
             els.driveFiles.innerHTML = files.map(f => `
                 <div class="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-secondary)] text-sm">
                     <div class="min-w-0">
-                        <div class="font-medium truncate">${f.name}</div>
-                        <div class="text-xs text-[var(--text-muted)]">${f.mimeType || ''}</div>
+                        <div class="font-medium truncate">${escapeHtml(f.name)}</div>
+                        <div class="text-xs text-[var(--text-muted)]">${escapeHtml(f.mimeType || '')}</div>
                     </div>
                     <div class="flex gap-2 shrink-0 ml-2">
-                        <a href="${f.webViewLink || '#'}" target="_blank" class="text-[var(--accent-teal)] hover:underline text-xs">Open</a>
-                        <button data-file-id="${f.id}" class="drive-validate text-[var(--text-muted)] hover:underline text-xs">Validate</button>
+                        <a href="${escapeHtml(f.webViewLink || '#')}" target="_blank" class="text-[var(--accent-teal)] hover:underline text-xs">Open</a>
+                        <button data-file-id="${escapeHtml(f.id)}" class="drive-validate text-[var(--text-muted)] hover:underline text-xs">Validate</button>
                     </div>
                 </div>
             `).join('');
         } catch (e) {
-            els.driveFiles.innerHTML = `<p class="text-red-500 text-sm">${e.message}</p>`;
+            els.driveFiles.innerHTML = `<p class="text-red-500 text-sm">${escapeHtml(e.message)}</p>`;
         }
     }
 

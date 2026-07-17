@@ -5,11 +5,10 @@ True AI agent with memory, reasoning, learning, and proactive decision making
 
 import re
 import json
-import time
 import sqlite3
 import requests
 import os
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
 from collections import defaultdict

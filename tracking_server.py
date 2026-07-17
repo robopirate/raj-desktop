@@ -5,13 +5,16 @@ No Flask dependency — uses Python's built-in http.server.
 """
 
 import base64
+import hmac
+import hashlib
 import json
+import os
 import sqlite3
 import threading
 import time
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, quote
 
 # 1x1 transparent GIF (43 bytes)
 TRANSPARENT_GIF = bytes([
@@ -22,20 +25,29 @@ TRANSPARENT_GIF = bytes([
 ])
 
 
+def _tracking_secret():
+    return (os.environ.get("RAJ_TRACKING_SECRET") or "raj-default-secret-change-me").encode()
+
+
 def _encode_token(recipient_id, batch_id, send_id):
-    """Encode tracking token as base64 JSON."""
+    """Encode and HMAC-sign tracking token."""
     data = json.dumps({"r": recipient_id, "b": batch_id, "s": send_id})
-    return base64.urlsafe_b64encode(data.encode()).decode().rstrip("=")
+    payload = base64.urlsafe_b64encode(data.encode()).decode().rstrip("=")
+    sig = hmac.new(_tracking_secret(), payload.encode(), hashlib.sha256).hexdigest()[:16]
+    return f"{payload}.{sig}"
 
 
 def _decode_token(token):
-    """Decode tracking token. Returns (recipient_id, batch_id, send_id) or None."""
+    """Verify HMAC and decode tracking token. Returns (recipient_id, batch_id, send_id) or None."""
     try:
-        # Add padding back
-        padding = 4 - len(token) % 4
+        payload, sig = token.rsplit(".", 1)
+        expected = hmac.new(_tracking_secret(), payload.encode(), hashlib.sha256).hexdigest()[:16]
+        if not hmac.compare_digest(expected, sig):
+            return None
+        padding = 4 - len(payload) % 4
         if padding != 4:
-            token += "=" * padding
-        data = json.loads(base64.urlsafe_b64decode(token.encode()))
+            payload += "=" * padding
+        data = json.loads(base64.urlsafe_b64decode(payload.encode()))
         return data.get("r"), data.get("b"), data.get("s")
     except Exception:
         return None
@@ -141,9 +153,14 @@ class TrackingHandler(BaseHTTPRequestHandler):
             if decoded:
                 r, b, s = decoded
                 self._record("click", r, b, s, url=url, user_agent=user_agent, ip=ip)
-            # Redirect to target URL
+            # Validate redirect target: http/https only, no header injection
+            safe_url = "/"
+            if url:
+                lower = url.lower()
+                if (lower.startswith("http://") or lower.startswith("https://")) and "\r" not in url and "\n" not in url:
+                    safe_url = url
             self.send_response(302)
-            self.send_header("Location", url or "/")
+            self.send_header("Location", safe_url)
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             self.end_headers()
             return
@@ -163,22 +180,32 @@ class TrackingHandler(BaseHTTPRequestHandler):
 class TrackingServer:
     """Background HTTP server for email tracking."""
 
-    def __init__(self, db_path, port=0):
-        """port=0 means auto-assign (os picks free port)."""
+    def __init__(self, db_path, port=0, public_base_url=None):
+        """port=0 means auto-assign (os picks free port).
+        public_base_url: reachable URL recipients can hit (e.g. https://track.example.com).
+        If None, tracking injection is disabled and the server binds localhost only.
+        """
         self.db_path = db_path
         self.port = port
-        self.base_url = None
+        self.public_base_url = public_base_url
+        self.base_url = public_base_url
         self._server = None
         self._thread = None
 
     def start(self):
         TrackingHandler.db_path = self.db_path
-        self._server = HTTPServer(("0.0.0.0", self.port), TrackingHandler)
+        bind_host = "127.0.0.1" if not self.public_base_url else "0.0.0.0"
+        self._server = HTTPServer((bind_host, self.port), TrackingHandler)
         # If port was 0, get the assigned port
         actual_port = self._server.server_address[1]
         self.port = actual_port
-        # Use 127.0.0.1 for local testing; replace with public IP/LAN IP for external tracking
-        self.base_url = f"http://127.0.0.1:{actual_port}"
+        # Only advertise a usable base URL when a public URL is configured
+        if not self.public_base_url:
+            self.base_url = None
+            print(f"[Tracking] Local-only server on 127.0.0.1:{actual_port} (no public URL; tracking disabled)")
+        else:
+            print(f"[Tracking] Server started on {self.base_url}")
+        return self.base_url
         self._thread = threading.Thread(target=self._serve, daemon=True)
         self._thread.start()
         print(f"[Tracking] Server started on {self.base_url}")

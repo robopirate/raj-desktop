@@ -5,6 +5,8 @@ File attachments for templates, link validation.
 
 import os
 import pickle
+import threading
+from pathlib import Path
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -14,9 +16,9 @@ from googleapiclient.http import MediaFileUpload
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/drive.file']
 
 class DriveManager:
-    def __init__(self, credentials_path='credentials.json', token_path='drive_token.pickle'):
-        self.credentials_path = credentials_path
-        self.token_path = token_path
+    def __init__(self, credentials_path=None, token_path=None):
+        self.credentials_path = credentials_path or str(Path(__file__).parent / "credentials.json")
+        self.token_path = token_path or str(Path(__file__).parent / "drive_token.pickle")
         self.service = None
         # Try silent auth on startup; fail quietly so app can open
         try:
@@ -43,30 +45,59 @@ class DriveManager:
     def _authenticate(self, silent=False):
         creds = None
         if os.path.exists(self.token_path):
-            with open(self.token_path, 'rb') as token:
-                creds = pickle.load(token)
+            try:
+                with open(self.token_path, 'rb') as token:
+                    creds = pickle.load(token)
+            except Exception:
+                creds = None
+                if os.path.exists(self.token_path):
+                    os.remove(self.token_path)
 
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                if silent:
-                    raise Exception("Silent auth failed: no valid token")
-                if not os.path.exists(self.credentials_path):
-                    raise FileNotFoundError(f"[Drive] credentials.json not found at {self.credentials_path}")
-                flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, SCOPES)
-                auth_url, _ = flow.authorization_url(prompt='consent')
-                import threading, webbrowser
-                def _open_browser():
+        def _scopes_match(c):
+            return set(getattr(c, 'scopes', [])) >= set(SCOPES)
+
+        if creds and creds.valid and _scopes_match(creds):
+            self.service = build('drive', 'v3', credentials=creds)
+            return
+
+        if creds and creds.expired and creds.refresh_token:
+            try:
+                refresh_result = [None]
+
+                def _refresh():
                     try:
-                        webbrowser.open(auth_url)
-                    except Exception:
-                        pass
-                threading.Thread(target=lambda: (_open_browser()), daemon=True).start()
-                creds = flow.run_local_server(port=0, open_browser=False)
-            with open(self.token_path, 'wb') as token:
-                pickle.dump(creds, token)
+                        creds.refresh(Request())
+                        refresh_result[0] = True
+                    except Exception as e:
+                        refresh_result[0] = e
 
+                t = threading.Thread(target=_refresh, daemon=True)
+                t.start()
+                t.join(timeout=15)
+                if t.is_alive() or isinstance(refresh_result[0], Exception):
+                    raise Exception("Token refresh timed out" if t.is_alive() else str(refresh_result[0]))
+                if not _scopes_match(creds):
+                    raise Exception("Token scopes mismatch")
+                with open(self.token_path, 'wb') as token:
+                    pickle.dump(creds, token)
+                self.service = build('drive', 'v3', credentials=creds)
+                return
+            except Exception:
+                if silent:
+                    raise
+                creds = None
+                if os.path.exists(self.token_path):
+                    os.remove(self.token_path)
+
+        if silent:
+            raise Exception("Silent auth failed: no valid token")
+        if not os.path.exists(self.credentials_path):
+            raise FileNotFoundError(f"[Drive] credentials.json not found at {self.credentials_path}")
+
+        flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, SCOPES)
+        creds = flow.run_local_server(port=0, open_browser=True)
+        with open(self.token_path, 'wb') as token:
+            pickle.dump(creds, token)
         self.service = build('drive', 'v3', credentials=creds)
 
     def list_files(self, folder_id=None, query=None, page_size=100):

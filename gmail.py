@@ -9,6 +9,7 @@ import base64
 import pickle
 import time
 import ssl
+import threading
 from pathlib import Path
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -53,31 +54,59 @@ class GmailClient:
     def _authenticate(self, silent=False):
         creds = None
         if TOKEN_PATH.exists():
-            with open(TOKEN_PATH, 'rb') as token:
-                creds = pickle.load(token)
+            try:
+                with open(TOKEN_PATH, 'rb') as token:
+                    creds = pickle.load(token)
+            except Exception:
+                creds = None
+                if TOKEN_PATH.exists():
+                    TOKEN_PATH.unlink()
 
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                if silent:
-                    raise Exception("Silent auth failed: no valid token")
-                if not CREDS_PATH.exists():
-                    raise FileNotFoundError(f"credentials.json not found. Download it from Google Cloud Console and place it here: {CREDS_PATH}")
-                flow = InstalledAppFlow.from_client_secrets_file(str(CREDS_PATH), SCOPES)
-                auth_url, _ = flow.authorization_url(prompt='consent')
-                import threading, webbrowser
-                def _open_browser():
+        def _scopes_match(c):
+            return set(getattr(c, 'scopes', [])) >= set(SCOPES)
+
+        if creds and creds.valid and _scopes_match(creds):
+            self.service = build('gmail', 'v1', credentials=creds)
+            return
+
+        if creds and creds.expired and creds.refresh_token:
+            try:
+                refresh_result = [None]
+
+                def _refresh():
                     try:
-                        webbrowser.open(auth_url)
-                    except Exception:
-                        pass
-                threading.Thread(target=lambda: (_open_browser()), daemon=True).start()
-                creds = flow.run_local_server(port=0, open_browser=False)
+                        creds.refresh(Request())
+                        refresh_result[0] = True
+                    except Exception as e:
+                        refresh_result[0] = e
 
-            with open(TOKEN_PATH, 'wb') as token:
-                pickle.dump(creds, token)
+                t = threading.Thread(target=_refresh, daemon=True)
+                t.start()
+                t.join(timeout=15)
+                if t.is_alive() or isinstance(refresh_result[0], Exception):
+                    raise Exception("Token refresh timed out" if t.is_alive() else str(refresh_result[0]))
+                if not _scopes_match(creds):
+                    raise Exception("Token scopes mismatch")
+                with open(TOKEN_PATH, 'wb') as token:
+                    pickle.dump(creds, token)
+                self.service = build('gmail', 'v1', credentials=creds)
+                return
+            except Exception:
+                if silent:
+                    raise
+                creds = None
+                if TOKEN_PATH.exists():
+                    TOKEN_PATH.unlink()
 
+        if silent:
+            raise Exception("Silent auth failed: no valid token")
+        if not CREDS_PATH.exists():
+            raise FileNotFoundError(f"credentials.json not found. Download it from Google Cloud Console and place it here: {CREDS_PATH}")
+
+        flow = InstalledAppFlow.from_client_secrets_file(str(CREDS_PATH), SCOPES)
+        creds = flow.run_local_server(port=0, open_browser=True)
+        with open(TOKEN_PATH, 'wb') as token:
+            pickle.dump(creds, token)
         self.service = build('gmail', 'v1', credentials=creds)
 
     @staticmethod
@@ -223,7 +252,8 @@ class GmailClient:
                     subject = h['value']
                     break
             html_body = self._extract_html(payload)
-            return {'subject': subject, 'html_body': html_body or ''}
+            text_body = self._extract_plain(payload)
+            return {'subject': subject, 'html_body': html_body or '', 'text_body': text_body or ''}
         except Exception as e:
             print(f'[Gmail] get_draft_full failed: {e}')
             return None
@@ -253,10 +283,12 @@ class GmailClient:
             print(f'[Gmail] search_messages failed: {e}')
             return []
 
-    def draft_reply(self, thread_id, html_body, subject, sender=None):
+    def draft_reply(self, thread_id, html_body, subject, to=None, sender=None):
         try:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
+            if to:
+                msg['To'] = to
             if sender:
                 msg['From'] = sender
                 msg['Reply-To'] = sender
@@ -294,6 +326,15 @@ class GmailClient:
             if data: return base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
         for part in payload.get('parts', []):
             r = self._extract_html(part)
+            if r: return r
+        return ''
+
+    def _extract_plain(self, payload):
+        if payload.get('mimeType') == 'text/plain':
+            data = payload.get('body', {}).get('data', '')
+            if data: return base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
+        for part in payload.get('parts', []):
+            r = self._extract_plain(part)
             if r: return r
         return ''
 
