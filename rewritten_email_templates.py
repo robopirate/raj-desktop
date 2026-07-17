@@ -33,12 +33,12 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<p style="font-size:12px;color:#8B949E;margin-bottom:8px;">See what a WE Smart Lab includes:</p>
-<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Lab in Action</a>
-<a href="{a.get('brochure','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">WSL Program PDF</a>
-<a href="{a.get('video_abp','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News Coverage</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Latest on Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<p style="font-size:12px;color:#7A8A8A;margin-bottom:8px;">See what a WE Smart Lab includes:</p>
+<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Lab in Action</a>
+<a href="{a.get('brochure','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">WSL Program PDF</a>
+<a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News Coverage</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Latest on Instagram</a>
 </div>""",
 
         3: f"""<p>Dear Principal,</p>
@@ -53,9 +53,9 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('video_abp','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📺 Watch the ABP Coverage</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('video_abp','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📺 Watch the ABP Coverage</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         5: f"""<p>Dear Principal,</p>
@@ -72,12 +72,12 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<p style="font-size:12px;color:#8B949E;margin-bottom:8px;">See the impact:</p>
-<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
-<a href="{a.get('video_star','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star Video</a>
-<a href="{a.get('folder_vbv','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">Full Folder</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<p style="font-size:12px;color:#7A8A8A;margin-bottom:8px;">See the impact:</p>
+<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
+<a href="{a.get('video_star','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star Video</a>
+<a href="{a.get('folder_vbv','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Full Folder</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         7: f"""<p>Dear Principal,</p>
@@ -92,11 +92,11 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('profile','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the Company Profile</a>
-<a href="{a.get('video_abp','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
-<a href="{a.get('video_star','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('profile','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the Company Profile</a>
+<a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
+<a href="{a.get('video_star','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         10: f"""<p>Dear Principal,</p>
@@ -111,9 +111,9 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('plans','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See Plans & Pricing</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('plans','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See Plans & Pricing</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>"""
     }
     return contents.get(day, f"<p>Template content for Day {day}</p>")
@@ -245,11 +245,11 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<p style="font-size:12px;color:#8B949E;margin-bottom:8px;">See the model:</p>
-<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
-<a href="{a.get('brochure','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">Brochure</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<p style="font-size:12px;color:#7A8A8A;margin-bottom:8px;">See the model:</p>
+<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
+<a href="{a.get('brochure','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Brochure</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         3: f"""<p>Dear CSR Head,</p>
@@ -266,11 +266,11 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
-<a href="{a.get('video_abp','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
-<a href="{a.get('video_star','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star Video</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
+<a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
+<a href="{a.get('video_star','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star Video</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         5: f"""<p>Dear CSR Head,</p>
@@ -287,9 +287,9 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Trainer Video</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Trainer Video</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         7: f"""<p>Dear CSR Head,</p>
@@ -306,9 +306,9 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('brochure','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 Read the Investment Memo</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('brochure','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 Read the Investment Memo</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>""",
 
         10: f"""<p>Dear CSR Head,</p>
@@ -323,9 +323,9 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
-<div style="margin-top:20px;padding-top:15px;border-top:1px solid #2a2a4e;">
-<a href="{a.get('profile','#')}" style="display:inline-block;background:#59ced9;color:#0A1628;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the Company Profile</a>
-<a href="{a.get('video_ig','#')}" style="display:inline-block;background:#1c2a3a;color:#59ced9;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:12px;margin-bottom:8px;">Instagram</a>
+<div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
+<a href="{a.get('profile','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the Company Profile</a>
+<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
 </div>"""
     }
     return contents.get(day, f"<p>Template content for Day {day}</p>")

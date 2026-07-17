@@ -85,6 +85,9 @@ def normalize_sentences(text: str) -> list:
     t = re.sub(r"\s+", " ", t).strip()
     # Split on sentence boundaries
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", t) if s.strip()]
+    # Exclude shared footer sentences
+    footer_keywords = ["baner - mahalunge rd", "411045", "91368 99925"]
+    sentences = [s for s in sentences if not any(k in s.lower() for k in footer_keywords)]
     return sentences
 
 

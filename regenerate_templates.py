@@ -22,6 +22,11 @@ def main():
     total = 0
     skipped_locked = 0
 
+    # Prepare export directories
+    export_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "export", "emails")
+    for seq_id in seq_ids:
+        os.makedirs(os.path.join(export_root, seq_id), exist_ok=True)
+
     for seq_id in seq_ids:
         for day in SEQUENCES.get(seq_id, {}).get("days", []):
             if engine.is_template_locked(seq_id, day):
@@ -46,7 +51,23 @@ def main():
             print(f"REGENERATED: {seq_id} day {day}")
             total += 1
 
+            # Export HTML and plain text files
+            export_dir = os.path.join(export_root, seq_id)
+            filename_base = f"D{day}"
+            html_path = os.path.join(export_dir, f"{filename_base}.html")
+            txt_path = os.path.join(export_dir, f"{filename_base}.txt")
+
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(template["html_body"])
+
+            with open(txt_path, "w", encoding="utf-8") as f:
+                f.write(f"Subject: {template['subject']}\n\n")
+                f.write(template.get("text_body", ""))
+
+            print(f"  EXPORTED: {seq_id} {filename_base}.html + .txt")
+
     print(f"\nDone. Regenerated {total} templates. Skipped {skipped_locked} locked templates.")
+    print(f"Exported files are in: {export_root}")
 
 
 if __name__ == "__main__":

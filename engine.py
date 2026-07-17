@@ -175,31 +175,36 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<style>
-body{{font-family:Segoe UI,Arial,sans-serif;background:#0A1628;color:#E6EDF3;padding:20px;margin:0}}
-.container{{max-width:600px;margin:0 auto;background:#111D2E;border-radius:12px;padding:30px;border:1px solid #2a2a4e}}
-.header{{text-align:center;border-bottom:2px solid #59ced9;padding-bottom:15px;margin-bottom:20px}}
-.logo{{font-size:28px;font-weight:bold;color:#59ced9}}
-.sub{{color:#8B949E;font-size:12px}}
-.content{{line-height:1.6;font-size:14px}}
-.footer{{margin-top:30px;padding-top:15px;border-top:1px solid #2a2a4e;text-align:center;color:#8B949E;font-size:11px}}
-.cta{{display:inline-block;background:#59ced9;color:#0A1628;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin:15px 0}}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robo Pirate - WE Smart Lab</title>
 </head>
-<body>
-<div class="container">
-<div class="header">
-<div class="logo">🤖 RAJ by RoboPirate</div>
-<div class="sub">Smart Labs for Smart Schools</div>
-</div>
-<div class="content">
+<body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;color:#333333;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F5F9F9">
+<tr>
+<td align="center" style="padding:20px 10px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:8px;overflow:hidden;">
+<tr>
+<td align="center" bgcolor="#5BD3D9" style="padding:20px 15px;">
+<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="Robo Pirate" width="100" style="display:block;max-width:100%;height:auto;border:0;">
+<div style="color:#FFFFFF;font-size:13px;margin-top:8px;letter-spacing:1px;font-weight:bold;">WE SMART LAB</div>
+</td>
+</tr>
+<tr>
+<td style="padding:30px 25px;font-size:15px;line-height:1.6;color:#333333;">
 {body}
-</div>
-<div class="footer">
-© 2026 RoboPirate · robopirate.in · Unsubscribe: reply STOP<br>
-Robo Pirate, Baner - Mahalunge Rd, opp. of shreeram sankul NXT to Euphoria bunglow, Baner Gaon, Baner, Pune, Maharashtra 411045, India · Phone: +91 91368 99925
-</div>
-</div>
+</td>
+</tr>
+<tr>
+<td style="padding:15px 25px;background-color:#F5F9F9;border-top:1px solid #E0E8E8;text-align:center;font-size:12px;color:#7A8A8A;line-height:1.4;">
+Robo Pirate, Baner - Mahalunge Rd, opp. of shreeram sankul NXT to Euphoria bunglow,<br>
+Baner Gaon, Baner, Pune, Maharashtra 411045, India · Phone: +91 91368 99925<br>
+Unsubscribe: reply STOP
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
 </body>
 </html>"""
 
