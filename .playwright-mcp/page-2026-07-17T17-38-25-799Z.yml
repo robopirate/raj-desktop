@@ -1,0 +1,20 @@
+- generic [active] [ref=e1]:
+  - img "Robo Pirate" [ref=e2]
+  - generic [ref=e3]: WE SMART LAB
+  - paragraph [ref=e4]: Dear CSR Head,
+  - paragraph [ref=e5]: Here is the math that matters.
+  - paragraph [ref=e6]: The CSR covers Year 1. Years 2 through 5 are covered by government funds.
+  - paragraph [ref=e7]: 400 students every year. For five years.
+  - paragraph [ref=e8]: The government school gets a lab it could never afford. The government gets a program that runs itself. And the CSR team gets a project that doesn't die when the budget moves.
+  - paragraph [ref=e9]: If you want the full breakdown, I can send you the CSR proposal.
+  - paragraph [ref=e10]: Regards,Baban JadhavRobo Piratehttps://robopirate.in
+  - generic [ref=e11]:
+    - paragraph [ref=e12]:
+      - strong [ref=e13]:
+        - link "Read the CSR Proposal" [ref=e14] [cursor=pointer]:
+          - /url: https://drive.google.com/file/d/1mnmUNl1EkAmxjz7NVRGU2pmcHDrDUJMN/view
+    - paragraph [ref=e15]:
+      - strong [ref=e16]:
+        - link "Sangli Divyang Workshop" [ref=e17] [cursor=pointer]:
+          - /url: https://www.instagram.com/p/DMhEDutOrl-/
+  - text: "Robo Pirate, Baner - Mahalunge Rd, opp. of shreeram sankul NXT to Euphoria bunglow, Baner Gaon, Baner, Pune, Maharashtra 411045, India · Phone: +91 91368 99925 Unsubscribe: reply STOP"

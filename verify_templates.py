@@ -16,16 +16,16 @@ EXPECTED_ASSETS = {
     "school": {
         1: {"brochure", "video_wsl", "video_abp", "video_ig"},
         3: {"video_abp", "video_ig"},
-        5: {"report_vbv", "video_star", "folder_vbv", "video_ig"},
+        5: {"report_vbv", "video_star", "video_ig"},
         7: {"brochure", "video_abp", "video_ig"},
         10: {"plans", "video_ig"},
     },
     "csr-wsl-5": {
-        1: {"report_vbv", "brochure", "video_ig"},
+        1: {"report_1st_wsl", "brochure", "video_ig"},
         3: {"report_vbv", "video_abp", "video_star", "video_ig"},
         5: {"video_wsl", "video_ig"},
-        7: {"brochure", "video_ig"},
-        10: {"profile", "video_ig"},
+        7: {"proposal_5yr", "video_ig"},
+        10: {"proposal_2nd", "video_ig"},
     },
 }
 

@@ -35,10 +35,10 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <p style="font-size:12px;color:#7A8A8A;margin-bottom:8px;">See what a WE Smart Lab includes:</p>
-<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Lab in Action</a>
-<a href="{a.get('brochure','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">WSL Program PDF</a>
-<a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News Coverage</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Latest on Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_wsl','#')}" style="color:#006B6B;">Watch the Lab in Action</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('brochure','#')}" style="color:#006B6B;">WSL Program PDF</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_abp','#')}" style="color:#006B6B;">ABP News Coverage</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Latest on Instagram</a></strong></p>
 </div>""",
 
         3: f"""<p>Dear Principal,</p>
@@ -54,8 +54,8 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('video_abp','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📺 Watch the ABP Coverage</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_abp','#')}" style="color:#006B6B;">Watch the ABP Coverage</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Instagram</a></strong></p>
 </div>""",
 
         5: f"""<p>Dear Principal,</p>
@@ -74,10 +74,9 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <p style="font-size:12px;color:#7A8A8A;margin-bottom:8px;">See the impact:</p>
-<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
-<a href="{a.get('video_star','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star Video</a>
-<a href="{a.get('folder_vbv','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Full Folder</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('report_vbv','#')}" style="color:#006B6B;">Read the Veer Baji Report</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_star','#')}" style="color:#006B6B;">Student Star Video</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Instagram</a></strong></p>
 </div>""",
 
         7: f"""<p>Dear Principal,</p>
@@ -93,9 +92,9 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('brochure','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the WSL Brochure</a>
-<a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('brochure','#')}" style="color:#006B6B;">See the WSL Brochure</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_abp','#')}" style="color:#006B6B;">ABP News</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Instagram</a></strong></p>
 </div>""",
 
         10: f"""<p>Dear Principal,</p>
@@ -111,8 +110,8 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('plans','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See Plans & Pricing</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('plans','#')}" style="color:#006B6B;">See Plans & Pricing</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Instagram</a></strong></p>
 </div>"""
     }
     return contents.get(day, f"<p>Template content for Day {day}</p>")
@@ -182,7 +181,6 @@ https://robopirate.in
 
 Veer Baji Report: {a.get('report_vbv', 'Available on request')}
 Student Star Video: {a.get('video_star', 'Available on request')}
-Full Folder: {a.get('folder_vbv', 'Available on request')}
 Instagram: {a.get('video_ig', 'Available on request')}
 """,
 
@@ -245,9 +243,9 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <p style="font-size:12px;color:#7A8A8A;margin-bottom:8px;">See the model:</p>
-<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
-<a href="{a.get('brochure','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Brochure</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('report_1st_wsl','#')}" style="color:#006B6B;">Read the 1st WSL Report</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('brochure','#')}" style="color:#006B6B;">Brochure</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Veer Baji Workshop</a></strong></p>
 </div>""",
 
         3: f"""<p>Dear CSR Head,</p>
@@ -265,10 +263,8 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('report_vbv','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📊 Read the Veer Baji Report</a>
-<a href="{a.get('video_abp','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">ABP News</a>
-<a href="{a.get('video_star','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-right:8px;margin-bottom:8px;">Student Star Video</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('report_vbv','#')}" style="color:#006B6B;">Read the Veer Baji Report</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Baalgruh Workshop</a></strong></p>
 </div>""",
 
         5: f"""<p>Dear CSR Head,</p>
@@ -286,8 +282,8 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('video_wsl','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">🎥 Watch the Lab Video</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_wsl','#')}" style="color:#006B6B;">Watch the Lab Video</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Veer Baji Workshop</a></strong></p>
 </div>""",
 
         7: f"""<p>Dear CSR Head,</p>
@@ -300,13 +296,13 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>The government school gets a lab it could never afford. The government gets a program that runs itself. And the CSR team gets a project that doesn't die when the budget moves.</p>
 
-<p>If you want the full breakdown, I can send you the investment memo.</p>
+<p>If you want the full breakdown, I can send you the CSR proposal.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('brochure','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 Read the Investment Memo</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('proposal_5yr','#')}" style="color:#006B6B;">Read the CSR Proposal</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Sangli Divyang Workshop</a></strong></p>
 </div>""",
 
         10: f"""<p>Dear CSR Head,</p>
@@ -322,8 +318,8 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
-<a href="{a.get('profile','#')}" style="display:inline-block;background:#006B6B;color:#FFFFFF;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;margin-right:8px;margin-bottom:8px;">📄 See the Company Profile</a>
-<a href="{a.get('video_ig','#')}" style="display:inline;color:#5BD3D9;text-decoration:underline;font-size:12px;margin-bottom:8px;">Instagram</a>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('proposal_2nd','#')}" style="color:#006B6B;">See the CSR Proposal</a></strong></p>
+<p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_ig','#')}" style="color:#006B6B;">Instagram</a></strong></p>
 </div>"""
     }
     return contents.get(day, f"<p>Template content for Day {day}</p>")
@@ -347,9 +343,9 @@ Baban Jadhav
 Robo Pirate
 https://robopirate.in
 
-Veer Baji Report: {a.get('report_vbv', 'Available on request')}
+1st WSL Report: {a.get('report_1st_wsl', 'Available on request')}
 Brochure: {a.get('brochure', 'Available on request')}
-Instagram: {a.get('video_ig', 'Available on request')}
+Veer Baji Workshop: {a.get('video_ig', 'Available on request')}
 """,
 
         3: f"""Dear CSR Head,
@@ -370,9 +366,7 @@ Robo Pirate
 https://robopirate.in
 
 Veer Baji Report: {a.get('report_vbv', 'Available on request')}
-ABP News: {a.get('video_abp', 'Available on request')}
-Student Star Video: {a.get('video_star', 'Available on request')}
-Instagram: {a.get('video_ig', 'Available on request')}
+Baalgruh Workshop: {a.get('video_ig', 'Available on request')}
 """,
 
         5: f"""Dear CSR Head,
@@ -393,7 +387,7 @@ Robo Pirate
 https://robopirate.in
 
 WSL Video: {a.get('video_wsl', 'Available on request')}
-Instagram: {a.get('video_ig', 'Available on request')}
+Veer Baji Workshop: {a.get('video_ig', 'Available on request')}
 """,
 
         7: f"""Dear CSR Head,
@@ -406,15 +400,15 @@ The CSR covers Year 1. Years 2 through 5 are covered by government funds.
 
 The government school gets a lab it could never afford. The government gets a program that runs itself. And the CSR team gets a project that doesn't die when the budget moves.
 
-If you want the full breakdown, I can send you the investment memo.
+If you want the full breakdown, I can send you the CSR proposal.
 
 Regards,
 Baban Jadhav
 Robo Pirate
 https://robopirate.in
 
-Brochure: {a.get('brochure', 'Available on request')}
-Instagram: {a.get('video_ig', 'Available on request')}
+CSR Proposal: {a.get('proposal_5yr', 'Available on request')}
+Sangli Divyang Workshop: {a.get('video_ig', 'Available on request')}
 """,
 
         10: f"""Dear CSR Head,
@@ -432,7 +426,7 @@ Baban Jadhav
 Robo Pirate
 https://robopirate.in
 
-Company Profile: {a.get('profile', 'Available on request')}
+CSR Proposal: {a.get('proposal_2nd', 'Available on request')}
 Instagram: {a.get('video_ig', 'Available on request')}
 """
     }

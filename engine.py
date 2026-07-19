@@ -135,25 +135,24 @@ SEQUENCES = {
         "assets": {
             1: {
                 "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
+                "report_1st_wsl": "https://drive.google.com/file/d/1H7mHVTWGprbd4ZFSPoJZPeAc1nHnih3J/view",
                 "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "video_ig": "https://www.instagram.com/p/DTDBcsdk9FI/"
             },
             3: {
                 "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
-                "video_abp": "https://youtu.be/FJ2_W53WjmA",
-                "video_star": "https://youtube.com/watch?v=iziKPBSfGKU",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "video_ig": "https://www.instagram.com/p/DSSIy7nglXc/"
             },
             5: {
                 "video_wsl": "https://drive.google.com/file/d/1KPrC2IpdooxazGJiyVe79JgyWlJbOxzu/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "video_ig": "https://www.instagram.com/p/DTDBcsdk9FI/"
             },
             7: {
-                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "proposal_5yr": "https://drive.google.com/file/d/1mnmUNl1EkAmxjz7NVRGU2pmcHDrDUJMN/view",
+                "video_ig": "https://www.instagram.com/p/DMhEDutOrl-/"
             },
             10: {
-                "profile": "https://drive.google.com/file/d/1g9JJ4_VO_28QKYD7iVVDJZcv9l4uRbZu/view",
+                "proposal_2nd": "https://drive.google.com/file/d/1NdMn4J8DgWyoNMyTHUv2t2caP3wTYIkq/view",
                 "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
             }
         }
@@ -184,9 +183,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <td align="center" style="padding:20px 10px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:8px;overflow:hidden;">
 <tr>
-<td align="center" bgcolor="#006B6B" style="padding:12px 15px;">
-<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="Robo Pirate" width="80" style="display:block;max-width:100%;height:auto;border:0;">
-<div style="color:#FFFFFF;font-size:11px;margin-top:6px;letter-spacing:1px;font-weight:bold;">WE SMART LAB</div>
+<td align="center" bgcolor="#F5A623" style="padding:8px 15px;">
+<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="Robo Pirate" width="70" style="display:block;max-width:100%;height:auto;border:0;">
+<div style="color:#FFFFFF;font-size:12px;margin-top:4px;letter-spacing:1px;font-weight:bold;">WE SMART LAB</div>
 </td>
 </tr>
 <tr>
@@ -1961,7 +1960,7 @@ RoboPirate
         }
 
     # -- Test Send --
-    def test_send(self, email: str, seq_id: str, day: int) -> bool:
+    def test_send(self, email: str, seq_id: str, day: int, format: str = None, subject: str = None, body: str = None) -> bool:
         if seq_id not in SEQUENCES or day not in SEQUENCES[seq_id]["days"]:
             self._log("Invalid sequence or day")
             return False
@@ -1973,21 +1972,30 @@ RoboPirate
         if not tmpl or not (tmpl.get("subject") or "").strip():
             self._log("No valid template found")
             return False
-        fmt = tmpl.get("format") or "html"
-        if fmt == 'plain' and not (tmpl.get("text_body") or "").strip():
-            self._log("No plain text body found")
-            return False
-        if fmt != 'plain' and not (tmpl.get("html_body") or "").strip():
-            self._log("No HTML body found")
-            return False
+        # The editor toggle overrides the saved format so the test matches what is on screen
+        fmt = format if format in ("html", "plain") else (tmpl.get("format") or "html")
         try:
             body_text = tmpl.get("text_body") or self.html_to_text(tmpl.get("html_body", ""))
             body_html = tmpl.get("html_body", "")
+            if body and body.strip():
+                # Send exactly what the editor shows for the selected format
+                if fmt == 'plain':
+                    body_text = body
+                else:
+                    body_html = body
+                    body_text = self.html_to_text(body)
+            subj = (subject or "").strip() or tmpl["subject"]
             if fmt == 'plain':
-                self._send_with_retry(email, f"[Raj Test] {tmpl['subject']}", "", tmpl["text_body"], format='plain')
+                if not body_text.strip():
+                    self._log("No plain text body found")
+                    return False
+                self._send_with_retry(email, f"[Raj Test] {subj}", "", body_text, format='plain')
             else:
-                self._send_with_retry(email, f"[Raj Test] {tmpl['subject']}", body_html, body_text, format='html')
-            self._log(f"Test sent to {email}")
+                if not body_html.strip():
+                    self._log("No HTML body found")
+                    return False
+                self._send_with_retry(email, f"[Raj Test] {subj}", body_html, body_text, format='html')
+            self._log(f"Test sent to {email} ({fmt})")
             return True
         except Exception as e:
             self._log(f"Test failed: {e}")

@@ -925,7 +925,12 @@ def test_send_template(seq, day):
         email = data.get("email")
         if not email:
             return _err("Email required", 400)
-        ok = engine.test_send(email, seq, day)
+        ok = engine.test_send(
+            email, seq, day,
+            format=data.get("format"),
+            subject=data.get("subject"),
+            body=data.get("body"),
+        )
         return _ok({"sent": ok})
     except Exception as e:
         return _err(str(e), 500)

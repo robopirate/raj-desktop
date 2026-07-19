@@ -263,8 +263,16 @@
         const email = prompt('Send test email to:');
         if (!email) return;
         try {
-            await API.testSendTemplate(state.currentSeq, state.currentDay, email);
-            showToast('Test email sent', 'success');
+            const res = await API.testSendTemplate(state.currentSeq, state.currentDay, email, {
+                format: state.format,
+                subject: els.subject.value,
+                body: els.body.value,
+            });
+            if (res && res.sent) {
+                showToast(state.format === 'plain' ? 'Plain-text test email sent' : 'HTML test email sent', 'success');
+            } else {
+                showToast('Test send failed — check Raj log (Gmail connected? body empty?)', 'error');
+            }
         } catch (e) {
             showToast(e.message, 'error');
         }
