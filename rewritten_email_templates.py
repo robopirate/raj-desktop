@@ -23,7 +23,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Last week I visited three schools.</p>
 
-<p>In one, students were crowded around a robot they had built, testing it again and again. In another, the lesson had ended, but a few children stayed back to finish what they had started. The third school reminded me that every classroom has its own way of teaching.</p>
+<p>In one, students crowded around a robot they had built. In another, a few children stayed back after the lesson to finish what they had started. The third reminded me that every classroom teaches differently.</p>
 
 <p>The biggest difference wasn't the budget, the building, or even the students.</p>
 
@@ -31,11 +31,11 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>That's why we built WE Smart Lab.</p>
 
-<p>Not to add another subject to a school's timetable, but to create a space where students learn by building, experimenting and solving problems together.</p>
+<p>Not another subject on the timetable — a space where students learn by building and solving problems together.</p>
 
-<p>Since then, we've had the opportunity to bring the same approach to schools across 6 states. Today, more than 65,000 students learn through 85+ WE Smart Labs. One school I often think back to is Veer Baji Prabhu Vidyalay in Pune, where our first WE Smart Lab has now completed a full academic year of classes, projects and assessments.</p>
+<p>Since then, we've brought the same approach to schools across 6 states. Today, more than 65,000 students learn with us across 85+ schools. One I often think back to is Veer Baji Prabhu Vidyalay in Pune, where our first lab completed a full academic year.</p>
 
-<p>If you're interested, here's a short walkthrough of a working WE Smart Lab. I hope it gives you a feel for what students experience every week.</p>
+<p>If you're interested, here's a short walkthrough of a working lab.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -54,17 +54,17 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>One question comes up in almost every conversation I have with principals: how does WE Smart Lab fit with NEP?</p>
 
-<p>The answer is simpler than it is usually made to sound. NEP encourages experiential learning. It wants students to understand concepts by doing, not only by reading about them in a textbook.</p>
+<p>The answer is simpler than it sounds. NEP encourages experiential learning — concepts understood by doing, not only read in textbooks.</p>
 
-<p>That's exactly why we built WE Smart Lab. The lab sits inside your school and works alongside your regular teaching. It does not replace any class or teacher. It gives students a place to build, experiment and solve problems with their hands, while the concepts stay connected to what they learn in their classrooms.</p>
+<p>That's exactly why we built WE Smart Lab. It sits inside your school, works alongside regular teaching, and replaces no class or teacher. Students build and solve problems with their hands, tied to what they learn in class.</p>
 
-<p>After seeing how the lab works, schools usually ask a second question: how is student learning observed and documented?</p>
+<p>Schools then ask: how is learning documented?</p>
 
-<p>We keep a structured record for every child in the lab, including attendance, project completion and assessment outcomes.</p>
+<p>We keep a structured record for every child: attendance, projects, assessment outcomes.</p>
 
-<p>I've attached a specimen student assessment report so you can see the kind of learning records schools receive through WE Smart Lab.</p>
+<p>I've attached a specimen assessment report so you can see the records schools receive.</p>
 
-<p>If anything in the report raises a question, just reply to this email. I'll be happy to answer it.</p>
+<p>If it raises questions, just reply. I'm happy to answer.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -158,7 +158,7 @@ def _generate_school_text_content(day: int, assets: Dict[str, str]) -> str:
 
 Last week I visited three schools.
 
-In one, students were crowded around a robot they had built, testing it again and again. In another, the lesson had ended, but a few children stayed back to finish what they had started. The third school reminded me that every classroom has its own way of teaching.
+In one, students crowded around a robot they had built. In another, a few children stayed back after the lesson to finish what they had started. The third reminded me that every classroom teaches differently.
 
 The biggest difference wasn't the budget, the building, or even the students.
 
@@ -166,11 +166,11 @@ It was the kind of experiences they were getting inside the classroom.
 
 That's why we built WE Smart Lab.
 
-Not to add another subject to a school's timetable, but to create a space where students learn by building, experimenting and solving problems together.
+Not another subject on the timetable — a space where students learn by building and solving problems together.
 
-Since then, we've had the opportunity to bring the same approach to schools across 6 states. Today, more than 65,000 students learn through 85+ WE Smart Labs. One school I often think back to is Veer Baji Prabhu Vidyalay in Pune, where our first WE Smart Lab has now completed a full academic year of classes, projects and assessments.
+Since then, we've brought the same approach to schools across 6 states. Today, more than 65,000 students learn with us across 85+ schools. One I often think back to is Veer Baji Prabhu Vidyalay in Pune, where our first lab completed a full academic year.
 
-If you're interested, here's a short walkthrough of a working WE Smart Lab. I hope it gives you a feel for what students experience every week.
+If you're interested, here's a short walkthrough of a working lab.
 
 Regards,
 Baban Jadhav
@@ -186,17 +186,17 @@ ABP Majha Coverage: {a.get('video_abp', 'Available on request')}
 
 One question comes up in almost every conversation I have with principals: how does WE Smart Lab fit with NEP?
 
-The answer is simpler than it is usually made to sound. NEP encourages experiential learning. It wants students to understand concepts by doing, not only by reading about them in a textbook.
+The answer is simpler than it sounds. NEP encourages experiential learning — concepts understood by doing, not only read in textbooks.
 
-That's exactly why we built WE Smart Lab. The lab sits inside your school and works alongside your regular teaching. It does not replace any class or teacher. It gives students a place to build, experiment and solve problems with their hands, while the concepts stay connected to what they learn in their classrooms.
+That's exactly why we built WE Smart Lab. It sits inside your school, works alongside regular teaching, and replaces no class or teacher. Students build and solve problems with their hands, tied to what they learn in class.
 
-After seeing how the lab works, schools usually ask a second question: how is student learning observed and documented?
+Schools then ask: how is learning documented?
 
-We keep a structured record for every child in the lab, including attendance, project completion and assessment outcomes.
+We keep a structured record for every child: attendance, projects, assessment outcomes.
 
-I've attached a specimen student assessment report so you can see the kind of learning records schools receive through WE Smart Lab.
+I've attached a specimen assessment report so you can see the records schools receive.
 
-If anything in the report raises a question, just reply to this email. I'll be happy to answer it.
+If it raises questions, just reply. I'm happy to answer.
 
 Regards,
 Baban Jadhav
@@ -287,23 +287,19 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Our first WE Smart Lab began as a one-year CSR project.</p>
 
-<p>Our goal was to create a space where students could build, experiment, and learn STEM through hands-on experiences inside their own school.</p>
+<p>Our goal was a space where students could build, experiment and learn STEM hands-on inside their own school. Over the year, it became where students explored robotics, coding and AI.</p>
 
-<p>Over the course of the academic year, the lab became an active learning space where students explored robotics, coding, AI and STEM through hands-on activities.</p>
-
-<p>By the end of the academic year, the project had achieved what we set out to do. Yet one question remained.</p>
+<p>By year-end, the project had achieved what we set out to do. Yet one question remained.</p>
 
 <p>What happens after Year 1?</p>
 
-<p>That question challenged many of our own assumptions and eventually changed the way we think about CSR-funded STEM education.</p>
+<p>The answer to that question shaped everything we've built since. What started in a college robotics club in 2018 — through years of kits, curricula and classrooms — is today the WE Smart Lab model, working with 85+ schools across 6 states, where more than 65,000 students learn. The first of those labs ran its full academic year with CSR support from Cummins.</p>
 
-<p>The answer to that question shaped every WE Smart Lab we've built since. Since 2020, it has grown into 85+ labs across 6 states, where more than 65,000 students now learn.</p>
-
-<p>If you'd like to know more about Robo Pirate and understand how WE Smart Lab works, I'd invite you to explore the attached brochure.</p>
+<p>If you'd like to know who we are and how the lab works, the attached brochure is a good place to start.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
-<p style="font-size:13px;color:#7A8A8A;">P.S. 85+ labs, 65,000 students, 6 states — but it started with one classroom in Pune.</p>
+<p style="font-size:13px;color:#7A8A8A;">P.S. 85+ schools, 65,000+ students, 6 states — but it started with one classroom in Pune.</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -315,23 +311,21 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         3: f"""<p>Dear CSR Head,</p>
 
-<p>In my previous email, I shared the question that stayed with us after completing our first WE Smart Lab:</p>
+<p>In my previous email, I shared the question that stayed with us after our first WE Smart Lab:</p>
 
 <p>What happens after Year 1?</p>
 
-<p>Before we could answer it, we found ourselves looking back at where it all began.</p>
+<p>That lab was never just equipment. It was a space where students could explore, build and discover through hands-on STEM.</p>
 
-<p>Our first WE Smart Lab wasn't just about installing equipment. It was about creating a learning space where students could explore, build, experiment and discover through hands-on STEM education.</p>
+<p>Impact, we learned, isn't measured on installation day. It is what happens in the classroom every day after.</p>
 
-<p>Seeing students engage with it reminded us that meaningful impact isn't measured by installation alone. It is shaped by what happens inside the classroom every single day.</p>
-
-<p>By the middle of the year, the lab had become part of the school's week. Students looked forward to their sessions, and teachers planned around them. That is exactly what made one question impossible to ignore: when something works this well, what happens when the year ends?</p>
+<p>By mid-year, the lab was part of the school's week. Students looked forward to sessions; teachers planned around them. Which made one question unavoidable: when something works this well, what happens when the year ends?</p>
 
 <p style="margin:0 0 16px;padding:12px 16px;border-left:3px solid #FFD400;background-color:#F5F9F9;font-style:italic;">"[FILL: TEACHER QUOTE — 2 lines max]"<br><span style="font-style:normal;font-weight:bold;font-size:13px;">— [FILL: TEACHER NAME], [FILL: DESIGNATION], Veer Baji Prabhu Vidyalay, Pune</span></p>
 
-<p>If you're curious to see that first WE Smart Lab in action, we've shared a short video below.</p>
+<p>Here is a short video of that lab in action.</p>
 
-<p>In my next email, I'll share the answer we arrived at, and why it changed the way every WE Smart Lab is designed today.</p>
+<p>Next email: the answer we arrived at, and how it changed every lab we've designed since.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -346,25 +340,21 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         5: f"""<p>Dear CSR Head,</p>
 
-<p>In my previous email, I shared a glimpse of our first WE Smart Lab.</p>
+<p>My last email was a glimpse of our first lab.</p>
 
-<p>Completing that first year taught us something we had not expected. The lab worked. Students were learning, teachers were engaged, and the school wanted more.</p>
+<p>That first year taught us something unexpected: the lab worked, and the school wanted more.</p>
 
-<p>That is when the real lesson became clear: lasting impact requires lasting ownership.</p>
+<p>The lesson: lasting impact requires lasting ownership.</p>
 
-<p>A lab that runs entirely on one year of CSR support has an expiry date. So we redesigned the model. In every WE Smart Lab that followed, the CSR partner makes Year 1 possible — and the school's own elected corporator commits the next four years through ward development funds, written into the same agreement the CSR partner signs.</p>
+<p>A lab running on one year of CSR support has an expiry date. So we redesigned it: the CSR partner makes Year 1 possible, and the school's elected corporator commits the next four years through ward development funds, written into the same agreement.</p>
 
-<p>Same lab. Same students. But instead of a one-year project, it becomes a five-year programme with shared ownership.</p>
+<p>Same lab, same students — but a five-year programme, not a one-year project.</p>
 
-<p>For a CSR partner, that means every rupee of Year-1 support is matched four times over. Your funding doesn't buy a project — it unlocks a programme.</p>
+<p>For a CSR partner, every rupee of Year-1 support is matched four times over. Funding doesn't buy a project — it unlocks a programme.</p>
 
-<p>This insight transformed how we implement. And because we believe in showing our work, we documented the entire first year—the implementation, classroom activities, student learning and outcomes—in our Transparency Report.</p>
+<p>Attached: the full story of that first year, and the Transparency Report documenting it. We'd rather show than tell.</p>
 
-<p>We've also attached the complete story of that first WE Smart Lab.</p>
-
-<p>Rather than telling you what we learned, we'd prefer to share the project exactly as it happened.</p>
-
-<p>In my next email, I'll show you what this model made possible across other schools and communities.</p>
+<p>Next email: what that made possible across other schools and communities.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -383,21 +373,21 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         7: f"""<p>Dear CSR Head,</p>
 
-<p>In my previous email, I shared the lesson that reshaped our work: lasting impact needs lasting ownership.</p>
+<p>My last email shared the lesson that reshaped our work: lasting impact needs lasting ownership.</p>
 
-<p>That lesson became the foundation for every WE Smart Lab that followed.</p>
+<p>It became the foundation of every lab that followed.</p>
 
 <p>So, does the model actually work at scale?</p>
 
-<p>One example is our implementation in Sangli, run in association with the District Collector, Sangli and the Worship Earth Foundation, where the project expanded in phases to reach more students while adapting to local needs. What began as a pilot continued into Phase II, with 11 more institutions joining the programme.</p>
+<p>One example: our Sangli initiative, run with the District Collector, Sangli and the Worship Earth Foundation. The pilot continued into Phase II, with 11 more institutions joining.</p>
 
-<p>We've also had the privilege of conducting STEM learning experiences with Divyang students, reinforcing our belief that hands-on learning should be accessible to every child.</p>
+<p>We also ran STEM sessions for Divyang students — hands-on learning should be reachable for every child.</p>
 
-<p>The initiative was covered independently by local media organisations, which meant the story reached people beyond us.</p>
+<p>Local media covered it independently.</p>
 
-<p>We've attached the Sangli project report, along with a few short videos and independent media coverage that showcase these initiatives.</p>
+<p>The Sangli report, short videos and media coverage are below.</p>
 
-<p>In my final email, I'll share how your organisation can be part of this model.</p>
+<p>Final email next: how your organisation can be part of this model.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -420,27 +410,19 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         10: f"""<p>Dear CSR Head,</p>
 
-<p>Over the past few emails, I've shared the journey of WE Smart Lab—from our first implementation to the lesson that reshaped it, and the communities now proving it at scale.</p>
+<p>Over these emails, I've shared our journey — first lab, key lessons, and the model proven at scale.</p>
 
-<p>Every project has reinforced one belief:</p>
+<p>One belief: meaningful STEM education isn't created by installing equipment alone. It grows through engagement, teacher support, and a model built to outlast Year 1.</p>
 
-<p>Meaningful STEM education isn't created by installing equipment alone.</p>
+<p>If you're exploring CSR in education, we'd be glad to explore the fit with your goals.</p>
 
-<p>It grows through consistent engagement, hands-on learning, teacher support, and a model designed to keep running long after the first year ends.</p>
+<p>A complete first year — lab, dedicated instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the attached proposal. Your organisation funds one year. The model carries it for five.</p>
 
-<p>If your organisation is exploring CSR initiatives in education, we'd be delighted to explore how this model can be adapted to your goals and the communities you serve.</p>
+<p>If it aligns with your CSR objectives, reply here — or call me on +91 91368 99925.</p>
 
-<p>A complete first year — lab setup, a dedicated trained instructor, grade-wise curriculum, assessments and reporting — is a ₹12 lakh CSR commitment per school, fully itemised in the attached partnership proposal.</p>
+<p>Near Pune? I'd rather show you than tell you — reply and I'll arrange a 30-minute visit to a running lab.</p>
 
-<p>And it is built on the model you've read about: your organisation funds one year. The model carries it for five.</p>
-
-<p>If the proposal aligns with your CSR objectives, just reply to this email — or reach me directly on +91 91368 99925.</p>
-
-<p>And if you're in or around Pune, I'd rather show you than tell you. Reply and I'll arrange a 30-minute visit to a running WE Smart Lab this month.</p>
-
-<p>Thank you for taking the time to follow our journey.</p>
-
-<p>We hope it has offered a clear picture of what WE Smart Lab stands for and the impact we aspire to create with every partnership.</p>
+<p>Thank you for following our journey. We hope it showed what we stand for.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -466,19 +448,15 @@ def _generate_csr_wsl5_text_content(day: int, assets: Dict[str, str]) -> str:
 
 Our first WE Smart Lab began as a one-year CSR project.
 
-Our goal was to create a space where students could build, experiment, and learn STEM through hands-on experiences inside their own school.
+Our goal was a space where students could build, experiment and learn STEM hands-on inside their own school. Over the year, it became where students explored robotics, coding and AI.
 
-Over the course of the academic year, the lab became an active learning space where students explored robotics, coding, AI and STEM through hands-on activities.
-
-By the end of the academic year, the project had achieved what we set out to do. Yet one question remained.
+By year-end, the project had achieved what we set out to do. Yet one question remained.
 
 What happens after Year 1?
 
-That question challenged many of our own assumptions and eventually changed the way we think about CSR-funded STEM education.
+The answer to that question shaped everything we've built since. What started in a college robotics club in 2018 — through years of kits, curricula and classrooms — is today the WE Smart Lab model, working with 85+ schools across 6 states, where more than 65,000 students learn. The first of those labs ran its full academic year with CSR support from Cummins.
 
-The answer to that question shaped every WE Smart Lab we've built since. Since 2020, it has grown into 85+ labs across 6 states, where more than 65,000 students now learn.
-
-If you'd like to know more about Robo Pirate and understand how WE Smart Lab works, I'd invite you to explore the attached brochure.
+If you'd like to know who we are and how the lab works, the attached brochure is a good place to start.
 
 Regards,
 Baban Jadhav
@@ -486,31 +464,29 @@ Program Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
-P.S. 85+ labs, 65,000 students, 6 states — but it started with one classroom in Pune.
+P.S. 85+ schools, 65,000+ students, 6 states — but it started with one classroom in Pune.
 
 Explore the WE Smart Lab Brochure: {a.get('brochure', 'Available on request')}
 """,
 
         3: f"""Dear CSR Head,
 
-In my previous email, I shared the question that stayed with us after completing our first WE Smart Lab:
+In my previous email, I shared the question that stayed with us after our first WE Smart Lab:
 
 What happens after Year 1?
 
-Before we could answer it, we found ourselves looking back at where it all began.
+That lab was never just equipment. It was a space where students could explore, build and discover through hands-on STEM.
 
-Our first WE Smart Lab wasn't just about installing equipment. It was about creating a learning space where students could explore, build, experiment and discover through hands-on STEM education.
+Impact, we learned, isn't measured on installation day. It is what happens in the classroom every day after.
 
-Seeing students engage with it reminded us that meaningful impact isn't measured by installation alone. It is shaped by what happens inside the classroom every single day.
-
-By the middle of the year, the lab had become part of the school's week. Students looked forward to their sessions, and teachers planned around them. That is exactly what made one question impossible to ignore: when something works this well, what happens when the year ends?
+By mid-year, the lab was part of the school's week. Students looked forward to sessions; teachers planned around them. Which made one question unavoidable: when something works this well, what happens when the year ends?
 
 "[FILL: TEACHER QUOTE — 2 lines max]"
 — [FILL: TEACHER NAME], [FILL: DESIGNATION], Veer Baji Prabhu Vidyalay, Pune
 
-If you're curious to see that first WE Smart Lab in action, we've shared a short video below.
+Here is a short video of that lab in action.
 
-In my next email, I'll share the answer we arrived at, and why it changed the way every WE Smart Lab is designed today.
+Next email: the answer we arrived at, and how it changed every lab we've designed since.
 
 Regards,
 Baban Jadhav
@@ -525,25 +501,21 @@ Trouble opening the link? Reply to this email and I'll send the video directly.
 
         5: f"""Dear CSR Head,
 
-In my previous email, I shared a glimpse of our first WE Smart Lab.
+My last email was a glimpse of our first lab.
 
-Completing that first year taught us something we had not expected. The lab worked. Students were learning, teachers were engaged, and the school wanted more.
+That first year taught us something unexpected: the lab worked, and the school wanted more.
 
-That is when the real lesson became clear: lasting impact requires lasting ownership.
+The lesson: lasting impact requires lasting ownership.
 
-A lab that runs entirely on one year of CSR support has an expiry date. So we redesigned the model. In every WE Smart Lab that followed, the CSR partner makes Year 1 possible — and the school's own elected corporator commits the next four years through ward development funds, written into the same agreement the CSR partner signs.
+A lab running on one year of CSR support has an expiry date. So we redesigned it: the CSR partner makes Year 1 possible, and the school's elected corporator commits the next four years through ward development funds, written into the same agreement.
 
-Same lab. Same students. But instead of a one-year project, it becomes a five-year programme with shared ownership.
+Same lab, same students — but a five-year programme, not a one-year project.
 
-For a CSR partner, that means every rupee of Year-1 support is matched four times over. Your funding doesn't buy a project — it unlocks a programme.
+For a CSR partner, every rupee of Year-1 support is matched four times over. Funding doesn't buy a project — it unlocks a programme.
 
-This insight transformed how we implement. And because we believe in showing our work, we documented the entire first year—the implementation, classroom activities, student learning and outcomes—in our Transparency Report.
+Attached: the full story of that first year, and the Transparency Report documenting it. We'd rather show than tell.
 
-We've also attached the complete story of that first WE Smart Lab.
-
-Rather than telling you what we learned, we'd prefer to share the project exactly as it happened.
-
-In my next email, I'll show you what this model made possible across other schools and communities.
+Next email: what that made possible across other schools and communities.
 
 Regards,
 Baban Jadhav
@@ -557,21 +529,21 @@ View the Transparency Report: {a.get('report_vbv', 'Available on request')}
 
         7: f"""Dear CSR Head,
 
-In my previous email, I shared the lesson that reshaped our work: lasting impact needs lasting ownership.
+My last email shared the lesson that reshaped our work: lasting impact needs lasting ownership.
 
-That lesson became the foundation for every WE Smart Lab that followed.
+It became the foundation of every lab that followed.
 
 So, does the model actually work at scale?
 
-One example is our implementation in Sangli, run in association with the District Collector, Sangli and the Worship Earth Foundation, where the project expanded in phases to reach more students while adapting to local needs. What began as a pilot continued into Phase II, with 11 more institutions joining the programme.
+One example: our Sangli initiative, run with the District Collector, Sangli and the Worship Earth Foundation. The pilot continued into Phase II, with 11 more institutions joining.
 
-We've also had the privilege of conducting STEM learning experiences with Divyang students, reinforcing our belief that hands-on learning should be accessible to every child.
+We also ran STEM sessions for Divyang students — hands-on learning should be reachable for every child.
 
-The initiative was covered independently by local media organisations, which meant the story reached people beyond us.
+Local media covered it independently.
 
-We've attached the Sangli project report, along with a few short videos and independent media coverage that showcase these initiatives.
+The Sangli report, short videos and media coverage are below.
 
-In my final email, I'll share how your organisation can be part of this model.
+Final email next: how your organisation can be part of this model.
 
 Regards,
 Baban Jadhav
@@ -593,27 +565,19 @@ Worship Earth: {a.get('video_we', 'Available on request')}
 
         10: f"""Dear CSR Head,
 
-Over the past few emails, I've shared the journey of WE Smart Lab—from our first implementation to the lesson that reshaped it, and the communities now proving it at scale.
+Over these emails, I've shared our journey — first lab, key lessons, and the model proven at scale.
 
-Every project has reinforced one belief:
+One belief: meaningful STEM education isn't created by installing equipment alone. It grows through engagement, teacher support, and a model built to outlast Year 1.
 
-Meaningful STEM education isn't created by installing equipment alone.
+If you're exploring CSR in education, we'd be glad to explore the fit with your goals.
 
-It grows through consistent engagement, hands-on learning, teacher support, and a model designed to keep running long after the first year ends.
+A complete first year — lab, dedicated instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the attached proposal. Your organisation funds one year. The model carries it for five.
 
-If your organisation is exploring CSR initiatives in education, we'd be delighted to explore how this model can be adapted to your goals and the communities you serve.
+If it aligns with your CSR objectives, reply here — or call me on +91 91368 99925.
 
-A complete first year — lab setup, a dedicated trained instructor, grade-wise curriculum, assessments and reporting — is a ₹12 lakh CSR commitment per school, fully itemised in the attached partnership proposal.
+Near Pune? I'd rather show you than tell you — reply and I'll arrange a 30-minute visit to a running lab.
 
-And it is built on the model you've read about: your organisation funds one year. The model carries it for five.
-
-If the proposal aligns with your CSR objectives, just reply to this email — or reach me directly on +91 91368 99925.
-
-And if you're in or around Pune, I'd rather show you than tell you. Reply and I'll arrange a 30-minute visit to a running WE Smart Lab this month.
-
-Thank you for taking the time to follow our journey.
-
-We hope it has offered a clear picture of what WE Smart Lab stands for and the impact we aspire to create with every partnership.
+Thank you for following our journey. We hope it showed what we stand for.
 
 Regards,
 Baban Jadhav
