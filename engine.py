@@ -48,6 +48,7 @@ try:
         _generate_csr_wsl5_content as _new_csr_wsl5_content,
         _generate_csr_wsl5_text_content as _new_csr_wsl5_text_content,
         REWRITTEN_SUBJECTS,
+        PREHEADERS,
     )
     REWRITTEN_TEMPLATES_AVAILABLE = True
 except ImportError:
@@ -63,29 +64,27 @@ SEQUENCES = {
         "assets": {
             1: {
                 "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_wsl": "https://drive.google.com/file/d/1KPrC2IpdooxazGJiyVe79JgyWlJbOxzu/view",
+                "video_wsl": "https://www.instagram.com/p/DTDBcsdk9FI/",
                 "video_abp": "https://youtu.be/FJ2_W53WjmA",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "video_ig": "https://www.instagram.com/robo.pirate/"
             },
             3: {
-                "video_abp": "https://youtu.be/FJ2_W53WjmA",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
+                "video_abp": "https://youtu.be/FJ2_W53WjmA"
             },
             5: {
-                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
-                "video_star": "https://youtube.com/watch?v=iziKPBSfGKU",
-                "folder_vbv": "https://drive.google.com/drive/folders/1tWu3zrH0zIjJbkfS3hX0tnKXQY-9HTgN",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "report_1st_wsl": "https://drive.google.com/file/d/1H7mHVTWGprbd4ZFSPoJZPeAc1nHnih3J/view"
             },
             7: {
-                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_abp": "https://youtu.be/FJ2_W53WjmA",
-                "video_star": "https://youtube.com/watch?v=iziKPBSfGKU",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "report_sangli1": "https://drive.google.com/file/d/1HpNdnamA2k3H0xkKr58STEKMNu5RgHPx/view",
+                "video_abp": "https://youtu.be/FJ2_W53WjmA?si=ZFAr_bp_xU2Sduwr",
+                "video_star": "https://www.youtube.com/watch?v=iziKPBSfGKU",
+                "video_bandhuta": "https://www.youtube.com/watch?v=xVmaBnPyg9A",
+                "video_sbn": "https://www.youtube.com/watch?v=d-TsgUkhIu0",
+                "video_we": "https://www.instagram.com/reel/DMe2HzqofAk/?igsh=c201ZGxsOGFlMjJj"
             },
             10: {
-                "plans": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "plans": "https://drive.google.com/file/d/1p2CyHVZK_giZj0KNDGTTs_-s7HxVnQ_C/view"
             }
         }
     },
@@ -134,26 +133,27 @@ SEQUENCES = {
         "persona": "csr",
         "assets": {
             1: {
-                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
-                "report_1st_wsl": "https://drive.google.com/file/d/1H7mHVTWGprbd4ZFSPoJZPeAc1nHnih3J/view",
-                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_ig": "https://www.instagram.com/p/DTDBcsdk9FI/"
+                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view"
             },
             3: {
-                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
-                "video_ig": "https://www.instagram.com/p/DSSIy7nglXc/"
+                "video_wsl": "https://www.instagram.com/p/DTDBcsdk9FI/"
             },
             5: {
-                "video_wsl": "https://drive.google.com/file/d/1KPrC2IpdooxazGJiyVe79JgyWlJbOxzu/view",
-                "video_ig": "https://www.instagram.com/p/DTDBcsdk9FI/"
+                "report_1st_wsl": "https://drive.google.com/file/d/1H7mHVTWGprbd4ZFSPoJZPeAc1nHnih3J/view",
+                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view"
             },
             7: {
-                "proposal_5yr": "https://drive.google.com/file/d/1mnmUNl1EkAmxjz7NVRGU2pmcHDrDUJMN/view",
-                "video_ig": "https://www.instagram.com/p/DMhEDutOrl-/"
+                "report_sangli": "https://drive.google.com/file/d/1pKSm1WPlPk-we4aC-uhqxEy8w-BYygSN/view",
+                "video_divyang": "https://www.instagram.com/p/DMhEDutOrl-/",
+                "video_gruh": "https://www.instagram.com/p/DSSIy7nglXc/",
+                "video_abp": "https://youtu.be/FJ2_W53WjmA",
+                "video_star": "https://www.youtube.com/watch?v=iziKPBSfGKU",
+                "video_bandhuta": "https://www.youtube.com/watch?v=xVmaBnPyg9A",
+                "video_sbn": "https://www.youtube.com/watch?v=d-TsgUkhIu0",
+                "video_we": "https://www.instagram.com/reel/DMe2HzqofAk/"
             },
             10: {
-                "proposal_2nd": "https://drive.google.com/file/d/1NdMn4J8DgWyoNMyTHUv2t2caP3wTYIkq/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
+                "proposal_2nd": "https://drive.google.com/file/d/1NdMn4J8DgWyoNMyTHUv2t2caP3wTYIkq/view"
             }
         }
     }
@@ -178,16 +178,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <title>Robo Pirate - WE Smart Lab</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F5F9F9;font-family:Arial,Helvetica,sans-serif;color:#333333;">
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">{preheader}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F5F9F9">
 <tr>
 <td align="center" style="padding:20px 10px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:8px;overflow:hidden;">
 <tr>
-<td align="center" bgcolor="#F5A623" style="padding:8px 15px;">
-<img src="https://robopirate.in/assets/logo-CCM9tiYQ.png" alt="Robo Pirate" width="70" style="display:block;max-width:100%;height:auto;border:0;">
-<div style="color:#FFFFFF;font-size:12px;margin-top:4px;letter-spacing:1px;font-weight:bold;">WE SMART LAB</div>
+<td align="center" bgcolor="#FF2E88" style="padding:8px 20px;">
+<img src="https://drive.google.com/thumbnail?id=1krjWmmgui9h1V6MRWKOLsXP2JpBfPrFk&amp;sz=w1000" alt="WE Smart Lab" width="265" style="display:block;max-width:100%;height:auto;border:0;">
 </td>
 </tr>
+<tr><td bgcolor="#FFD400" style="height:4px;line-height:4px;font-size:0;background:linear-gradient(90deg,#FFD400,#9333EA);">&nbsp;</td></tr>
 <tr>
 <td style="padding:30px 25px;font-size:15px;line-height:1.6;color:#333333;">
 {body}
@@ -195,9 +196,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </tr>
 <tr>
 <td style="padding:15px 25px;background-color:#F5F9F9;border-top:1px solid #E0E8E8;text-align:center;font-size:12px;color:#7A8A8A;line-height:1.4;">
-Robo Pirate, Baner - Mahalunge Rd, opp. of shreeram sankul NXT to Euphoria bunglow,<br>
-Baner Gaon, Baner, Pune, Maharashtra 411045, India · Phone: +91 91368 99925<br>
-Unsubscribe: reply STOP
+Robo Pirate, Baner–Mahalunge Road, Opp. Shreeram Sankul, Next to Euphoria Bungalow,<br>
+Baner Gaon, Baner, Pune, Maharashtra 411045, India · Phone: +91 91368 99925 · info@robopirate.in<br>
+To stop receiving these emails, reply STOP and we will remove you within 48 hours.
 </td>
 </tr>
 </table>
@@ -1120,8 +1121,9 @@ class CampaignEngine:
         content_html = self._generate_content(seq_id, day, assets)
         content_text = self._generate_text_content(seq_id, day, assets)
         subject = self._generate_subject(seq_id, day)
+        preheader = PREHEADERS.get(seq_id, {}).get(day, "") if REWRITTEN_TEMPLATES_AVAILABLE else ""
 
-        html = HTML_TEMPLATE.format(body=content_html)
+        html = HTML_TEMPLATE.replace("{body}", content_html).replace("{preheader}", preheader)
 
         return {
             "subject": subject,

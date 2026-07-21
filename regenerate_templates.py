@@ -30,18 +30,18 @@ def main():
     # Descriptive file names per sequence/day
     file_names = {
         "school": {
-            1: "01_Introduction",
-            3: "02_NEP_Positioning",
-            5: "03_VeerBaji_CaseStudy",
-            7: "04_85Plus_Principals",
-            10: "05_FinalCall",
+            1: "01_A_Classroom_I_Couldnt_Stop_Thinking_About",
+            3: "02_How_WE_Smart_Lab_Fits_With_NEP",
+            5: "03_What_A_Full_Academic_Year_Taught_Us",
+            7: "04_When_Meaningful_Work_Is_Noticed",
+            10: "05_What_Bringing_WSL_To_Your_School_Would_Involve",
         },
         "csr-wsl-5": {
-            1: "01_5Year_Model",
-            3: "02_Full_Academic_Year",
-            5: "03_Trainer_Story",
-            7: "04_Math_Breakdown",
-            10: "05_Final_Call",
+            1: "01_What_Happens_After_Year_1",
+            3: "02_Looking_Back_At_Where_It_Began",
+            5: "03_What_We_Discovered_After_Year_1",
+            7: "04_When_The_Work_Grew_Beyond_One_School",
+            10: "05_An_Invitation_To_Partner",
         },
     }
 
