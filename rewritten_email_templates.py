@@ -321,8 +321,6 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>By mid-year, the lab was part of the school's week. Students looked forward to sessions; teachers planned around them. Which made one question unavoidable: when something works this well, what happens when the year ends?</p>
 
-<p style="margin:0 0 16px;padding:12px 16px;border-left:3px solid #FFD400;background-color:#F5F9F9;font-style:italic;">"[FILL: TEACHER QUOTE — 2 lines max]"<br><span style="font-style:normal;font-weight:bold;font-size:13px;">— [FILL: TEACHER NAME], [FILL: DESIGNATION], Veer Baji Prabhu Vidyalay, Pune</span></p>
-
 <p>Here is a short video of that lab in action.</p>
 
 <p>Next email: the answer we arrived at, and how it changed every lab we've designed since.</p>
@@ -414,17 +412,15 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Over these emails, I've shared our journey.</p>
 
-<p>A complete first year — lab, instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.</p>
+<p>A complete first year — lab, instructor, curriculum, assessments, reporting — starts at a ₹12 lakh CSR commitment per school — whether for one school or a six-school district pilot — itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.</p>
 
-<p>The model is endorsed by PCMC's Samaj Vikas Vibhag, and a Letter of Intent for a 6-school pilot is already in process.</p>
+<p>The model is endorsed by PCMC's Samaj Vikas Vibhag; a 6-school pilot Letter of Intent is already in process.</p>
 
-<p>If it aligns, reply here — or call +91 91368 99925.</p>
+<p>If it aligns, reply — or call +91 91368 99925.</p>
 
 <p>Near Pune? Reply and I'll arrange a 30-minute lab visit.</p>
 
 <p>Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By the time a partnership like this is signed, she'll be in Grade 5. By 2030, she could graduate with a five-year STEM portfolio in her hand. Let's not make her wait another year.</p>
-
-<p>Thank you for following our journey.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -482,9 +478,6 @@ That lab was never just equipment. It was a space where students could explore, 
 Impact, we learned, isn't measured on installation day. It is what happens in the classroom every day after.
 
 By mid-year, the lab was part of the school's week. Students looked forward to sessions; teachers planned around them. Which made one question unavoidable: when something works this well, what happens when the year ends?
-
-"[FILL: TEACHER QUOTE — 2 lines max]"
-— [FILL: TEACHER NAME], [FILL: DESIGNATION], Veer Baji Prabhu Vidyalay, Pune
 
 Here is a short video of that lab in action.
 
@@ -571,17 +564,15 @@ Worship Earth: {a.get('video_we', 'Available on request')}
 
 Over these emails, I've shared our journey.
 
-A complete first year — lab, instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.
+A complete first year — lab, instructor, curriculum, assessments, reporting — starts at a ₹12 lakh CSR commitment per school — whether for one school or a six-school district pilot — itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.
 
-The model is endorsed by PCMC's Samaj Vikas Vibhag, and a Letter of Intent for a 6-school pilot is already in process.
+The model is endorsed by PCMC's Samaj Vikas Vibhag; a 6-school pilot Letter of Intent is already in process.
 
-If it aligns, reply here — or call +91 91368 99925.
+If it aligns, reply — or call +91 91368 99925.
 
 Near Pune? Reply and I'll arrange a 30-minute lab visit.
 
 Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By the time a partnership like this is signed, she'll be in Grade 5. By 2030, she could graduate with a five-year STEM portfolio in her hand. Let's not make her wait another year.
-
-Thank you for following our journey.
 
 Regards,
 Baban Jadhav
