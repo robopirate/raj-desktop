@@ -37,7 +37,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>If you're interested, here's a short walkthrough of a working lab.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -48,6 +48,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 <p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('brochure','#')}" style="color:#9333EA;">WE Smart Lab Brochure</a></strong></p>
 <p style="margin:0 0 6px;font-size:14px;"><strong><a href="{a.get('video_abp','#')}" style="color:#9333EA;">ABP Majha Coverage</a></strong></p>
 <p style="margin:0 0 6px;font-size:14px;"><strong><a href="https://robopirate.in" style="color:#9333EA;">robopirate.in</a></strong></p>
+<p style="margin:6px 0 0;font-size:13px;color:#7A8A8A;">Prefer to talk? WhatsApp or call me directly on +91 91368 99925.</p>
 </div>""",
 
         3: f"""<p>Dear Principal,</p>
@@ -58,6 +59,8 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>That's exactly why we built WE Smart Lab. It sits inside your school, works alongside regular teaching, and replaces no class or teacher. Students build and solve problems with their hands, tied to what they learn in class.</p>
 
+<p>The curriculum runs from Std 1 to Std 9 with grade-wise kits, and works alongside your existing board syllabus — CBSE, ICSE or State Board.</p>
+
 <p>Schools then ask: how is learning documented?</p>
 
 <p>We keep a structured record for every child: attendance, projects, assessment outcomes.</p>
@@ -66,7 +69,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>If it raises questions, just reply. I'm happy to answer.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -82,17 +85,19 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>A year is long enough to know whether something truly belongs in a school.</p>
 
-<p>The real test is what happens in month eight, when the novelty is gone and the timetable takes over.</p>
+<p>The real test is month eight, when the novelty is gone and the timetable takes over.</p>
 
-<p>Our first WE Smart Lab at Veer Baji Prabhu Vidyalay in Pune has now completed a full academic year. It became a regular part of the school's timetable, and students consistently participated in projects and assessments.</p>
+<p>Our first WE Smart Lab at Veer Baji Prabhu Vidyalay in Pune has completed a full academic year as a regular timetable subject, with students consistently in projects and assessments.</p>
 
 <p>That consistency is what we were hoping for when we set up our first lab.</p>
 
 <p>We documented the full year in the First WE Smart Lab Annual Report. We share it with schools that want to see how the lab works over time, not just how it starts.</p>
 
+<p>Inside the report you'll find:</p>
+<p style="margin:0 0 12px;padding-left:18px;">• How the lab ran as a regular timetable subject, week after week<br>• Student project records and completion across grades<br>• Assessment outcomes and how learning was tracked per child</p>
 <p>Here it is.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -113,9 +118,11 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>The initiative was also covered independently by local media organisations, which meant the story reached people beyond us.</p>
 
+<p>The same team, curriculum and delivery model runs inside private schools through our annual subscription. In my next email, I'll share exactly what that looks like — including what it costs.</p>
+
 <p>If you would like to see what the initiative looked like in practice, the report is below.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -129,15 +136,25 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
         10: f"""<p>Dear Principal,</p>
 
-<p>Over these emails, I have shared why we built WE Smart Lab, how learning is documented, what a full year looks like, and how the work has been noticed beyond us.</p>
+<p>What would it take to bring WE Smart Lab to {{SCHOOL_NAME}}?</p>
 
-<p>If you're wondering what bringing WE Smart Lab to your school would involve, the Subscription Overview is a good place to start.</p>
+<p>Less than most schools expect.</p>
 
-<p>It outlines how implementation works, what your school receives, the support we provide through the year, and how the subscription is structured.</p>
+<p>A complete WE Smart Lab — infrastructure, grade-wise kits for Std 1–9, a dedicated full-time instructor on campus, weekly sessions, assessments, and parent-ready progress reports — starts at ₹1,600 per student/year — about ₹135 a month per child.</p>
 
-<p>If you would like to discuss whether WE Smart Lab is a good fit for {{SCHOOL_NAME}}, I am happy to talk it through.</p>
+<p>Everything included. No hidden charges.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Three configurations:</p>
+
+<p style="margin:0 0 12px;padding-left:18px;">• <strong>WSL20</strong> — up to 400 students, 1 dedicated trainer — ₹2,050 per student/year<br>• <strong>WSL30</strong> — up to 600 students, 1 dedicated trainer — ₹1,700 per student/year<br>• <strong>WSL30 V.2</strong> — up to 800 students, 2 dedicated trainers — ₹1,600 per student/year</p>
+
+<p>Pre-primary? Our Happy Hands-On program covers ages 4–6 — one partner from Jr KG to Std 9.</p>
+
+<p>Full detail in the Subscription Overview below.</p>
+
+<p>Want to see if it fits {{SCHOOL_NAME}}? Reply — or WhatsApp +91 91368 99925; happy to visit your campus.</p>
+
+<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -174,12 +191,15 @@ If you're interested, here's a short walkthrough of a working lab.
 
 Regards,
 Baban Jadhav
+Program Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
 Watch a WE Smart Lab in Action: {a.get('video_wsl', 'Available on request')}
 WE Smart Lab Brochure: {a.get('brochure', 'Available on request')}
 ABP Majha Coverage: {a.get('video_abp', 'Available on request')}
+
+Prefer to talk? WhatsApp or call me directly on +91 91368 99925.
 """,
 
         3: f"""Dear Principal,
@@ -189,6 +209,8 @@ One question comes up in almost every conversation I have with principals: how d
 The answer is simpler than it sounds. NEP encourages experiential learning — concepts understood by doing, not only read in textbooks.
 
 That's exactly why we built WE Smart Lab. It sits inside your school, works alongside regular teaching, and replaces no class or teacher. Students build and solve problems with their hands, tied to what they learn in class.
+
+The curriculum runs from Std 1 to Std 9 with grade-wise kits, and works alongside your existing board syllabus — CBSE, ICSE or State Board.
 
 Schools then ask: how is learning documented?
 
@@ -200,6 +222,7 @@ If it raises questions, just reply. I'm happy to answer.
 
 Regards,
 Baban Jadhav
+Program Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -211,18 +234,24 @@ ABP Majha Coverage: {a.get('video_abp', 'Available on request')}
 
 A year is long enough to know whether something truly belongs in a school.
 
-The real test is what happens in month eight, when the novelty is gone and the timetable takes over.
+The real test is month eight, when the novelty is gone and the timetable takes over.
 
-Our first WE Smart Lab at Veer Baji Prabhu Vidyalay in Pune has now completed a full academic year. It became a regular part of the school's timetable, and students consistently participated in projects and assessments.
+Our first WE Smart Lab at Veer Baji Prabhu Vidyalay in Pune has completed a full academic year as a regular timetable subject, with students consistently in projects and assessments.
 
 That consistency is what we were hoping for when we set up our first lab.
 
 We documented the full year in the First WE Smart Lab Annual Report. We share it with schools that want to see how the lab works over time, not just how it starts.
 
+Inside the report you'll find:
+• How the lab ran as a regular timetable subject, week after week
+• Student project records and completion across grades
+• Assessment outcomes and how learning was tracked per child
+
 Here it is.
 
 Regards,
 Baban Jadhav
+Program Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -240,10 +269,13 @@ What began as a pilot did more than go well. It validated both student outcomes 
 
 The initiative was also covered independently by local media organisations, which meant the story reached people beyond us.
 
+The same team, curriculum and delivery model runs inside private schools through our annual subscription. In my next email, I'll share exactly what that looks like — including what it costs.
+
 If you would like to see what the initiative looked like in practice, the report is below.
 
 Regards,
 Baban Jadhav
+Program Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -259,16 +291,28 @@ Worship Earth: {a.get('video_we', 'Available on request')}
 
         10: f"""Dear Principal,
 
-Over these emails, I have shared why we built WE Smart Lab, how learning is documented, what a full year looks like, and how the work has been noticed beyond us.
+What would it take to bring WE Smart Lab to {{SCHOOL_NAME}}?
 
-If you're wondering what bringing WE Smart Lab to your school would involve, the Subscription Overview is a good place to start.
+Less than most schools expect.
 
-It outlines how implementation works, what your school receives, the support we provide through the year, and how the subscription is structured.
+A complete WE Smart Lab — infrastructure, grade-wise kits for Std 1–9, a dedicated full-time instructor on campus, weekly sessions, assessments, and parent-ready progress reports — starts at ₹1,600 per student/year — about ₹135 a month per child.
 
-If you would like to discuss whether WE Smart Lab is a good fit for {{SCHOOL_NAME}}, I am happy to talk it through.
+Everything included. No hidden charges.
+
+Three configurations:
+• WSL20 — up to 400 students, 1 dedicated trainer — ₹2,050 per student/year
+• WSL30 — up to 600 students, 1 dedicated trainer — ₹1,700 per student/year
+• WSL30 V.2 — up to 800 students, 2 dedicated trainers — ₹1,600 per student/year
+
+Pre-primary? Our Happy Hands-On program covers ages 4–6 — one partner from Jr KG to Std 9.
+
+Full detail in the Subscription Overview below.
+
+Want to see if it fits {{SCHOOL_NAME}}? Reply — or WhatsApp +91 91368 99925; happy to visit your campus.
 
 Regards,
 Baban Jadhav
+Program Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -410,19 +454,17 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         10: f"""<p>Dear CSR Head,</p>
 
-<p>Over these emails, I've shared our journey.</p>
-
 <p>Our flagship ask: a six-school district pilot — ₹72 lakh of CSR for a complete first year at six government schools. Lab, instructor, curriculum, assessments and reporting at each. Your organisation funds one year; the local government contractually funds four more — turning your ₹72 lakh into a ₹2.4 crore five-year programme. The math is per school: ₹12 lakh in, ₹40 lakh out. Itemised in the proposal.</p>
 
-<p>And if you'd rather prove it with one school first — ₹12 lakh, same model, same reporting — that's how most of our partners begin.</p>
+<p>Prefer one school first — ₹12 lakh, same model — most partners begin there.</p>
 
-<p>The model is endorsed by PCMC's Samaj Vikas Vibhag; a 6-school pilot Letter of Intent is already in process.</p>
+<p>Endorsed by PCMC's Samaj Vikas Vibhag; a 6-school LoI is in process.</p>
 
 <p>If it aligns, reply — or call +91 91368 99925.</p>
 
-<p>Near Pune? Reply and I'll arrange a 30-minute lab visit.</p>
+<p>Near Pune? Reply and I'll arrange a lab visit.</p>
 
-<p>Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By the time a partnership like this is signed, she'll be in Grade 5. By 2030, she could graduate with a five-year STEM portfolio in her hand. Let's not make her wait another year.</p>
+<p>Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By 2030, she could graduate with a five-year STEM portfolio in hand. Let's not make her wait another year.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -564,19 +606,17 @@ Worship Earth: {a.get('video_we', 'Available on request')}
 
         10: f"""Dear CSR Head,
 
-Over these emails, I've shared our journey.
-
 Our flagship ask: a six-school district pilot — ₹72 lakh of CSR for a complete first year at six government schools. Lab, instructor, curriculum, assessments and reporting at each. Your organisation funds one year; the local government contractually funds four more — turning your ₹72 lakh into a ₹2.4 crore five-year programme. The math is per school: ₹12 lakh in, ₹40 lakh out. Itemised in the proposal.
 
-And if you'd rather prove it with one school first — ₹12 lakh, same model, same reporting — that's how most of our partners begin.
+Prefer one school first — ₹12 lakh, same model — most partners begin there.
 
-The model is endorsed by PCMC's Samaj Vikas Vibhag; a 6-school pilot Letter of Intent is already in process.
+Endorsed by PCMC's Samaj Vikas Vibhag; a 6-school LoI is in process.
 
 If it aligns, reply — or call +91 91368 99925.
 
-Near Pune? Reply and I'll arrange a 30-minute lab visit.
+Near Pune? Reply and I'll arrange a lab visit.
 
-Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By the time a partnership like this is signed, she'll be in Grade 5. By 2030, she could graduate with a five-year STEM portfolio in her hand. Let's not make her wait another year.
+Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By 2030, she could graduate with a five-year STEM portfolio in hand. Let's not make her wait another year.
 
 Regards,
 Baban Jadhav
@@ -622,7 +662,7 @@ PREHEADERS = {
         3: "It is the question principals ask most. The answer is simpler than it sounds.",
         5: "Our first lab at Veer Baji Prabhu Vidyalay just completed year one.",
         7: "An AI and Robotics initiative for specially-abled students in Sangli.",
-        10: "The Subscription Overview, and an open door whenever you are ready."
+        10: "A complete Robotics & AI lab on your campus — from ₹1,600 per student per year, everything included."
     },
     "csr-wsl-5": {
         1: "It ran the full academic year. Then we faced a question we had not planned for.",
