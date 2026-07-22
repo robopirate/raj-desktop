@@ -470,7 +470,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p style="font-size:13px;color:#7A8A8A;">P.S. If your team finalises CSR allocations this quarter, I can send a one-page budget note your committee can use.</p>
 
-<p style="margin-top:16px;padding-top:12px;border-top:1px solid #E0E8E8;font-size:12px;color:#7A8A8A;line-height:1.5;">Implementation partner: Worship Earth Foundation · CSR-1 Registration [FILL: CSR-1 NUMBER] · 80G/12A certified<br>Aligned with Schedule VII (ii), Companies Act 2013 — promotion of education · SDG 4 (Quality Education)<br>Fund utilisation certificates, quarterly implementation reports and annual impact assessments provided.</p>
+<p style="margin-top:16px;padding-top:12px;border-top:1px solid #E0E8E8;font-size:12px;color:#7A8A8A;line-height:1.5;">Implementation partner: Worship Earth Foundation (Section 8 company, CIN U85300PN2021NPL205701)<br>80G &amp; 12AB certified, valid through AY 2031-32<br>Aligned with Schedule VII (ii), Companies Act 2013 — promotion of education · SDG 4 (Quality Education)<br>Fund utilisation certificates, quarterly implementation reports and annual impact assessments provided.</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -626,7 +626,8 @@ https://robopirate.in
 
 P.S. If your team finalises CSR allocations this quarter, I can send a one-page budget note your committee can use.
 
-Implementation partner: Worship Earth Foundation · CSR-1 Registration [FILL: CSR-1 NUMBER] · 80G/12A certified
+Implementation partner: Worship Earth Foundation (Section 8 company, CIN U85300PN2021NPL205701)
+80G & 12AB certified, valid through AY 2031-32
 Aligned with Schedule VII (ii), Companies Act 2013 — promotion of education · SDG 4 (Quality Education)
 Fund utilisation certificates, quarterly implementation reports and annual impact assessments provided.
 
