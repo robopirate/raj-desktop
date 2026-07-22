@@ -412,7 +412,9 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Over these emails, I've shared our journey.</p>
 
-<p>A complete first year — lab, instructor, curriculum, assessments, reporting — starts at a ₹12 lakh CSR commitment per school — whether for one school or a six-school district pilot — itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.</p>
+<p>Our flagship ask: a six-school district pilot — ₹72 lakh of CSR for a complete first year at six government schools. Lab, instructor, curriculum, assessments and reporting at each. Your organisation funds one year; the local government contractually funds four more — turning your ₹72 lakh into a ₹2.4 crore five-year programme. The math is per school: ₹12 lakh in, ₹40 lakh out. Itemised in the proposal.</p>
+
+<p>And if you'd rather prove it with one school first — ₹12 lakh, same model, same reporting — that's how most of our partners begin.</p>
 
 <p>The model is endorsed by PCMC's Samaj Vikas Vibhag; a 6-school pilot Letter of Intent is already in process.</p>
 
@@ -564,7 +566,9 @@ Worship Earth: {a.get('video_we', 'Available on request')}
 
 Over these emails, I've shared our journey.
 
-A complete first year — lab, instructor, curriculum, assessments, reporting — starts at a ₹12 lakh CSR commitment per school — whether for one school or a six-school district pilot — itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.
+Our flagship ask: a six-school district pilot — ₹72 lakh of CSR for a complete first year at six government schools. Lab, instructor, curriculum, assessments and reporting at each. Your organisation funds one year; the local government contractually funds four more — turning your ₹72 lakh into a ₹2.4 crore five-year programme. The math is per school: ₹12 lakh in, ₹40 lakh out. Itemised in the proposal.
+
+And if you'd rather prove it with one school first — ₹12 lakh, same model, same reporting — that's how most of our partners begin.
 
 The model is endorsed by PCMC's Samaj Vikas Vibhag; a 6-school pilot Letter of Intent is already in process.
 
@@ -625,7 +629,7 @@ PREHEADERS = {
         3: "Our first WE Smart Lab wasn't just about installing equipment.",
         5: "CSR supports Year 1. The local government contractually commits four more.",
         7: "One example is our implementation in Sangli, expanded in phases.",
-        10: "A complete first year of a WE Smart Lab is a ₹12 lakh CSR commitment — and it unlocks four more."
+        10: "₹72 lakh funds six schools for a year — and unlocks a ₹2.4 crore, five-year programme."
     }
 }
 

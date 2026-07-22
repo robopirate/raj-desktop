@@ -153,7 +153,7 @@ SEQUENCES = {
                 "video_we": "https://www.instagram.com/reel/DMe2HzqofAk/"
             },
             10: {
-                "proposal_2nd": "https://drive.google.com/file/d/1NdMn4J8DgWyoNMyTHUv2t2caP3wTYIkq/view"
+                "proposal_2nd": "https://drive.google.com/file/d/1mnmUNl1EkAmxjz7NVRGU2pmcHDrDUJMN/view"
             }
         }
     }
