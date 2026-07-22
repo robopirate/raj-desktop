@@ -346,11 +346,11 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>The lesson: lasting impact requires lasting ownership.</p>
 
-<p>A lab running on one year of CSR support has an expiry date. So we redesigned it: the CSR partner makes Year 1 possible, and the school's elected corporator commits the next four years through ward development funds, written into the same agreement.</p>
+<p>A lab running on one year of CSR support has an expiry date. So we redesigned it: the CSR partner makes Year 1 possible, and the local government body contractually commits the next four years — written into the same agreement the CSR partner signs.</p>
 
 <p>Same lab, same students — but a five-year programme, not a one-year project.</p>
 
-<p>For a CSR partner, every rupee of Year-1 support is matched four times over. Funding doesn't buy a project — it unlocks a programme.</p>
+<p>For a CSR partner, the math is simple: your Year-1 commitment of ₹12 lakh unlocks a ₹40 lakh five-year programme. Every rupee you commit is more than tripled.</p>
 
 <p>Attached: the full story of that first year, and the Transparency Report documenting it. We'd rather show than tell.</p>
 
@@ -373,17 +373,19 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         7: f"""<p>Dear CSR Head,</p>
 
-<p>My last email shared the lesson that reshaped our work: lasting impact needs lasting ownership.</p>
+<p>My last email shared the lesson: lasting impact needs lasting ownership.</p>
 
-<p>It became the foundation of every lab that followed.</p>
+<p>It became every lab's foundation.</p>
 
 <p>So, does the model actually work at scale?</p>
 
-<p>One example: our Sangli initiative, run with the District Collector, Sangli and the Worship Earth Foundation. The pilot continued into Phase II, with 11 more institutions joining.</p>
+<p>One example: our Sangli initiative, run with the District Collector, Sangli and the Worship Earth Foundation. The pilot grew into a completed Phase II across 11 more institutions — and following those outcomes, the District Collector announced expansion to 12–13 Divyang schools across the district.</p>
 
 <p>We also ran STEM sessions for Divyang students — hands-on learning should be reachable for every child.</p>
 
-<p>Local media covered it independently.</p>
+<p>Each lab also creates local employment: every WE Smart Lab hires and trains an instructor from the local community — often from underprivileged backgrounds — creating ₹9–12 lakh of dignified livelihood per school across the programme.</p>
+
+<p>Local media covered it.</p>
 
 <p>The Sangli report, short videos and media coverage are below.</p>
 
@@ -410,19 +412,19 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
         10: f"""<p>Dear CSR Head,</p>
 
-<p>Over these emails, I've shared our journey — first lab, key lessons, and the model proven at scale.</p>
+<p>Over these emails, I've shared our journey.</p>
 
-<p>One belief: meaningful STEM education isn't created by installing equipment alone. It grows through engagement, teacher support, and a model built to outlast Year 1.</p>
+<p>A complete first year — lab, instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.</p>
 
-<p>If you're exploring CSR in education, we'd be glad to explore the fit with your goals.</p>
+<p>The model is endorsed by PCMC's Samaj Vikas Vibhag, and a Letter of Intent for a 6-school pilot is already in process.</p>
 
-<p>A complete first year — lab, dedicated instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the attached proposal. Your organisation funds one year. The model carries it for five.</p>
+<p>If it aligns, reply here — or call +91 91368 99925.</p>
 
-<p>If it aligns with your CSR objectives, reply here — or call me on +91 91368 99925.</p>
+<p>Near Pune? Reply and I'll arrange a 30-minute lab visit.</p>
 
-<p>Near Pune? I'd rather show you than tell you — reply and I'll arrange a 30-minute visit to a running lab.</p>
+<p>Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By the time a partnership like this is signed, she'll be in Grade 5. By 2030, she could graduate with a five-year STEM portfolio in her hand. Let's not make her wait another year.</p>
 
-<p>Thank you for following our journey. We hope it showed what we stand for.</p>
+<p>Thank you for following our journey.</p>
 
 <p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
@@ -507,11 +509,11 @@ That first year taught us something unexpected: the lab worked, and the school w
 
 The lesson: lasting impact requires lasting ownership.
 
-A lab running on one year of CSR support has an expiry date. So we redesigned it: the CSR partner makes Year 1 possible, and the school's elected corporator commits the next four years through ward development funds, written into the same agreement.
+A lab running on one year of CSR support has an expiry date. So we redesigned it: the CSR partner makes Year 1 possible, and the local government body contractually commits the next four years — written into the same agreement the CSR partner signs.
 
 Same lab, same students — but a five-year programme, not a one-year project.
 
-For a CSR partner, every rupee of Year-1 support is matched four times over. Funding doesn't buy a project — it unlocks a programme.
+For a CSR partner, the math is simple: your Year-1 commitment of ₹12 lakh unlocks a ₹40 lakh five-year programme. Every rupee you commit is more than tripled.
 
 Attached: the full story of that first year, and the Transparency Report documenting it. We'd rather show than tell.
 
@@ -529,17 +531,19 @@ View the Transparency Report: {a.get('report_vbv', 'Available on request')}
 
         7: f"""Dear CSR Head,
 
-My last email shared the lesson that reshaped our work: lasting impact needs lasting ownership.
+My last email shared the lesson: lasting impact needs lasting ownership.
 
-It became the foundation of every lab that followed.
+It became every lab's foundation.
 
 So, does the model actually work at scale?
 
-One example: our Sangli initiative, run with the District Collector, Sangli and the Worship Earth Foundation. The pilot continued into Phase II, with 11 more institutions joining.
+One example: our Sangli initiative, run with the District Collector, Sangli and the Worship Earth Foundation. The pilot grew into a completed Phase II across 11 more institutions — and following those outcomes, the District Collector announced expansion to 12–13 Divyang schools across the district.
 
 We also ran STEM sessions for Divyang students — hands-on learning should be reachable for every child.
 
-Local media covered it independently.
+Each lab also creates local employment: every WE Smart Lab hires and trains an instructor from the local community — often from underprivileged backgrounds — creating ₹9–12 lakh of dignified livelihood per school across the programme.
+
+Local media covered it.
 
 The Sangli report, short videos and media coverage are below.
 
@@ -565,19 +569,19 @@ Worship Earth: {a.get('video_we', 'Available on request')}
 
         10: f"""Dear CSR Head,
 
-Over these emails, I've shared our journey — first lab, key lessons, and the model proven at scale.
+Over these emails, I've shared our journey.
 
-One belief: meaningful STEM education isn't created by installing equipment alone. It grows through engagement, teacher support, and a model built to outlast Year 1.
+A complete first year — lab, instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the proposal. Your organisation funds one year; the local government contractually funds four more. Your ₹12 lakh unlocks a ₹40 lakh programme.
 
-If you're exploring CSR in education, we'd be glad to explore the fit with your goals.
+The model is endorsed by PCMC's Samaj Vikas Vibhag, and a Letter of Intent for a 6-school pilot is already in process.
 
-A complete first year — lab, dedicated instructor, curriculum, assessments, reporting — is a ₹12 lakh CSR commitment per school, itemised in the attached proposal. Your organisation funds one year. The model carries it for five.
+If it aligns, reply here — or call +91 91368 99925.
 
-If it aligns with your CSR objectives, reply here — or call me on +91 91368 99925.
+Near Pune? Reply and I'll arrange a 30-minute lab visit.
 
-Near Pune? I'd rather show you than tell you — reply and I'll arrange a 30-minute visit to a running lab.
+Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By the time a partnership like this is signed, she'll be in Grade 5. By 2030, she could graduate with a five-year STEM portfolio in her hand. Let's not make her wait another year.
 
-Thank you for following our journey. We hope it showed what we stand for.
+Thank you for following our journey.
 
 Regards,
 Baban Jadhav
@@ -628,7 +632,7 @@ PREHEADERS = {
     "csr-wsl-5": {
         1: "It ran the full academic year. Then we faced a question we had not planned for.",
         3: "Our first WE Smart Lab wasn't just about installing equipment.",
-        5: "CSR supports Year 1. The school's corporator commits four more — in writing.",
+        5: "CSR supports Year 1. The local government contractually commits four more.",
         7: "One example is our implementation in Sangli, expanded in phases.",
         10: "A complete first year of a WE Smart Lab is a ₹12 lakh CSR commitment — and it unlocks four more."
     }
