@@ -114,7 +114,7 @@ const API = {
     getTemplate(seq, day) { return this.get(`/api/templates/${seq}/${day}`); },
     updateTemplate(seq, day, body) { return this.put(`/api/templates/${seq}/${day}`, body); },
     testSendTemplate(seq, day, email, extra = {}) { return this.post(`/api/templates/${seq}/${day}/test`, { email, ...extra }); },
-    trialSendSequence(seq, email, name, org) { return this.post(`/api/templates/${seq}/trial`, { email, name, org }); },
+    trialSendSequence(seq, email, name, org, format) { return this.post(`/api/templates/${seq}/trial`, { email, name, org, format }); },
     generateTemplate(seq, day, createDraft = true) { return this.post(`/api/templates/${seq}/${day}/generate`, { create_draft: createDraft }); },
     syncTemplates() { return this.post('/api/templates/sync'); },
     generateMissingTemplates() { return this.post('/api/templates/generate-missing'); },

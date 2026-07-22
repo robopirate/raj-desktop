@@ -946,7 +946,7 @@ def trial_send_sequence(seq):
         email = data.get("email")
         if not email:
             return _err("Email required", 400)
-        result = engine.trial_send(email, seq, name=data.get("name", ""), org=data.get("org", ""))
+        result = engine.trial_send(email, seq, name=data.get("name", ""), org=data.get("org", ""), format=data.get("format"))
         return _ok(result)
     except Exception as e:
         return _err(str(e), 500)

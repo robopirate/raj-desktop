@@ -360,8 +360,9 @@
                 els.trialEmail.value.trim(),
                 els.trialName.value.trim(),
                 els.trialOrg.value.trim(),
+                state.format,
             );
-            showToast('Trial sequence sent', 'success');
+            showToast(state.format === 'plain' ? 'Plain-text trial sequence sent' : 'Trial sequence sent', 'success');
             els.trialForm.reset();
         } catch (e) {
             showToast(e.message, 'error');

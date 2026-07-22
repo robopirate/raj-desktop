@@ -88,44 +88,6 @@ SEQUENCES = {
             }
         }
     },
-    "csr": {
-        "days": [1, 3, 5, 7, 10],
-        "template_prefix": "CSR EMAIL ",
-        "audience": "csr",
-        "persona": "csr",
-        "assets": {
-            1: {
-                "report_sangli1": "https://drive.google.com/file/d/1HpNdnamA2k3H0xkKr58STEKMNu5RgHPx/view",
-                "video_abp": "https://youtu.be/FJ2_W53WjmA",
-                "video_sangli": "https://drive.google.com/file/d/1MUlsC87vRbhFaoW0XcX146WBLKYBk448/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
-            },
-            3: {
-                "report_sangli1": "https://drive.google.com/file/d/1HpNdnamA2k3H0xkKr58STEKMNu5RgHPx/view",
-                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
-            },
-            5: {
-                "report_sangli2": "https://drive.google.com/file/d/1pKSm1WPlPk-we4aC-uhqxEy8w-BYygSN/view",
-                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
-                "video_star": "https://youtube.com/watch?v=iziKPBSfGKU",
-                "folder_sangli": "https://drive.google.com/drive/folders/15sc5iOIKTBZyenb2rCpGVAK1lExcG5BC",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
-            },
-            7: {
-                "plans": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
-                "video_wsl": "https://drive.google.com/file/d/1KPrC2IpdooxazGJiyVe79JgyWlJbOxzu/view",
-                "video_abp": "https://youtu.be/FJ2_W53WjmA",
-                "video_sangli": "https://drive.google.com/file/d/1MUlsC87vRbhFaoW0XcX146WBLKYBk448/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
-            },
-            10: {
-                "profile": "https://drive.google.com/file/d/1g9JJ4_VO_28QKYD7iVVDJZcv9l4uRbZu/view",
-                "kits": "https://drive.google.com/file/d/1cvi4p8IHgx1MekanVRHN3Fo4Lk9vbubX/view",
-                "video_ig": "https://www.instagram.com/reel/DMe2HzqofAk/"
-            }
-        }
-    },
     "csr-wsl-5": {
         "days": [1, 3, 5, 7, 10],
         "template_prefix": "CSR-WSL-5 EMAIL ",
@@ -1902,7 +1864,7 @@ RoboPirate
         return BatchResult(queued=len(due), sent=sent)
 
     # -- Trial Send --
-    def trial_send(self, email: str, seq_id: str, name="", org="") -> dict:
+    def trial_send(self, email: str, seq_id: str, name="", org="", format: str = None) -> dict:
         """Send all 5 days of a sequence to a single email with 2-minute gaps."""
         if seq_id not in SEQUENCES:
             return {"success": False, "error": f"Unknown sequence {seq_id}"}
@@ -1922,6 +1884,11 @@ RoboPirate
         results = []
         for i, day in enumerate(days):
             subj, body_html, body_text, _, fmt = self.render(seq_id, day, rec)
+            # Editor toggle overrides the saved format so the trial matches what is on screen
+            if format in ("html", "plain"):
+                fmt = format
+                if fmt == 'plain' and not body_text.strip():
+                    body_text = self.html_to_text(body_html)
             if not subj:
                 results.append({"day": day, "status": "skipped", "error": "missing_template"})
                 self._log(f"Trial Day {day}: No template, skipped")
