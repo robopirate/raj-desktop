@@ -1243,6 +1243,68 @@ class CampaignEngine:
         return [Recipient(*r) for r in rows][:limit] if limit else [Recipient(*r) for r in rows]
 
     # -- Render --
+    _NAME_TITLES = {"mr", "mrs", "ms", "miss", "dr", "prof", "fr", "shri", "smt", "sir"}
+    _NAME_ROLE_WORDS = {
+        "principal", "head", "school", "vidyalay", "vidyalaya", "academy", "foundation",
+        "trust", "ltd", "limited", "pvt", "llp", "csr", "team", "office", "admin",
+        "admission", "admissions", "secretarial", "support", "marketing", "motor",
+        "motors", "finance", "financial", "university", "institute", "institution",
+        "group", "enterprise", "enterprises", "technologies", "solutions", "public",
+        "international", "company", "corporate", "corporation", "board", "department",
+        "investment", "industries", "services", "systems", "ventures", "social",
+        "chairman", "director", "manager", "coordinator", "secretary",
+    }
+    _EMAIL_ROLE_TOKENS = {
+        "info", "office", "contact", "hello", "hi", "mail", "email", "admin",
+        "admission", "admissions", "principal", "head", "chairman", "director",
+        "support", "helpdesk", "enquiry", "inquiry", "inquiries", "marketing",
+        "corp", "secretarial", "csr", "foundation", "trust", "sales", "care",
+        "noreply", "no-reply",
+    }
+
+    @staticmethod
+    def _person_from_name(name: str) -> Optional[str]:
+        """Return a first name if `name` looks like a person, else None."""
+        if not name:
+            return None
+        n = re.sub(r"\(.*?\)", " ", name)          # drop (Co-founder) style notes
+        n = n.split("/")[0]                        # keep first of "A / B" pairs
+        words = [w.strip(".-").capitalize() for w in n.split() if w.strip(".-")]
+        if not words or len(words) > 4:
+            return None
+        if any(w.lower() in CampaignEngine._NAME_ROLE_WORDS for w in words):
+            return None
+        if any(any(ch.isdigit() for ch in w) for w in words):
+            return None
+        first = words[0]
+        if first.lower() in CampaignEngine._NAME_TITLES:
+            if len(words) < 2:
+                return None
+            first = words[1]
+        if len(first) < 2 or first.lower() in CampaignEngine._NAME_ROLE_WORDS:
+            return None
+        return first
+
+    @staticmethod
+    def _name_from_email(email: str) -> Optional[str]:
+        """Extract a likely first name from a first.last@ style address, else None."""
+        if not email or "@" not in email:
+            return None
+        local = email.split("@", 1)[0].lower()
+        tokens = [t for t in re.split(r"[._\-+]", local) if t]
+        if len(tokens) < 2:
+            return None
+        if tokens[0] in CampaignEngine._EMAIL_ROLE_TOKENS:
+            return None
+        for t in tokens[:2]:
+            if len(t) < 3 or not t.isalpha() or t in CampaignEngine._EMAIL_ROLE_TOKENS:
+                return None
+        return tokens[0].capitalize()
+
+    def _greeting_name(self, rec: "Recipient") -> Optional[str]:
+        """Resolve the best available first name for a recipient."""
+        return self._person_from_name(rec.name) or self._name_from_email(rec.email)
+
     def _ab_variant(self, email: str, ab_split: float) -> str:
         """Deterministically assign A/B variant based on email hash."""
         import hashlib
@@ -1264,11 +1326,20 @@ class CampaignEngine:
 
         extra = json.loads(rec.extra_json or "{}")
 
+        # Resolve a personal first name for the greeting (person from name field,
+        # else from email local part, else role fallback)
+        first = self._greeting_name(rec)
+        fallback = "Principal" if seq_id == "school" else "CSR Head"
+        greeting = first or fallback
+        for literal in ("Dear Principal,", "Dear CSR Head,"):
+            body_html = body_html.replace(literal, f"Dear {greeting},")
+            body_text = body_text.replace(literal, f"Dear {greeting},")
+
         placeholders = {
-            "{{PRINCIPAL_NAME}}": rec.name, "{{SCHOOL_NAME}}": rec.org,
-            "{{CSR_HEAD_NAME}}": rec.name, "{{COMPANY_NAME}}": rec.org,
+            "{{PRINCIPAL_NAME}}": first or "Principal", "{{SCHOOL_NAME}}": rec.org,
+            "{{CSR_HEAD_NAME}}": first or "CSR Head", "{{COMPANY_NAME}}": rec.org,
             "{{OPENING_LINE}}": extra.get("Opening Line", extra.get("opening_line", "")),
-            "{{NAME}}": rec.name, "{{ORG}}": rec.org, "{{EMAIL}}": rec.email,
+            "{{NAME}}": first or rec.name or "", "{{ORG}}": rec.org, "{{EMAIL}}": rec.email,
         }
         for ph, val in placeholders.items():
             subj = subj.replace(ph, str(val))
