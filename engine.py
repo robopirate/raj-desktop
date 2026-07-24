@@ -1380,13 +1380,10 @@ class CampaignEngine:
                 self._log(f"Trial Day {day}: Template body is empty, skipped")
                 continue
             try:
-                # Add a small trial marker; avoid heavy HTML banners that trigger spam filters
-                trial_note_html = f"<p style='font-family:Arial,sans-serif;font-size:13px;color:#555;margin-bottom:12px'>[Raj Trial] Day {day} of {len(days)} — Sequence: {seq_id.upper()}</p>"
-                trial_note_text = f"[Raj Trial] Day {day} of {len(days)} — Sequence: {seq_id.upper()}\n{'-'*40}\n\n"
                 if fmt == 'plain':
-                    self._send_with_retry(email, f"[Raj Trial] {subj}", "", trial_note_text + (body_text or ""), format='plain')
+                    self._send_with_retry(email, subj, "", body_text or "", format='plain')
                 else:
-                    self._send_with_retry(email, f"[Raj Trial] {subj}", trial_note_html + body_html, trial_note_text + (body_text or ""), format='html')
+                    self._send_with_retry(email, subj, body_html, body_text or "", format='html')
                 self._log(f"Trial sent: {seq_id.upper()} Day {day} to {email}")
                 results.append({"day": day, "status": "sent"})
 
@@ -1440,12 +1437,12 @@ class CampaignEngine:
                 if not body_text.strip():
                     self._log("No plain text body found")
                     return False
-                self._send_with_retry(email, f"[Raj Test] {subj}", "", body_text, format='plain')
+                self._send_with_retry(email, subj, "", body_text, format='plain')
             else:
                 if not body_html.strip():
                     self._log("No HTML body found")
                     return False
-                self._send_with_retry(email, f"[Raj Test] {subj}", body_html, body_text, format='html')
+                self._send_with_retry(email, subj, body_html, body_text, format='html')
             self._log(f"Test sent to {email} ({fmt})")
             return True
         except Exception as e:
