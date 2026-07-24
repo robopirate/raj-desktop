@@ -1593,6 +1593,21 @@ class CampaignEngine:
     def get_pool_count(self, sequence_id: str, sub_pool: str = None) -> int:
         return self.db.get_pool_count(sequence_id, sub_pool)
 
+    def get_pool_stats(self, sequence_id: str = None) -> dict:
+        """Full pool breakdown for the Leads page segments."""
+        return self.db.pool_stats(sequence_id or "leads")
+
+    def reset_pool(self, sequence_id: str) -> dict:
+        """Re-campaign reset: make previously-contacted leads available again.
+        Never touches replied or blacklisted leads; old sends are archived."""
+        result = self.db.reset_pool_for_recampaign(sequence_id)
+        self._log(f"[POOL RESET] {sequence_id}: {result['leads_reset']} leads available again, {result['sends_archived']} old sends archived")
+        try:
+            self.db.log_action("reset_pool", f"{sequence_id}: {result}")
+        except Exception:
+            pass
+        return result
+
     def create_batch_from_pool(self, name: str, sequence_id: str = None, batch_size: int = 10,
                                 sub_pool: str = None, day_offset: int = 1, scheduled_at: str = None,
                                 timezone: str = 'Asia/Kolkata', send_rate: int = 0,

@@ -86,6 +86,8 @@ const API = {
         const q = sub ? `&sub_pool=${encodeURIComponent(sub)}` : '';
         return this.get(`/api/pools/count?sequence_id=${encodeURIComponent(seq)}${q}`);
     },
+    poolStats(seq) { return this.get(seq ? `/api/pools/stats?sequence_id=${encodeURIComponent(seq)}` : '/api/pools/stats'); },
+    resetPool(seq) { return this.post(`/api/pools/${encodeURIComponent(seq)}/reset-recampaign`); },
 
     // Batches (mutations)
     createBatch(body) { return this.post('/api/batches', body); },

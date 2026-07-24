@@ -534,6 +534,32 @@ def pool_count():
         return _err(str(e), 500)
 
 
+@app.route("/api/pools/stats", methods=["GET"])
+def pool_stats():
+    sequence_id = request.args.get("sequence_id") or None
+    try:
+        if sequence_id:
+            return _ok({sequence_id: _db.pool_stats(sequence_id)})
+        from engine import SEQUENCES
+        out = {sid: _db.pool_stats(sid) for sid in SEQUENCES}
+        out["leads"] = _db.pool_stats("leads")
+        return _ok(out)
+    except Exception as e:
+        return _err(str(e), 500)
+
+
+@app.route("/api/pools/<seq>/reset-recampaign", methods=["POST"])
+def reset_pool_recampaign(seq):
+    engine, error = _engine_or_500()
+    if error:
+        return error
+    try:
+        result = engine.reset_pool(seq)
+        return _ok(result)
+    except Exception as e:
+        return _err(str(e), 500)
+
+
 # ── Batches (mutations) ───────────────────────────────────────────────────────
 @app.route("/api/batches", methods=["POST"])
 def create_batch():

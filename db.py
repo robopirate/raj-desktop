@@ -514,6 +514,73 @@ class Database:
         """, params).fetchone()
         return row[0] if row else 0
 
+    def pool_stats(self, sequence_id):
+        """Full pool breakdown for a sequence (or 'leads' generic pool)."""
+        seq = sequence_id or "leads"
+        row = self.execute("""
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN r.batched=0 THEN 1 ELSE 0 END) AS available,
+                SUM(CASE WHEN r.batched=1 THEN 1 ELSE 0 END) AS in_batches,
+                SUM(CASE WHEN EXISTS (SELECT 1 FROM sends s WHERE s.recipient_id=r.id) THEN 1 ELSE 0 END) AS contacted,
+                SUM(CASE WHEN EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email) THEN 1 ELSE 0 END) AS blacklisted,
+                SUM(CASE WHEN EXISTS (SELECT 1 FROM replies rp WHERE rp.from_addr=r.email)
+                      OR EXISTS (SELECT 1 FROM batch_recipients br WHERE br.recipient_id=r.id AND br.status='replied')
+                    THEN 1 ELSE 0 END) AS replied
+            FROM recipients r WHERE r.sequence_id=?
+        """, (seq,)).fetchone()
+        return {
+            "total": row["total"] or 0,
+            "available": row["available"] or 0,
+            "in_batches": row["in_batches"] or 0,
+            "contacted": row["contacted"] or 0,
+            "blacklisted": row["blacklisted"] or 0,
+            "replied": row["replied"] or 0,
+        }
+
+    def reset_pool_for_recampaign(self, sequence_id):
+        """Make previously-contacted leads available again for a NEW campaign.
+
+        Only touches leads that are NOT blacklisted and have NOT replied.
+        Their old send records are moved to archived_sends (recoverable), and
+        batched is reset to 0 so they can be pulled into a fresh Day-1 batch.
+        """
+        self.execute("""
+            CREATE TABLE IF NOT EXISTS archived_sends (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipient_id INTEGER,
+                batch_id INTEGER,
+                day INTEGER,
+                subject TEXT,
+                draft_id TEXT,
+                status TEXT DEFAULT 'drafted',
+                ab_variant TEXT,
+                created_at TEXT,
+                sent_at TEXT,
+                opened_at TEXT,
+                clicked_at TEXT,
+                archived_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        eligible = """
+            SELECT r.id FROM recipients r
+            WHERE r.sequence_id=?
+              AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
+              AND NOT EXISTS (SELECT 1 FROM replies rp WHERE rp.from_addr=r.email)
+              AND NOT EXISTS (SELECT 1 FROM batch_recipients br WHERE br.recipient_id=r.id AND br.status='replied')
+        """
+        self.execute(f"""
+            INSERT INTO archived_sends (recipient_id, batch_id, day, subject, draft_id, status, ab_variant, created_at, sent_at, opened_at, clicked_at)
+            SELECT s.recipient_id, s.batch_id, s.day, s.subject, s.draft_id, s.status, s.ab_variant, s.created_at, s.sent_at, s.opened_at, s.clicked_at
+            FROM sends s WHERE s.recipient_id IN ({eligible})
+        """, (sequence_id,))
+        sends_archived = self.execute("SELECT changes()").fetchone()[0]
+        self.execute(f"DELETE FROM sends WHERE recipient_id IN ({eligible})", (sequence_id,))
+        self.execute(f"UPDATE recipients SET batched=0 WHERE id IN ({eligible})", (sequence_id,))
+        leads_reset = self.execute("SELECT changes()").fetchone()[0]
+        self.commit()
+        return {"leads_reset": leads_reset, "sends_archived": sends_archived}
+
     def mark_batched(self, recipient_ids):
         """Mark leads as batched (moved from pool to a batch)."""
         if not recipient_ids:

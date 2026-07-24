@@ -43,7 +43,7 @@
                     <span>📝</span> Templates
                 </a>
                 <a href="#import" data-page="import" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
-                    <span>📥</span> Import
+                    <span>📇</span> Leads
                 </a>
                 <a href="#replies" data-page="replies" class="nav-item flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-colors">
                     <span>💬</span> Replies <span id="nav-replies-badge" class="hidden ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">0</span>
@@ -246,14 +246,15 @@
                                             <input type="number" id="batch-size" class="input w-full rounded-xl px-4 py-2 text-sm" value="10" min="1" required>
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Day</label>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Start at</label>
                                             <select id="batch-offset" class="input w-full rounded-xl px-4 py-2 text-sm">
-                                                <option value="1">Day 1</option>
-                                                <option value="3">Day 3</option>
-                                                <option value="5">Day 5</option>
-                                                <option value="7">Day 7</option>
-                                                <option value="10">Day 10</option>
+                                                <option value="1">Day 1 — full sequence (recommended)</option>
+                                                <option value="3">Day 3 — skip Day 1</option>
+                                                <option value="5">Day 5 — skip Days 1 &amp; 3</option>
+                                                <option value="7">Day 7 — skip through Day 5</option>
+                                                <option value="10">Day 10 — final email only</option>
                                             </select>
+                                            <p class="text-xs text-[var(--text-muted)] mt-1">Starts on this day, then auto-continues through Day 10 — follow-ups go out on their own.</p>
                                         </div>
                                     </div>
                                     <div>
@@ -426,6 +427,14 @@
 
                 <!-- Import -->
                 <section id="page-import" class="page-section hidden max-w-[1400px] mx-auto">
+                    <!-- Lead segments overview -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">🗂️ Lead segments</h3>
+                        <div id="segments-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <p class="text-sm text-[var(--text-muted)]">Loading segments…</p>
+                        </div>
+                    </div>
+
                     <!-- Sequence selector bar -->
                     <div class="card rounded-2xl p-4 mb-6">
                         <div class="flex items-center gap-4 flex-wrap">
@@ -434,8 +443,7 @@
                                 <select id="import-sequence" class="input rounded-xl px-3 py-2 text-sm">
                                     <option value="leads">— Select Sequence —</option>
                                     <option value="school">SCHOOL (Private Schools)</option>
-                                    <option value="csr">CSR (Corporate CSR)</option>
-                                    <option value="csr-wsl-5">CSR-WSL-5 (5-Year Model)</option>
+                                    <option value="csr-wsl-5">CSR (Corporate CSR)</option>
                                 </select>
                             </div>
                             <div class="flex items-center gap-2">
@@ -883,16 +891,17 @@ One per line, comma separated."></textarea>
         </div>
     </div>
 
-    <script src="/static/js/api.js?v=5"></script>
-    <script src="/static/js/app.js?v=5"></script>
-    <script src="/static/js/dashboard.js?v=5"></script>
-    <script src="/static/js/analytics.js?v=5"></script>
-    <script src="/static/js/batches.js?v=5"></script>
-    <script src="/static/js/import.js?v=5"></script>
-    <script src="/static/js/templates.js?v=5"></script>
-    <script src="/static/js/replies.js?v=5"></script>
-    <script src="/static/js/integrations.js?v=5"></script>
-    <script src="/static/js/blacklist.js?v=5"></script>
-    <script src="/static/js/settings.js?v=5"></script>
+    <script src="/static/js/api.js?v=6"></script>
+    <script src="/static/js/app.js?v=6"></script>
+    <script src="/static/js/dashboard.js?v=6"></script>
+    <script src="/static/js/analytics.js?v=6"></script>
+    <script src="/static/js/batches.js?v=6"></script>
+    <script src="/static/js/import.js?v=6"></script>
+    <script src="/static/js/leads.js?v=6"></script>
+    <script src="/static/js/templates.js?v=6"></script>
+    <script src="/static/js/replies.js?v=6"></script>
+    <script src="/static/js/integrations.js?v=6"></script>
+    <script src="/static/js/blacklist.js?v=6"></script>
+    <script src="/static/js/settings.js?v=6"></script>
 </body>
 </html>

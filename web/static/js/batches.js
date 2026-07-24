@@ -27,15 +27,28 @@
             const seqObj = await API.listSequences();
             state.sequences = Object.keys(seqObj);
         } catch (e) {
-            state.sequences = ['school', 'csr', 'csr-wsl-5'];
+            state.sequences = ['school', 'csr-wsl-5'];
         }
         const allOptions = ['leads', ...state.sequences];
         populateSelect(els.pullFrom, allOptions, false);
         populateSelect(els.sequence, state.sequences, false);
         populateSelect(els.filterSeq, state.sequences, true);
 
-        if (allOptions.includes('leads')) els.pullFrom.value = 'leads';
-        if (state.sequences.includes('school')) els.sequence.value = 'school';
+        // Preselect from a Leads-page segment, if we came from there
+        let pre = null;
+        try { pre = JSON.parse(sessionStorage.getItem('batch_preselect') || 'null'); sessionStorage.removeItem('batch_preselect'); } catch (_) {}
+        const preSeq = pre && pre.pull_from && allOptions.includes(pre.pull_from) ? pre.pull_from : null;
+
+        if (preSeq) {
+            els.pullFrom.value = preSeq;
+        } else if (state.sequences.length) {
+            els.pullFrom.value = state.sequences[0];
+        } else if (allOptions.includes('leads')) {
+            els.pullFrom.value = 'leads';
+        }
+        const preTarget = (pre && pre.sequence_id && state.sequences.includes(pre.sequence_id)) ? pre.sequence_id
+            : (state.sequences.includes(els.pullFrom.value) ? els.pullFrom.value : state.sequences[0]);
+        if (preTarget) els.sequence.value = preTarget;
 
         await loadSubPools(els.pullFrom.value);
         await updatePoolCount();
