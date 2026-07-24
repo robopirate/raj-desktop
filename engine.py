@@ -621,7 +621,10 @@ class CampaignEngine:
                             except Exception as del_err:
                                 self._log(f"[Batch {batch['name']}] Draft delete skipped: {del_err}")
 
-                        msg = self._send_with_retry(rec.email, subj, body_html, body_text, format=fmt)
+                        if fmt == 'plain':
+                            msg = self._send_with_retry(rec.email, subj, self._text_to_simple_html(body_text), body_text, format='html')
+                        else:
+                            msg = self._send_with_retry(rec.email, subj, body_html, body_text, format=fmt)
                         self.db.execute("""
                             UPDATE batch_recipients SET status='sent', sent_at=?
                             WHERE batch_id=? AND recipient_id=?
@@ -1347,6 +1350,39 @@ class CampaignEngine:
             body_text = body_text.replace(ph, str(val))
         return subj, body_html, body_text, variant, fmt
 
+    @staticmethod
+    def _text_to_simple_html(text: str) -> str:
+        """Convert a plain-text email body into minimal personal-style HTML.
+
+        Keeps the plain look (no branding, no buttons) but turns "Label: URL"
+        lines into clickable links so recipients never see long raw URLs.
+        """
+        import html as _h
+        parts = []
+        for raw in (text or "").split("\n"):
+            line = raw.rstrip()
+            if not line.strip():
+                parts.append("<div>&nbsp;</div>")
+                continue
+            m = re.match(r"^(.{3,}?):\s+(https?://\S+)\s*$", line)
+            if m:
+                label, url = m.group(1).strip(), m.group(2)
+                parts.append(
+                    f'<div><a href="{_h.escape(url, quote=True)}" '
+                    f'style="color:#1a73e8;text-decoration:underline;">{_h.escape(label)}</a></div>'
+                )
+                continue
+            if re.match(r"^https?://\S+$", line.strip()):
+                url = line.strip()
+                parts.append(
+                    f'<div><a href="{_h.escape(url, quote=True)}" '
+                    f'style="color:#1a73e8;text-decoration:underline;">{_h.escape(url)}</a></div>'
+                )
+            else:
+                parts.append(f"<div>{_h.escape(line)}</div>")
+        return ('<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;'
+                'line-height:1.6;color:#333333;">' + "".join(parts) + "</div>")
+
     def _send_with_retry(self, to: str, subject: str, body_html: str, body_text: str = None, thread_id=None, sender: str = None, format: str = 'html', max_retries: int = 3):
         """Send via Gmail with exponential backoff for transient SSL/network errors.
         Supports optional plain text body for multipart emails."""
@@ -1388,9 +1424,12 @@ class CampaignEngine:
             try:
                 # Inject tracking
                 send_id = self.db.campaign_queue_send(rec.id, day, subj, "pending", "pending", None, ab_variant)
-                if self.tracker and self.tracker.base_url and send_id and fmt != 'plain':
-                    body_html = self.tracker.inject_tracking(body_html, rec.id, None, send_id)
-                msg = self._send_with_retry(rec.email, subj, body_html, body_text, sender=self.default_sender, format=fmt)
+                if fmt == 'plain':
+                    msg = self._send_with_retry(rec.email, subj, self._text_to_simple_html(body_text), body_text, sender=self.default_sender, format='html')
+                else:
+                    if self.tracker and self.tracker.base_url and send_id:
+                        body_html = self.tracker.inject_tracking(body_html, rec.id, None, send_id)
+                    msg = self._send_with_retry(rec.email, subj, body_html, body_text, sender=self.default_sender, format=fmt)
                 self.db.execute("UPDATE sends SET draft_id=?, status='sent', ab_variant=? WHERE id=?",
                                 (msg.get("id"), ab_variant, send_id))
                 self.db.commit()
@@ -1452,7 +1491,7 @@ class CampaignEngine:
                 continue
             try:
                 if fmt == 'plain':
-                    self._send_with_retry(email, subj, "", body_text or "", format='plain')
+                    self._send_with_retry(email, subj, self._text_to_simple_html(body_text or ""), body_text or "", format='html')
                 else:
                     self._send_with_retry(email, subj, body_html, body_text or "", format='html')
                 self._log(f"Trial sent: {seq_id.upper()} Day {day} to {email}")
@@ -1508,7 +1547,7 @@ class CampaignEngine:
                 if not body_text.strip():
                     self._log("No plain text body found")
                     return False
-                self._send_with_retry(email, subj, "", body_text, format='plain')
+                self._send_with_retry(email, subj, self._text_to_simple_html(body_text), body_text, format='html')
             else:
                 if not body_html.strip():
                     self._log("No HTML body found")
@@ -2693,7 +2732,10 @@ Instructions:
                 subj = subject
 
             try:
-                msg = self._send_with_retry(rec.email, subj, body_html, body_text, sender=self.default_sender, format=fmt)
+                if fmt == 'plain':
+                    msg = self._send_with_retry(rec.email, subj, self._text_to_simple_html(body_text), body_text, sender=self.default_sender, format='html')
+                else:
+                    msg = self._send_with_retry(rec.email, subj, body_html, body_text, sender=self.default_sender, format=fmt)
                 self.db.campaign_queue_send(rec.id, day, subj, msg.get("id"), "sent", None, ab_variant)
                 self.db.commit()
                 self.db.execute(
