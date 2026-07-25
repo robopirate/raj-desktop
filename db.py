@@ -5,12 +5,43 @@ All leads go to DB first. Batches are created FROM the pool.
 
 import sqlite3
 import json
+import os
 import threading
 import contextlib
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path(__file__).parent / "campaign_data.db"
+_PROJECT_DB = Path(__file__).parent / "campaign_data.db"
+_LOCAL_DB_DIR = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / ".local" / "share")) / "RajData"
+
+
+def _resolve_db_path() -> Path:
+    """Resolve the live database location.
+
+    Priority: RAJ_DB_PATH env var > local app-data dir.
+    The project folder lives inside OneDrive; SQLite+WAL on a cloud-synced
+    filesystem corrupts databases, so the live DB must NOT live there.
+    One-time migration: copy the legacy project-dir DB to the local dir
+    (using SQLite's online backup API so it is safe even if the file is open).
+    """
+    env = os.environ.get("RAJ_DB_PATH")
+    if env:
+        return Path(env)
+    _LOCAL_DB_DIR.mkdir(parents=True, exist_ok=True)
+    local = _LOCAL_DB_DIR / "campaign_data.db"
+    if not local.exists() and _PROJECT_DB.exists():
+        src = sqlite3.connect(f"file:{_PROJECT_DB}?mode=ro", uri=True)
+        dst = sqlite3.connect(str(local))
+        try:
+            src.backup(dst)
+            print(f"[DB] Migrated database out of OneDrive-synced folder -> {local}")
+        finally:
+            dst.close()
+            src.close()
+    return local
+
+
+DB_PATH = _resolve_db_path()
 
 # Valid batch_recipient statuses
 BATCH_RECIPIENT_STATUSES = [

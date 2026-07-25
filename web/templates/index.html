@@ -184,6 +184,9 @@
                         </div>
                     </div>
 
+                    <!-- Send-rate / daily cap widget -->
+                    <div id="send-stats-row" class="mb-8"></div>
+
                     <!-- Pipeline table -->
                     <div class="card rounded-2xl p-6 mb-8">
                         <h3 class="text-lg font-semibold mb-4">📅 Email Pipeline</h3>
@@ -243,7 +246,12 @@
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Batch size</label>
-                                            <input type="number" id="batch-size" class="input w-full rounded-xl px-4 py-2 text-sm" value="10" min="1" required>
+                                            <select id="batch-size" class="input w-full rounded-xl px-4 py-2 text-sm">
+                                                <option value="10">10 leads</option>
+                                                <option value="25" selected>25 leads</option>
+                                                <option value="50">50 leads</option>
+                                                <option value="100">100 leads</option>
+                                            </select>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Start at</label>
@@ -260,12 +268,16 @@
                                     <div>
                                         <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Schedule (optional)</label>
                                         <input type="datetime-local" id="batch-schedule" class="input w-full rounded-xl px-4 py-2 text-sm">
+                                        <p class="text-xs text-[var(--text-muted)] mt-1">Leave empty to schedule for tomorrow 10:00 AM.</p>
                                     </div>
                                     <div class="flex items-center justify-between text-sm">
                                         <span class="text-[var(--text-muted)]">Available in pool:</span>
                                         <span id="pool-count" class="font-semibold">—</span>
                                     </div>
-                                    <button type="submit" class="btn-primary w-full py-2.5 rounded-xl text-sm font-medium">Create batch</button>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button type="submit" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">Create batch</button>
+                                        <button type="button" id="btn-create-start" class="btn-primary w-full py-2.5 rounded-xl text-sm font-medium">Create &amp; start now</button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
@@ -760,6 +772,18 @@ One per line, comma separated."></textarea>
                                         <input type="email" id="setting-default-sender" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="om@robopirate.in">
                                         <p class="text-xs text-[var(--text-muted)] mt-1">Campaign/test/trial From address. Must be a Gmail alias.</p>
                                     </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Send gap (seconds)</label>
+                                            <input type="number" id="setting-send-gap" min="30" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="45">
+                                            <p class="text-xs text-[var(--text-muted)] mt-1">Min 30. 45s ≈ 80/hour.</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Daily send cap</label>
+                                            <input type="number" id="setting-daily-cap" min="0" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="100">
+                                            <p class="text-xs text-[var(--text-muted)] mt-1">0 = unlimited. Resumes next day.</p>
+                                        </div>
+                                    </div>
                                     <div class="border-t border-[var(--border)] pt-4">
                                         <p class="text-sm font-medium mb-2">Pause Sequences</p>
                                         <label class="flex items-center gap-2 mb-2 cursor-pointer">
@@ -777,6 +801,15 @@ One per line, comma separated."></textarea>
                                     </div>
                                     <button id="btn-save-campaign-settings" class="btn-primary w-full py-2 rounded-xl text-sm font-medium">Save Campaign Settings</button>
                                 </div>
+                            </div>
+
+                            <div class="card rounded-2xl p-6">
+                                <h3 class="text-lg font-semibold mb-4">🛡️ Deliverability</h3>
+                                <p class="text-xs text-[var(--text-muted)] mb-3">Live DNS check for your sending domain. All three must be green or Gmail/Outlook will junk or drop your emails.</p>
+                                <div id="deliverability-checks" class="space-y-2 text-sm">
+                                    <p class="text-[var(--text-muted)]">Checking…</p>
+                                </div>
+                                <button id="btn-recheck-deliverability" class="btn-secondary w-full mt-4 py-2 rounded-xl text-sm font-medium">Re-check DNS</button>
                             </div>
 
                             <div class="card rounded-2xl p-6">

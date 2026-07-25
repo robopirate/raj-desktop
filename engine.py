@@ -436,8 +436,92 @@ class CampaignEngine:
         self._check_emergency_commands(now)
         self._check_eod(now)
         self._check_morning_brief(now)
+        self._check_backup(now)
+
+    def _check_backup(self, now: datetime):
+        """Nightly DB backup at 23:00 into the OneDrive-synced backups/ folder."""
+        if now.hour < 23:
+            return
+        today = now.date().isoformat()
+        if self.db.get_meta("last_backup_date") == today:
+            return
+        try:
+            from backup_db import backup_now
+            out = backup_now()
+            self.db.set_meta("last_backup_date", today)
+            self._log(f"[Backup] Database backed up to {out.name}")
+        except Exception as e:
+            self._log(f"[Backup] Failed: {e}")
 
     # -- Batch Processing (NEW) --
+    def _send_gap(self) -> int:
+        """Seconds between sends; configurable in Settings (min 30, default 45)."""
+        try:
+            return max(30, int(self.db.get_meta("send_gap_seconds") or 45))
+        except (ValueError, TypeError):
+            return 45
+
+    def _daily_cap(self) -> int:
+        """Max sends per day; 0 = unlimited (default 100)."""
+        try:
+            return max(0, int(self.db.get_meta("daily_send_cap") or 100))
+        except (ValueError, TypeError):
+            return 100
+
+    def _sends_today(self) -> int:
+        row = self.db.execute(
+            "SELECT COUNT(*) FROM sends WHERE status='sent' AND date(sent_at)=date('now','localtime')"
+        ).fetchone()
+        return row[0] if row else 0
+
+    def _bounces_today(self) -> int:
+        row = self.db.execute(
+            "SELECT COUNT(*) FROM batch_recipients WHERE status='bounced' AND date(sent_at)=date('now','localtime')"
+        ).fetchone()
+        return row[0] if row else 0
+
+    def _cap_remaining(self) -> int:
+        cap = self._daily_cap()
+        if cap <= 0:
+            return 10 ** 9
+        return cap - self._sends_today()
+
+    def _bounce_guard_tripped(self) -> bool:
+        """True when today's bounce rate exceeds 10% of today's sends (min 20 sends)."""
+        sent = self._sends_today()
+        if sent < 20:
+            return False
+        return self._bounces_today() / sent > 0.10
+
+    def get_send_stats(self) -> dict:
+        cap = self._daily_cap()
+        gap = self._send_gap()
+        sent_today = self._sends_today()
+        remaining = self._cap_remaining()
+        pending = self.db.execute(
+            "SELECT COUNT(*) FROM batch_recipients br JOIN batches b ON b.id=br.batch_id "
+            "WHERE br.status='pending' AND b.status='running' AND b.deleted_at IS NULL"
+        ).fetchone()[0]
+        est_minutes = (min(pending, remaining) * gap) // 60 if remaining > 0 else 0
+        # Warm-up ramp suggestion by account age in weeks (first send date)
+        first = self.db.execute("SELECT MIN(sent_at) FROM sends WHERE status='sent'").fetchone()[0]
+        weeks_live = 0
+        if first:
+            try:
+                weeks_live = max(0, (datetime.now() - datetime.fromisoformat(first)).days // 7)
+            except (ValueError, TypeError):
+                weeks_live = 0
+        ramp_ladder = [50, 100, 200, 300]
+        suggested = ramp_ladder[min(weeks_live, len(ramp_ladder) - 1)]
+        return {
+            "sent_today": sent_today, "cap": cap, "gap_seconds": gap,
+            "remaining_today": 0 if cap <= 0 else max(0, remaining),
+            "pending_in_batches": pending, "est_minutes_to_finish": est_minutes,
+            "bounce_guard_tripped": self._bounce_guard_tripped(),
+            "bounces_today": self._bounces_today(),
+            "ramp_suggested_cap": suggested, "weeks_live": weeks_live,
+        }
+
     def _process_running_batches(self, now: datetime):
         """Process running batches and send emails at staggered intervals."""
         try:
@@ -460,6 +544,24 @@ class CampaignEngine:
                 seq_id = batch["sequence_id"]
                 if seq_id and self.db.get_meta(f"pause_{seq_id}") == "true":
                     self._log(f"[Batch {batch_id}] {seq_id.upper()} is paused, skipping")
+                    continue
+
+                # BOUNCE GUARD: stop sending if bounce rate spiked today
+                if self._bounce_guard_tripped():
+                    flag = "bounce_guard_notice_" + now.date().isoformat()
+                    if not self.db.get_meta(flag):
+                        self._log(f"[GUARD] Bounce rate >10% of today's sends — pausing sends to protect domain reputation")
+                        self._notify("Bounce guard", "Bounce spike detected. Sending paused for today.")
+                        self.db.set_meta(flag, "1")
+                    continue
+
+                # DAILY CAP: stop queuing when today's cap is reached
+                if self._cap_remaining() <= 0:
+                    flag = "cap_notice_" + now.date().isoformat()
+                    if not self.db.get_meta(flag):
+                        self._log(f"[Batch {batch_id}] Daily send cap ({self._daily_cap()}) reached — resumes tomorrow")
+                        self._notify("Daily cap reached", f"{self._daily_cap()} sends done today. Resumes tomorrow.")
+                        self.db.set_meta(flag, "1")
                     continue
                 if seq_id == "unassigned":
                     self._log(f"[Batch {batch_id}] UNASSIGNED — pausing. Assign a sequence before running.")
@@ -1413,6 +1515,9 @@ class CampaignEngine:
 
         sent = 0
         for i, rec in enumerate(due):
+            if self._cap_remaining() <= 0:
+                self._log(f"Daily send cap ({self._daily_cap()}) reached — {len(due) - sent} deferred to tomorrow")
+                break
             subj, body_html, body_text, ab_variant, fmt = self.render(seq_id, day, rec)
             if not subj:
                 self._log(f"No template for {rec.email}, skipping")
@@ -1435,7 +1540,7 @@ class CampaignEngine:
                 self.db.commit()
                 sent += 1
                 self._log(f"Sent to {rec.email}")
-                time.sleep(SEND_DELAY)
+                time.sleep(self._send_gap())
             except Exception as e:
                 err = str(e)
                 if "quota" in err.lower() or "rate" in err.lower() or "limit" in err.lower():
@@ -2759,7 +2864,7 @@ Instructions:
                 )
                 sent += 1
                 self._log(f"Resumed send to {rec.email}")
-                time.sleep(SEND_DELAY)
+                time.sleep(self._send_gap())
             except Exception as e:
                 err = str(e)
                 if "quota" in err.lower() or "rate" in err.lower() or "limit" in err.lower():

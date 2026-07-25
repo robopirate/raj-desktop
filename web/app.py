@@ -1120,7 +1120,8 @@ def export_campaign():
 @app.route("/api/settings/campaign", methods=["GET", "POST"])
 def campaign_settings():
     """Get or update campaign-level settings stored in meta."""
-    keys = ["brief_email", "default_sender", "pause_school", "pause_csr", "pause_csr_wsl_5"]
+    keys = ["brief_email", "default_sender", "pause_school", "pause_csr", "pause_csr_wsl_5",
+            "send_gap_seconds", "daily_send_cap"]
     if request.method == "POST":
         data = request.get_json() or {}
         for key in keys:
@@ -1135,6 +1136,61 @@ def campaign_settings():
             if key.startswith("pause_"):
                 values[key] = str(values.get(key)).lower() in ("1", "true", "yes")
         return _ok(values)
+    except Exception as e:
+        return _err(str(e), 500)
+
+
+@app.route("/api/dashboard/send-stats", methods=["GET"])
+def send_stats():
+    engine, error = _engine_or_500()
+    if error:
+        return error
+    try:
+        return _ok(engine.get_send_stats())
+    except Exception as e:
+        return _err(str(e), 500)
+
+
+@app.route("/api/settings/deliverability", methods=["GET"])
+def deliverability_check():
+    """Live DNS check for SPF / DKIM / DMARC on the sending domain."""
+    import subprocess, re
+    domain = (_db.get_meta("sender_domain") or "robopirate.in").strip()
+
+    def txt_records(name):
+        try:
+            out = subprocess.run(
+                ["nslookup", "-type=TXT", name], capture_output=True, text=True, timeout=10
+            )
+            return out.stdout or ""
+        except Exception:
+            return ""
+
+    try:
+        root_txt = txt_records(domain)
+        spf_found = "v=spf1" in root_txt and "_spf.google.com" in root_txt
+        dkim_txt = txt_records(f"google._domainkey.{domain}")
+        dkim_found = "v=DKIM1" in dkim_txt or "k=rsa" in dkim_txt
+        dmarc_txt = txt_records(f"_dmarc.{domain}")
+        dmarc_found = "v=DMARC1" in dmarc_txt
+        checks = [
+            {
+                "name": "SPF",
+                "ok": spf_found,
+                "fix": f"Add TXT record @{domain} → v=spf1 include:_spf.google.com ~all",
+            },
+            {
+                "name": "DKIM",
+                "ok": dkim_found,
+                "fix": "Google Workspace Admin → Apps → Gmail → Authenticate email → generate DKIM record and add it to DNS",
+            },
+            {
+                "name": "DMARC",
+                "ok": dmarc_found,
+                "fix": f"Add TXT record _dmarc.{domain} → v=DMARC1; p=quarantine; rua=mailto:dmarc@{domain}; pct=100",
+            },
+        ]
+        return _ok({"domain": domain, "checks": checks, "all_ok": all(c["ok"] for c in checks)})
     except Exception as e:
         return _err(str(e), 500)
 
@@ -1414,4 +1470,5 @@ def connect_google(service):
 
 # ── Main entry for Flask dev server ───────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5555, debug=False)
+    from waitress import serve
+    serve(app, host="127.0.0.1", port=5555, threads=4)

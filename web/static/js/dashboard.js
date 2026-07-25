@@ -13,11 +13,61 @@ const DASHBOARD = {
             this.loadSummary(),
             this.loadPipeline(),
             this.loadCampaigns(),
+            this.loadSendStats(),
         ]);
     },
 
     init() {
         document.addEventListener('page:dashboard', () => this.load());
+    },
+
+    // ── Send-rate / daily cap widget ──────────────────────────────────────────
+    async loadSendStats() {
+        const container = document.getElementById('send-stats-row');
+        if (!container) return;
+        try {
+            const s = await API.sendStats();
+            const capLabel = s.cap > 0 ? `${s.sent_today} / ${s.cap}` : `${s.sent_today} / ∞`;
+            const capPct = s.cap > 0 ? Math.min(100, Math.round((s.sent_today / s.cap) * 100)) : 0;
+            const est = s.est_minutes_to_finish > 0
+                ? `~${Math.floor(s.est_minutes_to_finish / 60)}h ${s.est_minutes_to_finish % 60}m to finish today's queue`
+                : 'no sends queued';
+            const rampNote = s.cap > 0 && s.ramp_suggested_cap > s.cap
+                ? `<button id="btn-apply-ramp" class="ml-2 px-2 py-1 rounded-lg bg-[var(--accent-teal)] text-white text-xs font-medium">Apply ${s.ramp_suggested_cap}/day</button>`
+                : '';
+            const rampText = s.cap > 0 && s.ramp_suggested_cap > s.cap
+                ? `Week ${s.weeks_live + 1} warm-up: you can raise to <strong>${s.ramp_suggested_cap}/day</strong> ${rampNote}`
+                : `Warm-up week ${s.weeks_live + 1} · suggested cap ${s.ramp_suggested_cap}/day`;
+            container.innerHTML = `
+            <div class="card rounded-2xl p-5">
+                <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
+                    <div>
+                        <div class="text-2xl font-bold">${capLabel}</div>
+                        <div class="text-xs text-[var(--text-muted)]">sent today / daily cap</div>
+                    </div>
+                    <div class="flex-1 min-w-[160px]">
+                        <div class="h-2 rounded-full bg-[var(--border)] overflow-hidden">
+                            <div class="h-full bg-[var(--accent-teal)]" style="width:${capPct}%"></div>
+                        </div>
+                        <div class="text-xs text-[var(--text-muted)] mt-1">${s.pending_in_batches} queued · gap ${s.gap_seconds}s · ${est}</div>
+                    </div>
+                    <div class="text-xs ${s.bounce_guard_tripped ? 'text-red-500 font-semibold' : 'text-[var(--text-muted)]'}">
+                        ${s.bounce_guard_tripped ? '⚠️ Bounce guard tripped — sends paused today' : `Bounces today: ${s.bounces_today}`}
+                    </div>
+                </div>
+                <div class="text-xs text-[var(--text-muted)] mt-3 border-t border-[var(--border)] pt-3">📈 ${rampText}</div>
+            </div>`;
+            const btn = document.getElementById('btn-apply-ramp');
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    await API.updateCampaignSettings({ daily_send_cap: s.ramp_suggested_cap });
+                    showToast(`Daily cap set to ${s.ramp_suggested_cap}/day`, 'success');
+                    this.loadSendStats();
+                });
+            }
+        } catch (e) {
+            container.innerHTML = '';
+        }
     },
 
     setError(containerId, message) {

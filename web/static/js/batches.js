@@ -261,25 +261,72 @@
         `;
     }
 
+    function nextTenAm() {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(10, 0, 0, 0);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function suggestBatchName() {
+        const seq = els.sequence.value || els.pullFrom.value || 'leads';
+        const pad = n => String(n).padStart(2, '0');
+        const d = new Date();
+        const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const todayBatches = (state.pipelines || []).length;
+        const letter = String.fromCharCode(65 + (todayBatches % 26));
+        return `${seq}-${stamp}-${letter}`;
+    }
+
     async function createBatch(e) {
         e.preventDefault();
         const body = {
-            name: els.name.value.trim(),
+            name: els.name.value.trim() || suggestBatchName(),
             pull_from: els.pullFrom.value || 'leads',
             sequence_id: els.sequence.value || null,
             sub_pool: els.subPool.value || null,
             batch_size: parseInt(els.size.value, 10),
             day_offset: parseInt(els.offset.value, 10),
-            scheduled_at: els.schedule.value || null,
+            scheduled_at: els.schedule.value || nextTenAm(),
         };
         try {
             const result = await API.createBatch(body);
             showToast(`Batch created with ${result.size || 0} recipients`, 'success');
             els.form.reset();
-            els.size.value = 10;
+            els.size.value = '25';
             els.offset.value = '1';
-            if (state.sequences.includes('school')) els.sequence.value = 'school';
+            els.name.value = suggestBatchName();
             if (els.pullFrom) els.pullFrom.value = 'leads';
+            await updatePoolCount();
+            await loadPipelines();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    }
+
+    async function createAndStart(e) {
+        e.preventDefault();
+        const body = {
+            name: els.name.value.trim() || suggestBatchName(),
+            pull_from: els.pullFrom.value || 'leads',
+            sequence_id: els.sequence.value || null,
+            sub_pool: els.subPool.value || null,
+            batch_size: parseInt(els.size.value, 10),
+            day_offset: parseInt(els.offset.value, 10),
+        };
+        try {
+            const result = await API.createBatch(body);
+            if (result.batch_id && body.sequence_id) {
+                await API.startBatch(result.batch_id, body.sequence_id);
+                showToast(`Batch created (${result.size || 0} leads) and started`, 'success');
+            } else {
+                showToast(`Batch created with ${result.size || 0} recipients — assign a sequence to start`, 'warning');
+            }
+            els.form.reset();
+            els.size.value = '25';
+            els.offset.value = '1';
+            els.name.value = suggestBatchName();
             await updatePoolCount();
             await loadPipelines();
         } catch (err) {
@@ -418,9 +465,15 @@
         loadPipelines();
 
         els.form.addEventListener('submit', createBatch);
+        document.getElementById('btn-create-start')?.addEventListener('click', createAndStart);
+        if (els.name && !els.name.value) els.name.value = suggestBatchName();
         els.pullFrom.addEventListener('change', async () => {
             await loadSubPools(els.pullFrom.value);
             await updatePoolCount();
+            if (els.name && !els.name.value) els.name.value = suggestBatchName();
+        });
+        els.sequence?.addEventListener('change', () => {
+            if (els.name && !els.name.value) els.name.value = suggestBatchName();
         });
         els.subPool.addEventListener('change', updatePoolCount);
         if (els.filterSeq) els.filterSeq.addEventListener('change', loadPipelines);

@@ -57,6 +57,26 @@
         }
     }
 
+    async function loadDeliverability() {
+        const box = document.getElementById('deliverability-checks');
+        if (!box) return;
+        box.innerHTML = '<p class="text-[var(--text-muted)]">Checking…</p>';
+        try {
+            const res = await API.deliverability();
+            box.innerHTML = res.checks.map(c => `
+                <div class="flex items-start gap-2">
+                    <span class="${c.ok ? 'text-emerald-600' : 'text-red-500'} font-bold">${c.ok ? '✓' : '✗'}</span>
+                    <div>
+                        <div class="font-medium">${c.name} <span class="text-xs ${c.ok ? 'text-emerald-600' : 'text-red-500'}">${c.ok ? 'OK' : 'MISSING'}</span></div>
+                        ${c.ok ? '' : `<div class="text-xs text-[var(--text-muted)]">${c.fix}</div>`}
+                    </div>
+                </div>`).join('') +
+                `<p class="text-xs text-[var(--text-muted)] pt-2 border-t border-[var(--border)]">${res.all_ok ? '✅ All records present — emails are authenticated.' : 'Fix the missing records in your DNS (Squarespace), wait 1–24h, then re-check.'}</p>`;
+        } catch (e) {
+            box.innerHTML = `<p class="text-red-500 text-sm">DNS check failed: ${e.message}</p>`;
+        }
+    }
+
     async function loadCampaignSettings() {
         try {
             const s = await API.getCampaignSettings();
@@ -70,6 +90,10 @@
             if (pauseCsr) pauseCsr.checked = !!s.pause_csr;
             const pauseCsrWsl = document.getElementById('setting-pause-csrwsl');
             if (pauseCsrWsl) pauseCsrWsl.checked = !!s.pause_csr_wsl_5;
+            const gapEl = document.getElementById('setting-send-gap');
+            if (gapEl) gapEl.value = s.send_gap_seconds || 45;
+            const capEl = document.getElementById('setting-daily-cap');
+            if (capEl) capEl.value = s.daily_send_cap ?? 100;
         } catch (e) {
             console.error('Failed to load campaign settings', e);
         }
@@ -82,6 +106,8 @@
             pause_school: document.getElementById('setting-pause-school')?.checked || false,
             pause_csr: document.getElementById('setting-pause-csr')?.checked || false,
             pause_csr_wsl_5: document.getElementById('setting-pause-csrwsl')?.checked || false,
+            send_gap_seconds: Math.max(30, parseInt(document.getElementById('setting-send-gap')?.value, 10) || 45),
+            daily_send_cap: Math.max(0, parseInt(document.getElementById('setting-daily-cap')?.value, 10) ?? 100),
         };
         try {
             await API.updateCampaignSettings(payload);
@@ -160,6 +186,8 @@
         loadCampaignSettings();
         loadAutomationSettings();
         loadAuditLog();
+        loadDeliverability();
+        document.getElementById('btn-recheck-deliverability')?.addEventListener('click', loadDeliverability);
 
         container.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-connect]');

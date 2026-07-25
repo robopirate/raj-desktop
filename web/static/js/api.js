@@ -129,6 +129,8 @@ const API = {
     exportCampaign() { return this.post('/api/export'); },
     getCampaignSettings() { return this.get('/api/settings/campaign'); },
     updateCampaignSettings(body) { return this.post('/api/settings/campaign', body); },
+    sendStats() { return this.get('/api/dashboard/send-stats'); },
+    deliverability() { return this.get('/api/settings/deliverability'); },
 
     // Google auth
     connectService(service) { return this.post(`/api/connect/${service}`); },

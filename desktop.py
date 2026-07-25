@@ -79,12 +79,13 @@ def _wait_for_server(timeout: float = 15.0) -> bool:
 
 
 def _start_flask() -> None:
-    """Run the Flask dev server in a daemon thread."""
+    """Serve the app with waitress (production WSGI) in a daemon thread."""
     from web.app import app
+    from waitress import serve
 
     def run():
         try:
-            app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
+            serve(app, host=HOST, port=PORT, threads=4)
         finally:
             _shutdown_requested.set()
 

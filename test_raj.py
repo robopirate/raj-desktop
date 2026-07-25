@@ -163,36 +163,72 @@ def test_soft_delete():
     return True
 
 def test_ui_elements():
-    """Test 5: Check that UI code references exist"""
+    """Test 5: Personalization + plain-link + pool stats (real feature checks)"""
     print("=" * 50)
-    print("TEST 5: UI Elements (Code Check)")
+    print("TEST 5: Greetings, Plain Links, Pool Stats")
     print("=" * 50)
-    
-    raj_chat_path = Path(__file__).parent / "raj_chat.py"
-    if not raj_chat_path.exists():
-        print("❌ raj_chat.py not found")
-        return False
-    
-    with open(raj_chat_path, 'r', encoding='utf-8') as f:
-        code = f.read()
-    
-    checks = {
-        "Sub-pool entry": "import_subpool_entry" in code,
-        "Family delete button": "_delete_family" in code,
-        "History toggle": "_history_expanded" in code or "HISTORY" in code,
-        "Reply inbox": "Reply Inbox" in code,
-        "Clone button": "Clone" in code or "clone_family" in code,
-        "A/B test UI": "ab_test" in code and "subject_b" in code,
-        "Desktop notifications": "notify(" in code or "notification.notify" in code,
-    }
-    
+
+    from engine import CampaignEngine, Recipient
+    from db import Database
+
+    engine = CampaignEngine(Database(), None)
     all_pass = True
-    for name, found in checks.items():
-        status = "✅" if found else "❌"
-        if not found:
+
+    def check(name, got, want):
+        nonlocal all_pass
+        ok = got == want
+        if not ok:
             all_pass = False
-        print(f"  {status} {name}: {'FOUND' if found else 'NOT FOUND'}")
-    
+        print(f"  {'✅' if ok else '❌'} {name}: got {got!r} (want {want!r})")
+
+    # Greeting resolution: person from name field
+    check("person from name", engine._person_from_name("Mrs. Arti Chanana"), "Arti")
+    check("title strip", engine._person_from_name("Dr. Lakshmi Prasanna"), "Lakshmi")
+    check("slash pair", engine._person_from_name("Sunitha Williams / Sudha Murty (Co-founder)"), "Sunitha")
+    check("role rejected", engine._person_from_name("Principal"), None)
+    check("company rejected", engine._person_from_name("Wipro CSR"), None)
+    check("school-name rejected", engine._person_from_name("Pawar Public School, Hadapsar, Pune"), None)
+
+    # Email-based extraction
+    check("email first.last", engine._name_from_email("neelam.chakrabarty@dpspune.com"), "Neelam")
+    check("email role account", engine._name_from_email("info@ppspune.com"), None)
+    check("email single token", engine._name_from_email("davaundh@gmail.com"), None)
+
+    # Render greeting end-to-end (uses real templates)
+    rec = Recipient(id=0, sequence_id="school", email="neelam.chakrabarty@dpspune.com",
+                    name="Principal", org="DPS Pune", extra_json="{}")
+    subj, bh, bt, v, fmt = engine.render("school", 1, rec)
+    check("greeting from email", bt.split("\n")[0], "Dear Neelam,")
+    rec2 = Recipient(id=0, sequence_id="csr-wsl-5", email="info@wipro.com",
+                     name="Wipro CSR", org="Wipro", extra_json="{}")
+    subj, bh, bt, v, fmt = engine.render("csr-wsl-5", 1, rec2)
+    check("greeting fallback", bt.split("\n")[0], "Dear CSR Head,")
+
+    # Plain-link converter hides URLs behind labels
+    html = engine._text_to_simple_html("Hello\n\nRead the Report: https://example.com/doc\n")
+    check("label becomes link", '<a href="https://example.com/doc"' in html and ">Read the Report</a>" in html, True)
+    check("no raw url visible", "https://example.com/doc</a>" not in html, True)
+
+    # Pool stats shape
+    stats = engine.get_pool_stats("school")
+    check("pool_stats keys", sorted(stats.keys()), sorted(["total", "available", "in_batches", "contacted", "blacklisted", "replied"]))
+    check("pool total sane", stats["total"] >= 0, True)
+
+    # Reset dry-run on a temp copy
+    import tempfile, sqlite3, shutil
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    src = sqlite3.connect(str(Database().db_path))
+    dst = sqlite3.connect(tmp.name)
+    src.backup(dst)
+    dst.close(); src.close()
+    tmpdb = Database(tmp.name)
+    before = tmpdb.pool_stats("csr-wsl-5")
+    res = tmpdb.reset_pool_for_recampaign("csr-wsl-5")
+    after = tmpdb.pool_stats("csr-wsl-5")
+    check("reset archives sends", res["sends_archived"] >= 0, True)
+    check("reset keeps replied protected", after["replied"], before["replied"])
+
     print(f"TEST 5: {'PASSED' if all_pass else 'SOME MISSING'}\n")
     return all_pass
 
