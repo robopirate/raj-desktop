@@ -32,7 +32,6 @@
         btnTest: document.getElementById('btn-test-template'),
         btnGenerate: document.getElementById('btn-generate-template'),
         btnLock: document.getElementById('btn-lock-template'),
-        btnSync: document.getElementById('btn-sync-templates'),
         btnGenerateMissing: document.getElementById('btn-generate-missing'),
         btnLockAll: document.getElementById('btn-lock-all'),
         trialForm: document.getElementById('trial-form'),
@@ -309,21 +308,6 @@
         }
     }
 
-    async function syncTemplates() {
-        try {
-            els.syncStatus.textContent = 'Syncing...';
-            const result = await API.syncTemplates();
-            els.syncStatus.textContent = `Loaded ${result.loaded || 0}, skipped ${(result.skipped || []).length}`;
-            showToast(`Synced ${result.loaded || 0} templates from Gmail`, 'success');
-            state.templates = {};
-            await loadTemplateStatus();
-            await loadTemplate();
-        } catch (e) {
-            els.syncStatus.textContent = 'Sync failed';
-            showToast(e.message, 'error');
-        }
-    }
-
     async function generateMissing() {
         try {
             els.syncStatus.textContent = 'Generating missing templates...';
@@ -400,7 +384,6 @@
         els.btnTest.addEventListener('click', testSend);
         els.btnGenerate.addEventListener('click', generateTemplate);
         if (els.btnLock) els.btnLock.addEventListener('click', toggleLock);
-        if (els.btnSync) els.btnSync.addEventListener('click', syncTemplates);
         if (els.btnGenerateMissing) els.btnGenerateMissing.addEventListener('click', generateMissing);
         if (els.btnLockAll) els.btnLockAll.addEventListener('click', lockAll);
 

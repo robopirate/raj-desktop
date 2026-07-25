@@ -997,20 +997,6 @@ def generate_template(seq, day):
         return _err(str(e), 500)
 
 
-@app.route("/api/templates/sync", methods=["POST"])
-def sync_templates():
-    engine, error = _engine_or_500()
-    if error:
-        return error
-    if not getattr(engine, "gmail", None) or not engine.gmail.is_connected():
-        return _err("Gmail not connected", 400)
-    try:
-        result = engine.sync_templates()
-        return _ok(result)
-    except Exception as e:
-        return _err(str(e), 500)
-
-
 @app.route("/api/templates/generate-missing", methods=["POST"])
 def generate_missing_templates():
     engine, error = _engine_or_500()

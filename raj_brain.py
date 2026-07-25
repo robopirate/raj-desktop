@@ -518,9 +518,6 @@ Respond as Raj naturally:"""
         if any(w in text_lower for w in ["resume", "continue", "start again", "unpause"]):
             return "resume", {}
 
-        if any(w in text_lower for w in ["sync templates", "load templates", "refresh templates"]):
-            return "sync_templates", {}
-
         # Smart import commands
         m = re.search(r"smart\s+import\s+(.+?)\s+(?:to|into)\s+(school|csr|csr-wsl-5)", text_lower)
         if m:
@@ -671,10 +668,6 @@ Respond as Raj naturally:"""
             elif action == "resume":
                 self.engine.resume()
                 return {"status": "resumed"}
-
-            elif action == "sync_templates":
-                result = self.engine.sync_templates()
-                return {"loaded": result.get("loaded", 0), "missing": result.get("missing", []), "found": result.get("found_names", [])}
 
             elif action == "import_leads":
                 return {"needs_dialog": True, "sequence": params.get("sequence", "school")}
@@ -891,14 +884,6 @@ Blacklisted: {s.get('global', {}).get('blacklist', 0)} | Overdue: {overdue}
 
         elif action == "resume":
             return "Back in action, sir. Resuming all sequences. I'll check for any missed opportunities while we were paused."
-
-        elif action == "sync_templates":
-            loaded = result.get("loaded", 0)
-            missing = result.get("missing", [])
-            if missing:
-                missing_str = ", ".join(missing)
-                return f"Synced {loaded} templates.\n\nMissing: {missing_str}.\n\nI can generate these if you'd like. Say 'generate school day 3' for example."
-            return f"All set, sir. {loaded} templates synced and ready. Everything looks good."
 
         elif action == "send_batch":
             sent = result.get("sent", 0)
