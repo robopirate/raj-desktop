@@ -18,6 +18,11 @@
         offset: document.getElementById('batch-offset'),
         schedule: document.getElementById('batch-schedule'),
         poolCount: document.getElementById('pool-count'),
+        poolStats: document.getElementById('pool-stats'),
+        statAvailable: document.getElementById('stat-available'),
+        statInBatches: document.getElementById('stat-in-batches'),
+        statTotal: document.getElementById('stat-total'),
+        btnResetPool: document.getElementById('btn-reset-pool'),
         filterSeq: document.getElementById('batch-filter-seq'),
         body: document.getElementById('batches-body'),
     };
@@ -52,6 +57,7 @@
 
         await loadSubPools(els.pullFrom.value);
         await updatePoolCount();
+        await updatePoolStats();
     }
 
     function populateSelect(select, items, includeAll) {
@@ -81,11 +87,12 @@
             state.subPools = [];
         }
         const current = els.subPool.value;
-        els.subPool.innerHTML = '<option value="">— All leads —</option>';
+        els.subPool.innerHTML = '<option value="">— All unbatched leads —</option>';
         state.subPools.forEach(sp => {
             const opt = document.createElement('option');
-            opt.value = sp.name || sp;
-            opt.textContent = `${sp.name || sp}${sp.count != null ? ` (${sp.count})` : ''}`;
+            const isNoSub = !sp.name || sp.name === '(no sub-pool)';
+            opt.value = isNoSub ? '' : sp.name;
+            opt.textContent = `${isNoSub ? '— No sub-pool tag —' : sp.name}${sp.count != null ? ` (${sp.count})` : ''}`;
             els.subPool.appendChild(opt);
         });
         if (current && Array.from(els.subPool.options).some(o => o.value === current)) {
@@ -109,6 +116,42 @@
             els.poolCount.textContent = count;
         } catch (e) {
             els.poolCount.textContent = '—';
+        }
+    }
+
+    async function updatePoolStats() {
+        if (!els.poolStats) return;
+        const seq = els.pullFrom.value || 'leads';
+        try {
+            const res = await API.poolStats(seq);
+            const stats = res && res[seq] ? res[seq] : {};
+            const available = stats.available ?? 0;
+            const inBatches = stats.in_batches ?? 0;
+            const total = stats.total ?? 0;
+            els.statAvailable.textContent = available;
+            els.statInBatches.textContent = inBatches;
+            els.statTotal.textContent = total;
+            els.poolStats.classList.remove('hidden');
+            if (els.btnResetPool) {
+                els.btnResetPool.classList.toggle('hidden', inBatches === 0);
+            }
+        } catch (e) {
+            els.poolStats.classList.add('hidden');
+        }
+    }
+
+    async function resetPoolForRecampaign() {
+        const seq = els.pullFrom.value || 'leads';
+        if (!seq || seq === 'leads') return;
+        if (!confirm(`Reset all eligible ${seq.toUpperCase()} leads for a new campaign? This will archive old send records and make replied/blacklisted leads unavailable.`)) return;
+        try {
+            const res = await API.resetPool(seq);
+            showToast(`Reset ${res.leads_reset || 0} leads for re-campaign.`, 'success');
+            await loadSubPools(seq);
+            await updatePoolCount();
+            await updatePoolStats();
+        } catch (e) {
+            showToast('Reset failed: ' + e.message, 'error');
         }
     }
 
@@ -470,12 +513,17 @@
         els.pullFrom.addEventListener('change', async () => {
             await loadSubPools(els.pullFrom.value);
             await updatePoolCount();
+            await updatePoolStats();
             if (els.name && !els.name.value) els.name.value = suggestBatchName();
         });
         els.sequence?.addEventListener('change', () => {
             if (els.name && !els.name.value) els.name.value = suggestBatchName();
         });
-        els.subPool.addEventListener('change', updatePoolCount);
+        els.subPool.addEventListener('change', async () => {
+            await updatePoolCount();
+            await updatePoolStats();
+        });
+        if (els.btnResetPool) els.btnResetPool.addEventListener('click', resetPoolForRecampaign);
         if (els.filterSeq) els.filterSeq.addEventListener('change', loadPipelines);
         els.body.addEventListener('click', onBatchAction);
 
