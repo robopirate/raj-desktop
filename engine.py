@@ -63,20 +63,20 @@ SEQUENCES = {
         "persona": "school",
         "assets": {
             1: {
-                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view",
+                "brochure": "https://drive.google.com/file/d/1qiWBhOiklPpwU5NaVkqnfjA6v9q3YumS/view?usp=drive_link",
                 "video_wsl": "https://www.instagram.com/p/DTDBcsdk9FI/",
                 "video_abp": "https://youtu.be/FJ2_W53WjmA",
                 "video_ig": "https://www.instagram.com/robo.pirate/"
             },
             3: {
-                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view",
+                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view?usp=drive_link",
                 "video_abp": "https://youtu.be/FJ2_W53WjmA"
             },
             5: {
-                "report_1st_wsl": "https://drive.google.com/file/d/1H7mHVTWGprbd4ZFSPoJZPeAc1nHnih3J/view"
+                "report_1st_wsl": "https://drive.google.com/file/d/1IJk5JlE5r9O_8xGIc9HB-AAJxirJ1N1f/view?usp=drive_link"
             },
             7: {
-                "report_sangli1": "https://drive.google.com/file/d/1HpNdnamA2k3H0xkKr58STEKMNu5RgHPx/view",
+                "report_sangli1": "https://drive.google.com/file/d/1Ie5vnu4-ajsc6uihAEw2EP8xGizmKdg1/view?usp=drive_link",
                 "video_abp": "https://youtu.be/FJ2_W53WjmA?si=ZFAr_bp_xU2Sduwr",
                 "video_star": "https://www.youtube.com/watch?v=iziKPBSfGKU",
                 "video_bandhuta": "https://www.youtube.com/watch?v=xVmaBnPyg9A",
@@ -84,7 +84,7 @@ SEQUENCES = {
                 "video_we": "https://www.instagram.com/reel/DMe2HzqofAk/?igsh=c201ZGxsOGFlMjJj"
             },
             10: {
-                "plans": "https://drive.google.com/file/d/1p2CyHVZK_giZj0KNDGTTs_-s7HxVnQ_C/view"
+                "plans": "https://drive.google.com/file/d/1p2CyHVZK_giZj0KNDGTTs_-s7HxVnQ_C/view?usp=drive_link"
             }
         }
     },
@@ -95,17 +95,17 @@ SEQUENCES = {
         "persona": "csr",
         "assets": {
             1: {
-                "brochure": "https://drive.google.com/file/d/1vRMeFM22aajc5zfiYhqaev34UVQ87zyU/view"
+                "brochure": "https://drive.google.com/file/d/1qiWBhOiklPpwU5NaVkqnfjA6v9q3YumS/view?usp=drive_link"
             },
             3: {
                 "video_wsl": "https://www.instagram.com/p/DTDBcsdk9FI/"
             },
             5: {
-                "report_1st_wsl": "https://drive.google.com/file/d/1H7mHVTWGprbd4ZFSPoJZPeAc1nHnih3J/view",
-                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view"
+                "report_1st_wsl": "https://drive.google.com/file/d/1IJk5JlE5r9O_8xGIc9HB-AAJxirJ1N1f/view?usp=drive_link",
+                "report_vbv": "https://drive.google.com/file/d/1d7EEtC8YitbSj7U6ivHf_6WtUGuylT-B/view?usp=drive_link"
             },
             7: {
-                "report_sangli": "https://drive.google.com/file/d/1pKSm1WPlPk-we4aC-uhqxEy8w-BYygSN/view",
+                "report_sangli": "https://drive.google.com/file/d/1Ie5vnu4-ajsc6uihAEw2EP8xGizmKdg1/view?usp=drive_link",
                 "video_divyang": "https://www.instagram.com/p/DMhEDutOrl-/",
                 "video_gruh": "https://www.instagram.com/p/DSSIy7nglXc/",
                 "video_abp": "https://youtu.be/FJ2_W53WjmA",
@@ -115,7 +115,7 @@ SEQUENCES = {
                 "video_we": "https://www.instagram.com/reel/DMe2HzqofAk/"
             },
             10: {
-                "proposal_2nd": "https://drive.google.com/file/d/1mnmUNl1EkAmxjz7NVRGU2pmcHDrDUJMN/view"
+                "proposal_2nd": "https://drive.google.com/file/d/15-EuEcwci8olOSnm0V50laK3gVKCUCe-/view?usp=drive_link"
             }
         }
     }
@@ -396,6 +396,22 @@ class CampaignEngine:
                     self._log(f"[RESUME] {missed} scheduled batch(es) missed their time while system was off")
         except Exception as e:
             self._log(f"[RESUME] Error checking previous state: {e}")
+
+        # AUTO-RESUME: Pick up sends interrupted by Gmail rate limits
+        try:
+            pending_groups = self.db.execute(
+                "SELECT sequence_id, day, COUNT(*) FROM pending_resumes WHERE status='pending' GROUP BY sequence_id, day"
+            ).fetchall()
+            if pending_groups:
+                self._log(f"[AutoResume] Found {sum(c for _, _, c in pending_groups)} pending resume(s) across {len(pending_groups)} group(s)")
+                for seq_id, day, count in pending_groups:
+                    self._log(f"[AutoResume] Resuming {seq_id.upper()} Day {day}: {count} pending")
+                    result = self._resume_pending(seq_id, day)
+                    self._log(f"[AutoResume] {seq_id.upper()} Day {day}: {result.sent} resumed, {count - result.sent} remaining")
+            else:
+                self._log("[AutoResume] No pending resumes")
+        except Exception as e:
+            self._log(f"[AutoResume] Error during auto-resume: {e}")
 
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
@@ -1137,7 +1153,7 @@ class CampaignEngine:
                 1: "{{SCHOOL_NAME}} — Transform Your School with Hands-On STEM Labs",
                 3: "{{SCHOOL_NAME}} — NEP 2020 Compliance: Is Your School Ready?",
                 5: "{{PRINCIPAL_NAME}}, See How {{SCHOOL_NAME}} Can Lead STEM Education",
-                7: "{{SCHOOL_NAME}} — Join 85+ Schools Already Using WSL",
+                7: "{{SCHOOL_NAME}} — Join 100+ Schools Already Using WSL",
                 10: "{{PRINCIPAL_NAME}}, Final Call: WSL Subscription Plans for {{SCHOOL_NAME}}"
             },
             "csr-wsl-5": {
@@ -1619,23 +1635,25 @@ class CampaignEngine:
         return self.db.batch_get_all_pipelines(sequence_id)
 
     # -- POOL METHODS (NEW) --
-    def get_pool(self, sequence_id: str, sub_pool: str = None, limit: int = None) -> list:
-        return self.db.get_pool(sequence_id, sub_pool, limit)
+    def get_pool(self, pool_tag: str = None, sub_pool: str = None, limit: int = None) -> list:
+        """Get leads from the unified pool. pool_tag is treated as a sub_pool tag."""
+        return self.db.get_pool(pool_tag, sub_pool, limit)
 
-    def get_pool_count(self, sequence_id: str, sub_pool: str = None) -> int:
-        return self.db.get_pool_count(sequence_id, sub_pool)
+    def get_pool_count(self, pool_tag: str = None, sub_pool: str = None) -> int:
+        """Count leads in the unified pool. pool_tag is treated as a sub_pool tag."""
+        return self.db.get_pool_count(pool_tag, sub_pool)
 
-    def get_pool_stats(self, sequence_id: str = None) -> dict:
-        """Full pool breakdown for the Leads page segments."""
-        return self.db.pool_stats(sequence_id or "leads")
+    def get_pool_stats(self, pool_tag: str = None) -> dict:
+        """Full pool breakdown for the unified pool or a sub_pool tag."""
+        return self.db.pool_stats(pool_tag or "leads")
 
-    def reset_pool(self, sequence_id: str) -> dict:
+    def reset_pool(self, sub_pool: str = None) -> dict:
         """Re-campaign reset: make previously-contacted leads available again.
         Never touches replied or blacklisted leads; old sends are archived."""
-        result = self.db.reset_pool_for_recampaign(sequence_id)
-        self._log(f"[POOL RESET] {sequence_id}: {result['leads_reset']} leads available again, {result['sends_archived']} old sends archived")
+        result = self.db.reset_pool_for_recampaign(sub_pool=sub_pool)
+        self._log(f"[POOL RESET] {sub_pool or 'all'}: {result['leads_reset']} leads available again, {result['sends_archived']} old sends archived")
         try:
-            self.db.log_action("reset_pool", f"{sequence_id}: {result}")
+            self.db.log_action("reset_pool", f"{sub_pool or 'all'}: {result}")
         except Exception:
             pass
         return result
@@ -1644,20 +1662,20 @@ class CampaignEngine:
                                 sub_pool: str = None, day_offset: int = 1, scheduled_at: str = None,
                                 timezone: str = 'Asia/Kolkata', send_rate: int = 0,
                                 stagger_minutes: int = 2, source_sequence: str = None) -> dict:
-        # sequence_id is the target campaign sequence. source_sequence is the pool to pull from.
+        # sequence_id is the target email sequence (e.g. 'school' or 'csr-wsl-5').
+        # source_sequence / sub_pool is the sub-pool tag to pull from.
         target_seq = sequence_id if sequence_id in SEQUENCES else None
-        pool_seq = source_sequence or target_seq or sequence_id or "leads"
-        pool_count = self.get_pool_count(pool_seq, sub_pool)
+        pool_tag = source_sequence or sub_pool
+        pool_count = self.get_pool_count(pool_tag)
         if pool_count == 0:
-            return {"success": False, "error": f"No unbatched leads in {'generic' if not sub_pool else sub_pool} pool"}
+            return {"success": False, "error": f"No unbatched leads in {'generic' if not pool_tag else pool_tag} pool"}
 
         batch_seq = target_seq if target_seq else "unassigned"
         batch_id, error = self.db.batch_from_pool(
             name=name,
             sequence_id=batch_seq,
-            source_sequence=source_sequence,
             batch_size=batch_size,
-            sub_pool=sub_pool,
+            sub_pool=pool_tag,
             day_offset=day_offset,
             scheduled_at=scheduled_at,
             timezone=timezone,
@@ -1668,13 +1686,10 @@ class CampaignEngine:
         if error:
             return {"success": False, "error": error}
 
-        # Make sure recipients know their real sequence so templates render correctly
-        seq_result = None
+        # Set the batch sequence; recipients stay in the unified pool.
         if target_seq:
             try:
-                seq_result = self.db.assign_sequence_to_batch(batch_id, target_seq)
-                if seq_result.get("skipped", 0):
-                    self._log(f"[POOL] Batch created; {seq_result['assigned']} assigned to {target_seq}, {seq_result['skipped']} skipped (duplicate email in target sequence)")
+                self.db.assign_sequence_to_batch(batch_id, target_seq)
             except Exception as e:
                 self._log(f"[POOL] Batch created but sequence assignment failed: {e}")
 
@@ -1690,8 +1705,6 @@ class CampaignEngine:
             "pool_remaining": pool_count - actual_size,
             "day_offset": day_offset,
             "scheduled_at": scheduled_at,
-            "sequence_assigned": seq_result.get("assigned", 0) if target_seq else actual_size,
-            "sequence_skipped": seq_result.get("skipped", 0) if target_seq else 0,
         }
 
     # -- Blacklist --
@@ -2752,23 +2765,25 @@ Instructions:
         return md
 
     # -- Quota Rollback & Resume --
-    def resume_batch(self, seq_id: str, day: int, limit=None) -> BatchResult:
+    def _resume_pending(self, seq_id: str, day: int, limit=None) -> BatchResult:
+        """Shared resume logic. Respects daily send cap and send gap."""
         pending = self.db.execute(
             "SELECT recipient_id, subject FROM pending_resumes WHERE sequence_id=? AND day=? AND status='pending' ORDER BY id",
             (seq_id, day)
         ).fetchall()
 
         if not pending:
-            self._log(f"No pending resumes for {seq_id.upper()} Day {day}")
             return BatchResult(queued=0, sent=0)
 
         if limit:
             pending = pending[:limit]
 
-        self._log(f"Resuming {seq_id.upper()} Day {day}: {len(pending)} pending")
         sent = 0
-
         for rec_id, subject in pending:
+            if self._cap_remaining() <= 0:
+                self._log(f"Daily send cap ({self._daily_cap()}) reached during resume — {len(pending) - sent} left for next start")
+                break
+
             rec_row = self.db.execute("SELECT * FROM recipients WHERE id=?", (rec_id,)).fetchone()
             if not rec_row:
                 continue
@@ -2804,8 +2819,23 @@ Instructions:
                 )
 
         self.db.commit()
-        self._log(f"Resume complete: {sent}/{len(pending)} sent")
         return BatchResult(queued=len(pending), sent=sent)
+
+    def resume_batch(self, seq_id: str, day: int, limit=None) -> BatchResult:
+        pending = self.db.execute(
+            "SELECT recipient_id, subject FROM pending_resumes WHERE sequence_id=? AND day=? AND status='pending' ORDER BY id",
+            (seq_id, day)
+        ).fetchall()
+
+        if not pending:
+            self._log(f"No pending resumes for {seq_id.upper()} Day {day}")
+            return BatchResult(queued=0, sent=0)
+
+        total_pending = len(pending)
+        self._log(f"Resuming {seq_id.upper()} Day {day}: {total_pending} pending")
+        result = self._resume_pending(seq_id, day, limit)
+        self._log(f"Resume complete: {result.sent}/{total_pending} sent")
+        return BatchResult(queued=total_pending, sent=result.sent)
 
     def backdate_sequence(self, seq_id: str, day: int, days_ago: int) -> int:
         cutoff = (datetime.now() - timedelta(days=days_ago)).isoformat()
