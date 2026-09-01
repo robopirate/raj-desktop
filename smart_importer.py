@@ -12,6 +12,13 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
+try:
+    from email_validator import validate_email
+    EMAIL_VALIDATOR_AVAILABLE = True
+except Exception:
+    validate_email = None
+    EMAIL_VALIDATOR_AVAILABLE = False
+
 @dataclass
 class ColumnMapping:
     email: str = None
@@ -539,6 +546,17 @@ class SmartImporter:
             if not email:
                 skipped += 1
                 continue
+
+            # Syntax + MX validation. On validator outage, treat email as valid
+            # so imports are never blocked by a DNS failure.
+            try:
+                if validate_email is not None:
+                    ok, reason = validate_email(email)
+                    if not ok:
+                        skipped += 1
+                        continue
+            except Exception:
+                pass
 
             if self.db.blacklist_has(email):
                 blacklisted += 1

@@ -25,6 +25,13 @@ from flask_cors import CORS
 from db import Database
 from engine import CampaignEngine, SEQUENCES
 
+try:
+    from email_validator import validate_email
+    EMAIL_VALIDATOR_AVAILABLE = True
+except Exception:
+    validate_email = None
+    EMAIL_VALIDATOR_AVAILABLE = False
+
 # Static/template folders relative to this file
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -504,17 +511,15 @@ def get_template(seq, day):
 # ── Pools ─────────────────────────────────────────────────────────────────────
 @app.route("/api/pools", methods=["GET"])
 def list_pools():
-    """Return sub-pools and lead counts for a sequence."""
-    sequence_id = request.args.get("sequence_id", "leads")
+    """Return all sub-pool tags and lead counts from the unified pool."""
     try:
         rows = _db.execute(
             """
             SELECT sub_pool, COUNT(*) as cnt FROM recipients r
-            WHERE r.sequence_id=? AND r.batched=0
+            WHERE r.sequence_id='leads' AND r.batched=0
             AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
             GROUP BY sub_pool
-            """,
-            (sequence_id,)
+            """
         ).fetchall()
         pools = [{"name": r["sub_pool"] or "(no sub-pool)", "count": r["cnt"]} for r in rows]
         total = sum(p["count"] for p in pools)
@@ -525,10 +530,9 @@ def list_pools():
 
 @app.route("/api/pools/count", methods=["GET"])
 def pool_count():
-    sequence_id = request.args.get("sequence_id", "leads")
     sub_pool = request.args.get("sub_pool") or None
     try:
-        count = _engine.get_pool_count(sequence_id, sub_pool) if _engine else _db.get_pool_count(sequence_id, sub_pool)
+        count = _engine.get_pool_count(sub_pool) if _engine else _db.get_pool_count(sub_pool)
         return _ok({"count": count})
     except Exception as e:
         return _err(str(e), 500)
@@ -536,25 +540,28 @@ def pool_count():
 
 @app.route("/api/pools/stats", methods=["GET"])
 def pool_stats():
-    sequence_id = request.args.get("sequence_id") or None
+    sub_pool = request.args.get("sub_pool") or None
     try:
-        if sequence_id:
-            return _ok({sequence_id: _db.pool_stats(sequence_id)})
-        from engine import SEQUENCES
-        out = {sid: _db.pool_stats(sid) for sid in SEQUENCES}
-        out["leads"] = _db.pool_stats("leads")
+        if sub_pool:
+            return _ok({sub_pool: _db.pool_stats(sub_pool)})
+        out = {"all": _db.pool_stats("leads")}
+        # Also return per-tag stats
+        tags = _db.execute("SELECT DISTINCT sub_pool FROM recipients WHERE sequence_id='leads'").fetchall()
+        for r in tags:
+            tag = r[0] or "(no sub-pool)"
+            out[tag] = _db.pool_stats(tag)
         return _ok(out)
     except Exception as e:
         return _err(str(e), 500)
 
 
-@app.route("/api/pools/<seq>/reset-recampaign", methods=["POST"])
-def reset_pool_recampaign(seq):
+@app.route("/api/pools/<sub_pool>/reset-recampaign", methods=["POST"])
+def reset_pool_recampaign(sub_pool):
     engine, error = _engine_or_500()
     if error:
         return error
     try:
-        result = engine.reset_pool(seq)
+        result = engine.reset_pool(sub_pool)
         return _ok(result)
     except Exception as e:
         return _err(str(e), 500)
@@ -568,14 +575,13 @@ def create_batch():
         return error
     try:
         data = request.get_json() or {}
-        pull_from = data.get("pull_from") or data.get("sequence_id") or "leads"
-        sequence_id = data.get("sequence_id") or pull_from
+        pull_from = data.get("pull_from") or None
+        sequence_id = data.get("sequence_id") or None
         result = engine.create_batch_from_pool(
             name=data.get("name", "New Campaign"),
             sequence_id=sequence_id,
             source_sequence=pull_from,
             batch_size=int(data.get("batch_size", 10) or 10),
-            sub_pool=data.get("sub_pool") or None,
             day_offset=int(data.get("day_offset", 1) or 1),
             scheduled_at=data.get("scheduled_at") or None,
             timezone=data.get("timezone", "Asia/Kolkata"),
@@ -824,6 +830,18 @@ def _normalize_lead_row(row, sequence_id="leads", sub_pool=None):
             out["org"] = str(v).strip()
         else:
             out[k] = v
+
+    # Syntax + MX validation. On validator outage, treat email as valid so imports
+    # are never blocked by a DNS failure.
+    if out["email"]:
+        try:
+            if validate_email is not None:
+                ok, reason = validate_email(out["email"])
+                if not ok:
+                    out["status"] = reason
+        except Exception:
+            pass
+
     return out
 
 
@@ -854,11 +872,14 @@ def import_paste_preview():
             row_dict = {columns[i]: (r[i].strip() if i < len(r) else "") for i in range(len(columns))}
             lead = _normalize_lead_row(row_dict, sequence_id, sub_pool)
             if lead["email"]:
-                lead["status"] = "ready"
-                if _db.blacklist_has(lead["email"]):
-                    lead["status"] = "blacklisted"
-                elif _db.recipient_exists(lead["email"]):
-                    lead["status"] = "duplicate"
+                # Validation reasons (bad-syntax / no-mx) are set by the normalizer.
+                # Do not overwrite them; otherwise mark ready / blacklisted / duplicate.
+                if lead.get("status") not in ("bad-syntax", "no-mx"):
+                    lead["status"] = "ready"
+                    if _db.blacklist_has(lead["email"]):
+                        lead["status"] = "blacklisted"
+                    elif _db.recipient_exists(lead["email"]):
+                        lead["status"] = "duplicate"
                 rows.append(lead)
 
         return _ok({"rows": rows, "columns": list(rows[0].keys()) if rows else columns})
@@ -878,7 +899,7 @@ def import_paste_confirm():
         for row in rows:
             lead = _normalize_lead_row(row, sequence_id, sub_pool)
             email = lead["email"]
-            if not email or "@" not in email:
+            if not email or "@" not in email or lead.get("status") in ("bad-syntax", "no-mx"):
                 skipped += 1
                 continue
             if _db.blacklist_has(email) or _db.recipient_exists(email):
