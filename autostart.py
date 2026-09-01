@@ -30,14 +30,15 @@ def is_autostart_enabled() -> bool:
     return _shortcut_path().exists()
 
 
-def _create_shortcut_vbs(target: Path, shortcut: Path, icon: Path, arguments: str = None) -> str:
+def _create_shortcut_vbs(target: Path, shortcut: Path, icon: Path, arguments: str = None, working_dir: Path = None) -> str:
     """Return VBS source that creates a Windows shortcut."""
     args_line = f'lnk.Arguments = "{arguments}"' if arguments else ""
+    work_dir = working_dir or target.parent
     return f"""Set WshShell = WScript.CreateObject("WScript.Shell")
 Set lnk = WshShell.CreateShortcut("{shortcut}")
 lnk.TargetPath = "{target}"
 {args_line}
-lnk.WorkingDirectory = "{target.parent}"
+lnk.WorkingDirectory = "{work_dir}"
 lnk.IconLocation = "{icon},0"
 lnk.Save
 """
@@ -85,6 +86,7 @@ def add_to_startup(target: Path = None) -> bool:
             shortcut.resolve(),
             icon.resolve() if icon.exists() else shortcut_target.resolve(),
             arguments,
+            working_dir=root.resolve(),
         )
         with tempfile.NamedTemporaryFile("w", suffix=".vbs", delete=False, encoding="utf-8") as f:
             f.write(vbs)
