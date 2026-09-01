@@ -33,11 +33,11 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Not another subject on the timetable — a space where students learn by building and solving problems together.</p>
 
-<p>Since then, we've brought the same approach to schools across 6 states. Today, more than 65,000 students learn with us across 85+ schools. One I often think back to is Veer Baji Prabhu Vidyalay in Pune, where our first lab completed a full academic year.</p>
+<p>Since then, we've brought the same approach to schools across 6 states. Today, more than 75,000 students learn with our curriculum across 100+ schools. One I often think back to is Divine Paradise School in Pune, where our first lab completed a full academic year.</p>
 
 <p>If you're interested, here's a short walkthrough of a working lab.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -69,7 +69,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>If it raises questions, just reply. I'm happy to answer.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -87,7 +87,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>The real test is month eight, when the novelty is gone and the timetable takes over.</p>
 
-<p>Our first WE Smart Lab at Veer Baji Prabhu Vidyalay in Pune has completed a full academic year as a regular timetable subject, with students consistently in projects and assessments.</p>
+<p>Our first WE Smart Lab at Divine Paradise School in Pune has completed a full academic year as a regular timetable subject, with students consistently in projects and assessments.</p>
 
 <p>That consistency is what we were hoping for when we set up our first lab.</p>
 
@@ -97,7 +97,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 <p style="margin:0 0 12px;padding-left:18px;">• How the lab ran as a regular timetable subject, week after week<br>• Student project records and completion across grades<br>• Assessment outcomes and how learning was tracked per child</p>
 <p>Here it is.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -122,7 +122,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>If you would like to see what the initiative looked like in practice, the report is below.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -154,7 +154,7 @@ def _generate_school_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Want to see if it fits {{SCHOOL_NAME}}? Reply — or WhatsApp +91 91368 99925; happy to visit your campus.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -185,13 +185,13 @@ That's why we built WE Smart Lab.
 
 Not another subject on the timetable — a space where students learn by building and solving problems together.
 
-Since then, we've brought the same approach to schools across 6 states. Today, more than 65,000 students learn with us across 85+ schools. One I often think back to is Veer Baji Prabhu Vidyalay in Pune, where our first lab completed a full academic year.
+Since then, we've brought the same approach to schools across 6 states. Today, more than 75,000 students learn with our curriculum across 100+ schools. One I often think back to is Divine Paradise School in Pune, where our first lab completed a full academic year.
 
 If you're interested, here's a short walkthrough of a working lab.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -221,8 +221,8 @@ I've attached a specimen assessment report so you can see the records schools re
 If it raises questions, just reply. I'm happy to answer.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -236,7 +236,7 @@ A year is long enough to know whether something truly belongs in a school.
 
 The real test is month eight, when the novelty is gone and the timetable takes over.
 
-Our first WE Smart Lab at Veer Baji Prabhu Vidyalay in Pune has completed a full academic year as a regular timetable subject, with students consistently in projects and assessments.
+Our first WE Smart Lab at Divine Paradise School in Pune has completed a full academic year as a regular timetable subject, with students consistently in projects and assessments.
 
 That consistency is what we were hoping for when we set up our first lab.
 
@@ -250,8 +250,8 @@ Inside the report you'll find:
 Here it is.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -274,8 +274,8 @@ The same team, curriculum and delivery model runs inside private schools through
 If you would like to see what the initiative looked like in practice, the report is below.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -311,8 +311,8 @@ Full detail in the Subscription Overview below.
 Want to see if it fits {{SCHOOL_NAME}}? Reply — or WhatsApp +91 91368 99925; happy to visit your campus.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -337,13 +337,13 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>What happens after Year 1?</p>
 
-<p>The answer to that question shaped everything we've built since. What started in a college robotics club in 2018 — through years of kits, curricula and classrooms — is today the WE Smart Lab model, working with 85+ schools across 6 states, where more than 65,000 students learn. The first of those labs ran its full academic year with CSR support from Cummins.</p>
+<p>The answer to that question shaped everything we've built since. What started in a college robotics club in 2018 — through years of kits, curricula and classrooms — is today the WE Smart Lab model, working with 100+ schools across 6 states, where more than 75,000 students learn. The first of those labs ran its full academic year with CSR support from Cummins.</p>
 
 <p>If you'd like to know who we are and how the lab works, the attached brochure is a good place to start.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
-<p style="font-size:13px;color:#7A8A8A;">P.S. 85+ schools, 65,000+ students, 6 states — but it started with one classroom in Pune.</p>
+<p style="font-size:13px;color:#7A8A8A;">P.S. 100+ schools, 75,000+ students, 6 states — but it started with one classroom in Pune.</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -369,7 +369,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Next email: the answer we arrived at, and how it changed every lab we've designed since.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;">
@@ -398,7 +398,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Next email: what that made possible across other schools and communities.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #E0E8E8;">
 <table cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 10px;">
@@ -433,7 +433,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Final email next: how your organisation can be part of this model.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <p style="font-size:13px;color:#7A8A8A;">P.S. The work we're proudest of in Sangli isn't in any report — it's the Divyang students who now build robots alongside everyone else.</p>
 
@@ -466,7 +466,7 @@ def _generate_csr_wsl5_content(day: int, assets: Dict[str, str]) -> str:
 
 <p>Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By 2030, she could graduate with a five-year STEM portfolio in hand. Let's not make her wait another year.</p>
 
-<p>Regards,<br>Baban Jadhav<br>Program Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
+<p>Regards,<br>Om<br>Managing Director – WE Smart Lab<br>Robo Pirate<br>https://robopirate.in</p>
 
 <p style="font-size:13px;color:#7A8A8A;">P.S. If your team finalises CSR allocations this quarter, I can send a one-page budget note your committee can use.</p>
 
@@ -496,17 +496,17 @@ By year-end, the project had achieved what we set out to do. Yet one question re
 
 What happens after Year 1?
 
-The answer to that question shaped everything we've built since. What started in a college robotics club in 2018 — through years of kits, curricula and classrooms — is today the WE Smart Lab model, working with 85+ schools across 6 states, where more than 65,000 students learn. The first of those labs ran its full academic year with CSR support from Cummins.
+The answer to that question shaped everything we've built since. What started in a college robotics club in 2018 — through years of kits, curricula and classrooms — is today the WE Smart Lab model, working with 100+ schools across 6 states, where more than 75,000 students learn. The first of those labs ran its full academic year with CSR support from Cummins.
 
 If you'd like to know who we are and how the lab works, the attached brochure is a good place to start.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
-P.S. 85+ schools, 65,000+ students, 6 states — but it started with one classroom in Pune.
+P.S. 100+ schools, 75,000+ students, 6 states — but it started with one classroom in Pune.
 
 Explore the WE Smart Lab Brochure: {a.get('brochure', 'Available on request')}
 """,
@@ -528,8 +528,8 @@ Here is a short video of that lab in action.
 Next email: the answer we arrived at, and how it changed every lab we've designed since.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -557,8 +557,8 @@ Attached: the full story of that first year, and the Transparency Report documen
 Next email: what that made possible across other schools and communities.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -587,8 +587,8 @@ The Sangli report, short videos and media coverage are below.
 Final email next: how your organisation can be part of this model.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -619,8 +619,8 @@ Near Pune? Reply and I'll arrange a lab visit.
 Somewhere in a government school in Maharashtra, a girl is in Grade 4 today. By 2030, she could graduate with a five-year STEM portfolio in hand. Let's not make her wait another year.
 
 Regards,
-Baban Jadhav
-Program Director – WE Smart Lab
+Om
+Managing Director – WE Smart Lab
 Robo Pirate
 https://robopirate.in
 
@@ -661,7 +661,7 @@ PREHEADERS = {
     "school": {
         1: "Last week I visited three schools. One difference stayed with me.",
         3: "It is the question principals ask most. The answer is simpler than it sounds.",
-        5: "Our first lab at Veer Baji Prabhu Vidyalay just completed year one.",
+        5: "Our first lab at Divine Paradise School just completed year one.",
         7: "An AI and Robotics initiative for specially-abled students in Sangli.",
         10: "A complete Robotics & AI lab on your campus — from ₹1,600 per student per year, everything included."
     },

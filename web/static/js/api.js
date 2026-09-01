@@ -80,14 +80,14 @@ const API = {
     getPipeline(batchId) { return this.get(`/api/batches/${batchId}/pipeline`); },
     deleteFamily(batchId) { return this.delete(`/api/batches/${batchId}/family`); },
 
-    // Pools
-    listPools(seq) { return this.get(`/api/pools?sequence_id=${encodeURIComponent(seq)}`); },
-    poolCount(seq, sub) {
-        const q = sub ? `&sub_pool=${encodeURIComponent(sub)}` : '';
-        return this.get(`/api/pools/count?sequence_id=${encodeURIComponent(seq)}${q}`);
+    // Pools (unified pool; sub_pool is the tag filter)
+    listPools() { return this.get('/api/pools'); },
+    poolCount(sub) {
+        const q = sub ? `?sub_pool=${encodeURIComponent(sub)}` : '';
+        return this.get(`/api/pools/count${q}`);
     },
-    poolStats(seq) { return this.get(seq ? `/api/pools/stats?sequence_id=${encodeURIComponent(seq)}` : '/api/pools/stats'); },
-    resetPool(seq) { return this.post(`/api/pools/${encodeURIComponent(seq)}/reset-recampaign`); },
+    poolStats(sub) { return this.get(sub ? `/api/pools/stats?sub_pool=${encodeURIComponent(sub)}` : '/api/pools/stats'); },
+    resetPool(sub) { return this.post(`/api/pools/${encodeURIComponent(sub || '')}/reset-recampaign`); },
 
     // Batches (mutations)
     createBatch(body) { return this.post('/api/batches', body); },

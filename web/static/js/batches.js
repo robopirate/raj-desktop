@@ -13,7 +13,6 @@
         name: document.getElementById('batch-name'),
         sequence: document.getElementById('batch-sequence'),
         pullFrom: document.getElementById('batch-pull-from'),
-        subPool: document.getElementById('batch-sub-pool'),
         size: document.getElementById('batch-size'),
         offset: document.getElementById('batch-offset'),
         schedule: document.getElementById('batch-schedule'),
@@ -23,6 +22,11 @@
         statInBatches: document.getElementById('stat-in-batches'),
         statTotal: document.getElementById('stat-total'),
         btnResetPool: document.getElementById('btn-reset-pool'),
+        reconciliation: document.getElementById('batch-reconciliation'),
+        recRequested: document.getElementById('rec-requested'),
+        recAvailable: document.getElementById('rec-available'),
+        recAdded: document.getElementById('rec-added'),
+        recRemaining: document.getElementById('rec-remaining'),
         filterSeq: document.getElementById('batch-filter-seq'),
         body: document.getElementById('batches-body'),
     };
@@ -34,30 +38,17 @@
         } catch (e) {
             state.sequences = ['school', 'csr-wsl-5'];
         }
-        const allOptions = ['leads', ...state.sequences];
-        populateSelect(els.pullFrom, allOptions, false);
         populateSelect(els.sequence, state.sequences, false);
         populateSelect(els.filterSeq, state.sequences, true);
 
         // Preselect from a Leads-page segment, if we came from there
         let pre = null;
         try { pre = JSON.parse(sessionStorage.getItem('batch_preselect') || 'null'); sessionStorage.removeItem('batch_preselect'); } catch (_) {}
-        const preSeq = pre && pre.pull_from && allOptions.includes(pre.pull_from) ? pre.pull_from : null;
-
-        if (preSeq) {
-            els.pullFrom.value = preSeq;
-        } else if (state.sequences.length) {
-            els.pullFrom.value = state.sequences[0];
-        } else if (allOptions.includes('leads')) {
-            els.pullFrom.value = 'leads';
-        }
         const preTarget = (pre && pre.sequence_id && state.sequences.includes(pre.sequence_id)) ? pre.sequence_id
-            : (state.sequences.includes(els.pullFrom.value) ? els.pullFrom.value : state.sequences[0]);
+            : state.sequences[0];
         if (preTarget) els.sequence.value = preTarget;
 
-        await loadSubPools(els.pullFrom.value);
-        await updatePoolCount();
-        await updatePoolStats();
+        await loadSubPools();
     }
 
     function populateSelect(select, items, includeAll) {
@@ -79,25 +70,30 @@
         if (current && Array.from(select.options).some(o => o.value === current)) select.value = current;
     }
 
-    async function loadSubPools(seq) {
+    async function loadSubPools() {
         try {
-            const res = await API.listPools(seq);
+            const res = await API.listPools();
             state.subPools = (res && res.pools) ? res.pools : [];
         } catch (e) {
             state.subPools = [];
         }
-        const current = els.subPool.value;
-        els.subPool.innerHTML = '<option value="">— All unbatched leads —</option>';
+        const current = els.pullFrom.value;
+        els.pullFrom.innerHTML = '<option value="">— All leads —</option>';
         state.subPools.forEach(sp => {
             const opt = document.createElement('option');
             const isNoSub = !sp.name || sp.name === '(no sub-pool)';
             opt.value = isNoSub ? '' : sp.name;
             opt.textContent = `${isNoSub ? '— No sub-pool tag —' : sp.name}${sp.count != null ? ` (${sp.count})` : ''}`;
-            els.subPool.appendChild(opt);
+            els.pullFrom.appendChild(opt);
         });
-        if (current && Array.from(els.subPool.options).some(o => o.value === current)) {
-            els.subPool.value = current;
+        // Restore selection if still valid, otherwise keep All
+        if (current && Array.from(els.pullFrom.options).some(o => o.value === current)) {
+            els.pullFrom.value = current;
+        } else {
+            els.pullFrom.value = '';
         }
+        await updatePoolCount();
+        await updatePoolStats();
     }
 
     function escapeHtml(text) {
@@ -108,10 +104,9 @@
     }
 
     async function updatePoolCount() {
-        const seq = els.pullFrom.value || 'leads';
-        const sub = els.subPool.value || null;
+        const tag = els.pullFrom.value || null;
         try {
-            const res = await API.poolCount(seq, sub);
+            const res = await API.poolCount(tag);
             const count = (res && typeof res === 'object' ? res.count : res) ?? '—';
             els.poolCount.textContent = count;
         } catch (e) {
@@ -121,10 +116,10 @@
 
     async function updatePoolStats() {
         if (!els.poolStats) return;
-        const seq = els.pullFrom.value || 'leads';
+        const tag = els.pullFrom.value || 'leads';
         try {
-            const res = await API.poolStats(seq);
-            const stats = res && res[seq] ? res[seq] : {};
+            const res = await API.poolStats(tag);
+            const stats = res && res[tag] ? res[tag] : {};
             const available = stats.available ?? 0;
             const inBatches = stats.in_batches ?? 0;
             const total = stats.total ?? 0;
@@ -141,13 +136,16 @@
     }
 
     async function resetPoolForRecampaign() {
-        const seq = els.pullFrom.value || 'leads';
-        if (!seq || seq === 'leads') return;
-        if (!confirm(`Reset all eligible ${seq.toUpperCase()} leads for a new campaign? This will archive old send records and make replied/blacklisted leads unavailable.`)) return;
+        const tag = els.pullFrom.value || null;
+        if (!tag) {
+            if (!confirm('Reset all eligible leads for a new campaign? This will archive old send records and make replied/blacklisted leads unavailable.')) return;
+        } else {
+            if (!confirm(`Reset all eligible '${tag}' leads for a new campaign? This will archive old send records and make replied/blacklisted leads unavailable.`)) return;
+        }
         try {
-            const res = await API.resetPool(seq);
+            const res = await API.resetPool(tag);
             showToast(`Reset ${res.leads_reset || 0} leads for re-campaign.`, 'success');
-            await loadSubPools(seq);
+            await loadSubPools();
             await updatePoolCount();
             await updatePoolStats();
         } catch (e) {
@@ -313,22 +311,36 @@
     }
 
     function suggestBatchName() {
-        const seq = els.sequence.value || els.pullFrom.value || 'leads';
+        const seq = els.sequence.value || 'leads';
+        const tag = els.pullFrom.value;
         const pad = n => String(n).padStart(2, '0');
         const d = new Date();
         const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         const todayBatches = (state.pipelines || []).length;
         const letter = String.fromCharCode(65 + (todayBatches % 26));
-        return `${seq}-${stamp}-${letter}`;
+        return tag ? `${seq}-${tag}-${stamp}-${letter}` : `${seq}-${stamp}-${letter}`;
+    }
+
+    function showReconciliation(result) {
+        if (!els.reconciliation) return;
+        els.recRequested.textContent = result.requested_size ?? '—';
+        els.recAvailable.textContent = (result.requested_size ?? 0) + (result.pool_remaining ?? 0);
+        els.recAdded.textContent = result.size ?? '—';
+        els.recRemaining.textContent = result.pool_remaining ?? '—';
+        els.reconciliation.classList.remove('hidden');
+    }
+
+    function hideReconciliation() {
+        if (els.reconciliation) els.reconciliation.classList.add('hidden');
     }
 
     async function createBatch(e) {
         e.preventDefault();
+        hideReconciliation();
         const body = {
             name: els.name.value.trim() || suggestBatchName(),
-            pull_from: els.pullFrom.value || 'leads',
+            pull_from: els.pullFrom.value || null,
             sequence_id: els.sequence.value || null,
-            sub_pool: els.subPool.value || null,
             batch_size: parseInt(els.size.value, 10),
             day_offset: parseInt(els.offset.value, 10),
             scheduled_at: els.schedule.value || nextTenAm(),
@@ -336,11 +348,12 @@
         try {
             const result = await API.createBatch(body);
             showToast(`Batch created with ${result.size || 0} recipients`, 'success');
+            showReconciliation(result);
             els.form.reset();
             els.size.value = '25';
             els.offset.value = '1';
             els.name.value = suggestBatchName();
-            if (els.pullFrom) els.pullFrom.value = 'leads';
+            if (els.pullFrom) els.pullFrom.value = '';
             await updatePoolCount();
             await loadPipelines();
         } catch (err) {
@@ -350,16 +363,17 @@
 
     async function createAndStart(e) {
         e.preventDefault();
+        hideReconciliation();
         const body = {
             name: els.name.value.trim() || suggestBatchName(),
-            pull_from: els.pullFrom.value || 'leads',
+            pull_from: els.pullFrom.value || null,
             sequence_id: els.sequence.value || null,
-            sub_pool: els.subPool.value || null,
             batch_size: parseInt(els.size.value, 10),
             day_offset: parseInt(els.offset.value, 10),
         };
         try {
             const result = await API.createBatch(body);
+            showReconciliation(result);
             if (result.batch_id && body.sequence_id) {
                 await API.startBatch(result.batch_id, body.sequence_id);
                 showToast(`Batch created (${result.size || 0} leads) and started`, 'success');
@@ -511,17 +525,12 @@
         document.getElementById('btn-create-start')?.addEventListener('click', createAndStart);
         if (els.name && !els.name.value) els.name.value = suggestBatchName();
         els.pullFrom.addEventListener('change', async () => {
-            await loadSubPools(els.pullFrom.value);
             await updatePoolCount();
             await updatePoolStats();
             if (els.name && !els.name.value) els.name.value = suggestBatchName();
         });
         els.sequence?.addEventListener('change', () => {
             if (els.name && !els.name.value) els.name.value = suggestBatchName();
-        });
-        els.subPool.addEventListener('change', async () => {
-            await updatePoolCount();
-            await updatePoolStats();
         });
         if (els.btnResetPool) els.btnResetPool.addEventListener('click', resetPoolForRecampaign);
         if (els.filterSeq) els.filterSeq.addEventListener('change', loadPipelines);

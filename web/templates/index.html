@@ -231,17 +231,14 @@
                                         <input type="text" id="batch-name" class="input w-full rounded-xl px-4 py-2 text-sm" placeholder="e.g. Master_Lead_B2" required>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Pull From</label>
-                                        <select id="batch-pull-from" class="input w-full rounded-xl px-4 py-2 text-sm"></select>
-                                        <p class="text-xs text-[var(--text-muted)] mt-1">Pool source for unbatched leads</p>
+                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Sub-pool / source</label>
+                                        <select id="batch-pull-from" class="input w-full rounded-xl px-4 py-2 text-sm"><option value="">— All leads —</option></select>
+                                        <p class="text-xs text-[var(--text-muted)] mt-1">Pull leads from this tag. Use tags like csr, school, etc.</p>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Assign Sequence</label>
                                         <select id="batch-sequence" class="input w-full rounded-xl px-4 py-2 text-sm"></select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">Sub-pool (optional)</label>
-                                        <select id="batch-sub-pool" class="input w-full rounded-xl px-4 py-2 text-sm"><option value="">— All leads —</option></select>
+                                        <p class="text-xs text-[var(--text-muted)] mt-1">Which email sequence to send.</p>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
@@ -290,6 +287,13 @@
                                         <button type="button" id="btn-reset-pool" class="hidden w-full mt-1 py-1.5 px-3 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors">
                                             Reset for re-campaign
                                         </button>
+                                    </div>
+                                    <div id="batch-reconciliation" class="hidden text-xs bg-emerald-50 text-emerald-800 rounded-xl p-3 space-y-1 border border-emerald-100">
+                                        <div class="font-medium mb-1">Batch created — reconciliation</div>
+                                        <div class="flex items-center justify-between"><span>Requested</span><span id="rec-requested">—</span></div>
+                                        <div class="flex items-center justify-between"><span>Pool had</span><span id="rec-available">—</span></div>
+                                        <div class="flex items-center justify-between"><span>Added</span><span id="rec-added">—</span></div>
+                                        <div class="flex items-center justify-between"><span>Remaining</span><span id="rec-remaining">—</span></div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-3">
                                         <button type="submit" class="btn-secondary w-full py-2.5 rounded-xl text-sm font-medium">Create batch</button>

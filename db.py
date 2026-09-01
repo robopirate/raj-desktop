@@ -76,17 +76,20 @@ class Database:
             CREATE TABLE IF NOT EXISTS recipients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sequence_id TEXT,
-                email TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
                 name TEXT,
                 org TEXT,
                 extra_json TEXT,
                 sub_pool TEXT DEFAULT '',
                 import_status TEXT DEFAULT 'pending',
                 import_error TEXT,
-                imported_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(sequence_id, email)
+                batched INTEGER DEFAULT 0,
+                imported_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_recipients_sequence ON recipients(sequence_id);
+            CREATE INDEX IF NOT EXISTS idx_recipients_sub_pool ON recipients(sub_pool);
+            CREATE INDEX IF NOT EXISTS idx_recipients_batched ON recipients(batched);
+            CREATE INDEX IF NOT EXISTS idx_recipients_email ON recipients(email);
 
             -- Batches
             CREATE TABLE IF NOT EXISTS batches (
@@ -471,16 +474,21 @@ class Database:
 
     # -- RECIPIENTS / POOL --
     def recipient_add(self, sequence_id, email, name, org, extra_json=None, sub_pool=None):
+        """Add or update a lead in the unified pool.
+
+        All leads live in the generic pool (sequence_id='leads').
+        sub_pool is a tag like 'csr' or 'school' for segmentation.
+        """
         with self.atomic():
             try:
                 self.execute("""
                     INSERT INTO recipients (sequence_id, email, name, org, extra_json, sub_pool, import_status, batched, imported_at)
                     VALUES (?, ?, ?, ?, ?, ?, 'success', 0, ?)
-                    ON CONFLICT(sequence_id, email) DO UPDATE SET
+                    ON CONFLICT(email) DO UPDATE SET
                         name=excluded.name, org=excluded.org, extra_json=excluded.extra_json,
                         sub_pool=excluded.sub_pool, import_status='success', import_error=NULL,
                         imported_at=excluded.imported_at
-                """, (sequence_id, email.lower().strip(), name, org, extra_json, sub_pool or '', self._now_iso()))
+                """, ('leads', email.lower().strip(), name, org, extra_json, sub_pool or '', self._now_iso()))
                 self.commit()
                 return True, None
             except Exception as e:
@@ -503,17 +511,18 @@ class Database:
 
     # -- POOL METHODS (NEW) --
     def get_pool(self, sequence_id, sub_pool=None, limit=None):
-        """Get unbatched leads from the pool. Excludes blacklisted emails.
-        Optionally filter by sub_pool tag."""
-        if sequence_id is None or sequence_id == "leads":
-            where_clause = "r.sequence_id='leads' AND r.batched=0"
-            params = []
-        else:
-            where_clause = "r.sequence_id=? AND r.batched=0"
-            params = [sequence_id]
-        if sub_pool:
+        """Get unbatched leads from the unified pool. Excludes blacklisted emails.
+
+        sequence_id is kept for API compatibility but is now treated as a
+        sub_pool tag filter (unless it is 'leads' or None, in which case
+        the explicit sub_pool argument is used).
+        """
+        tag = sub_pool if sequence_id is None or sequence_id == "leads" else sequence_id
+        params = []
+        where_clause = "r.sequence_id='leads' AND r.batched=0"
+        if tag:
             where_clause += " AND r.sub_pool = ?"
-            params.append(sub_pool)
+            params.append(tag)
         sql = f"""
             SELECT r.* FROM recipients r
             WHERE {where_clause}
@@ -527,17 +536,18 @@ class Database:
         return [dict(r) for r in rows]
 
     def get_pool_count(self, sequence_id, sub_pool=None):
-        """Count unbatched leads in pool. Excludes blacklisted emails.
-        Optionally filter by sub_pool tag."""
-        if sequence_id is None or sequence_id == "leads":
-            where_clause = "r.sequence_id='leads' AND r.batched=0"
-            params = []
-        else:
-            where_clause = "r.sequence_id=? AND r.batched=0"
-            params = [sequence_id]
-        if sub_pool:
+        """Count unbatched leads in the unified pool. Excludes blacklisted emails.
+
+        sequence_id is kept for API compatibility but is now treated as a
+        sub_pool tag filter (unless it is 'leads' or None, in which case
+        the explicit sub_pool argument is used).
+        """
+        tag = sub_pool if sequence_id is None or sequence_id == "leads" else sequence_id
+        params = []
+        where_clause = "r.sequence_id='leads' AND r.batched=0"
+        if tag:
             where_clause += " AND r.sub_pool = ?"
-            params.append(sub_pool)
+            params.append(tag)
         row = self.execute(f"""
             SELECT COUNT(*) FROM recipients r
             WHERE {where_clause}
@@ -546,9 +556,14 @@ class Database:
         return row[0] if row else 0
 
     def pool_stats(self, sequence_id):
-        """Full pool breakdown for a sequence (or 'leads' generic pool)."""
-        seq = sequence_id or "leads"
-        row = self.execute("""
+        """Full pool breakdown for a sub_pool tag (or the whole unified pool)."""
+        tag = sequence_id or "leads"
+        params = []
+        where_clause = "r.sequence_id='leads'"
+        if tag and tag != "leads":
+            where_clause += " AND r.sub_pool = ?"
+            params.append(tag)
+        row = self.execute(f"""
             SELECT
                 COUNT(*) AS total,
                 SUM(CASE WHEN r.batched=0 THEN 1 ELSE 0 END) AS available,
@@ -558,8 +573,8 @@ class Database:
                 SUM(CASE WHEN EXISTS (SELECT 1 FROM replies rp WHERE rp.from_addr=r.email)
                       OR EXISTS (SELECT 1 FROM batch_recipients br WHERE br.recipient_id=r.id AND br.status='replied')
                     THEN 1 ELSE 0 END) AS replied
-            FROM recipients r WHERE r.sequence_id=?
-        """, (seq,)).fetchone()
+            FROM recipients r WHERE {where_clause}
+        """, params).fetchone()
         return {
             "total": row["total"] or 0,
             "available": row["available"] or 0,
@@ -569,12 +584,13 @@ class Database:
             "replied": row["replied"] or 0,
         }
 
-    def reset_pool_for_recampaign(self, sequence_id):
+    def reset_pool_for_recampaign(self, sequence_id=None, sub_pool=None):
         """Make previously-contacted leads available again for a NEW campaign.
 
-        Only touches leads that are NOT blacklisted and have NOT replied.
-        Their old send records are moved to archived_sends (recoverable), and
-        batched is reset to 0 so they can be pulled into a fresh Day-1 batch.
+        Operates on the unified pool (sequence_id='leads'). Optionally filters by
+        sub_pool tag. Only touches leads that are NOT blacklisted and have NOT
+        replied. Their old send records are moved to archived_sends, and batched
+        is reset to 0 with sequence_id restored to 'leads'.
         """
         self.execute("""
             CREATE TABLE IF NOT EXISTS archived_sends (
@@ -593,9 +609,16 @@ class Database:
                 archived_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        eligible = """
+        params = []
+        where_clause = "r.sequence_id='leads'"
+        # sequence_id is treated as sub_pool tag for legacy callers
+        tag = sub_pool if sequence_id in (None, "leads") else sequence_id
+        if tag:
+            where_clause += " AND r.sub_pool = ?"
+            params.append(tag)
+        eligible = f"""
             SELECT r.id FROM recipients r
-            WHERE r.sequence_id=?
+            WHERE {where_clause}
               AND NOT EXISTS (SELECT 1 FROM blacklist b WHERE b.email=r.email)
               AND NOT EXISTS (SELECT 1 FROM replies rp WHERE rp.from_addr=r.email)
               AND NOT EXISTS (SELECT 1 FROM batch_recipients br WHERE br.recipient_id=r.id AND br.status='replied')
@@ -604,10 +627,10 @@ class Database:
             INSERT INTO archived_sends (recipient_id, batch_id, day, subject, draft_id, status, ab_variant, created_at, sent_at, opened_at, clicked_at)
             SELECT s.recipient_id, s.batch_id, s.day, s.subject, s.draft_id, s.status, s.ab_variant, s.created_at, s.sent_at, s.opened_at, s.clicked_at
             FROM sends s WHERE s.recipient_id IN ({eligible})
-        """, (sequence_id,))
+        """, params)
         sends_archived = self.execute("SELECT changes()").fetchone()[0]
-        self.execute(f"DELETE FROM sends WHERE recipient_id IN ({eligible})", (sequence_id,))
-        self.execute(f"UPDATE recipients SET batched=0 WHERE id IN ({eligible})", (sequence_id,))
+        self.execute(f"DELETE FROM sends WHERE recipient_id IN ({eligible})", params)
+        self.execute(f"UPDATE recipients SET batched=0 WHERE id IN ({eligible})", params)
         leads_reset = self.execute("SELECT changes()").fetchone()[0]
         self.commit()
         return {"leads_reset": leads_reset, "sends_archived": sends_archived}
@@ -775,17 +798,19 @@ class Database:
     def batch_from_pool(self, name, sequence_id, batch_size, sub_pool=None, day_offset=1, 
                         scheduled_at=None, timezone='Asia/Kolkata', send_rate=0, stagger_minutes=0, campaign_id=None,
                         source_sequence=None):
-        """Create a batch from unbatched leads in the pool.
+        """Create a batch from unbatched leads in the unified pool.
+
+        sequence_id: the campaign sequence the batch will send.
+        sub_pool / source_sequence: sub-pool tag to pull from (e.g. 'csr', 'school').
         SAFETY: Only picks leads with batched=0. Atomic claim via row-level check.
-        Optionally filter by sub_pool tag.
-        source_sequence: pool to pull from (defaults to sequence_id or 'leads')."""
+        """
         with self.atomic():
-            pool_seq_id = source_sequence or ("leads" if sequence_id is None or sequence_id == "leads" else sequence_id)
+            pool_tag = source_sequence or sub_pool
             batch_seq_id = "unassigned" if sequence_id is None or sequence_id == "leads" else sequence_id
             
-            pool = self.get_pool(pool_seq_id, sub_pool, limit=batch_size)
+            pool = self.get_pool("leads", pool_tag, limit=batch_size)
             if not pool:
-                return None, "No unbatched leads in pool for this sequence"
+                return None, "No unbatched leads in pool for this tag"
 
             # Atomic claim: UPDATE only rows still unbatched, then verify rowcount
             verified_pool = []
@@ -1278,30 +1303,16 @@ class Database:
 
 
     def assign_sequence_to_batch(self, batch_id, sequence_id):
-        """Update a batch and its recipients to a new sequence_id.
-        Skips recipients that would violate the UNIQUE(sequence_id, email) constraint.
-        Returns dict with batch_rows, assigned, skipped."""
+        """Set the campaign sequence for a batch.
+
+        Recipients stay in the unified generic pool (sequence_id='leads');
+        the batch itself carries the target sequence_id for template selection.
+        Returns dict with batch_rows updated.
+        """
         with self.atomic():
             cur_batch = self.execute("UPDATE batches SET sequence_id=? WHERE id=?", (sequence_id, batch_id))
-            recipient_ids = [r[0] for r in self.execute(
-                "SELECT recipient_id FROM batch_recipients WHERE batch_id=?", (batch_id,)
-            ).fetchall()]
-            assigned = 0
-            skipped = 0
-            for rid in recipient_ids:
-                # Skip if same email already exists in target sequence
-                conflict = self.execute("""
-                    SELECT 1 FROM recipients r1
-                    JOIN recipients r2 ON r2.email = r1.email AND r2.sequence_id = ?
-                    WHERE r1.id = ? AND r2.id != r1.id
-                """, (sequence_id, rid)).fetchone()
-                if conflict:
-                    skipped += 1
-                    continue
-                cur = self.execute("UPDATE recipients SET sequence_id=? WHERE id=?", (sequence_id, rid))
-                assigned += cur.rowcount
             self.commit()
-            return {"batch_rows": cur_batch.rowcount, "assigned": assigned, "skipped": skipped}
+            return {"batch_rows": cur_batch.rowcount, "assigned": 0, "skipped": 0}
 
     # -- REPLIES --
     def get_replies_with_drafts(self, filter_status=None, filter_sentiment=None, search=None):
